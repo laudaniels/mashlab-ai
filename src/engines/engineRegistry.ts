@@ -5,10 +5,12 @@ import type {
   BeatEngine,
   ExportMasteringEngine,
   KeyEngine,
+  MetadataEngine,
   PitchTimeEngine,
   StemEngine,
   VocalCleanupEngine,
 } from "./contracts.ts";
+import { browserMetadataEngine } from "./metadataAdapter.ts";
 import {
   stubArrangementEngine,
   stubBeatEngine,
@@ -20,6 +22,7 @@ import {
 } from "./stubEngines.ts";
 
 export interface EngineRegistry {
+  metadata: MetadataEngine;
   beat: BeatEngine;
   key: KeyEngine;
   stems: StemEngine;
@@ -32,6 +35,7 @@ export interface EngineRegistry {
 
 export function createEngineRegistry(): EngineRegistry {
   return {
+    metadata: browserMetadataEngine,
     beat: stubBeatEngine,
     key: stubKeyEngine,
     stems: stubStemEngine,

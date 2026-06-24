@@ -20,6 +20,8 @@ Implemented:
 - WAV container sample-rate/channel parsing when available.
 - Web Audio decoding for duration and waveform summaries when the browser supports the file.
 - Honest adapter-hook placeholders for beat/key/stem analysis.
+- Sequential track job queue with implemented browser metadata adapter.
+- Local-engine binary check script for future FFmpeg/ffprobe integration.
 
 Not implemented yet:
 
@@ -47,4 +49,5 @@ npm run lint
 npm run typecheck
 npm run build
 npm test
+npm run check:local-engine
 ```

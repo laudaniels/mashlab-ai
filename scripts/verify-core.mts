@@ -13,8 +13,10 @@ describe("MashLab core verification", async () => {
   const legal = await importSrc("src/lib/legal.ts");
   const audioMetadata = await importSrc("src/lib/audioMetadata.ts");
   const { createEngineRegistry } = await importSrc("src/engines/engineRegistry.ts");
-  const { engineCapabilities } = await importSrc("src/domain/enginePlan.ts");
+  const { engineCapabilities, draftTemplates } = await importSrc("src/domain/enginePlan.ts");
   const { runMashAnalysis } = await importSrc("src/lib/analysisPipeline.ts");
+  const { createTrackJob, deriveJobState } = await importSrc("src/domain/jobs.ts");
+  const { runTrackJob, summarizeTrackJob } = await importSrc("src/lib/jobRunner.ts");
 
   it("includes the required rights notice verbatim", () => {
     assert.match(legal.requiredRightsNotice, /Upload audio you own or are authorized to use/);
@@ -59,6 +61,7 @@ describe("MashLab core verification", async () => {
   it("maps planned capabilities to stub adapters", () => {
     const registry = createEngineRegistry();
     assert.deepEqual(registry.capabilities, engineCapabilities);
+    assert.equal(registry.metadata.status, "implemented");
     assert.equal(registry.beat.status, "analysis-coming-next");
     assert.equal(registry.stems.status, "engine-pending");
     assert.equal(registry.pitchTime.status, "engine-pending");
@@ -81,6 +84,8 @@ describe("MashLab core verification", async () => {
       notes: [],
     });
 
+    assert.equal(snapshot.metadata.state, "complete");
+    assert.equal(snapshot.metadata.status, "implemented");
     assert.equal(snapshot.beat.data, null);
     assert.equal(snapshot.beat.status, "analysis-coming-next");
     assert.equal(snapshot.key.status, "analysis-coming-next");
@@ -104,6 +109,77 @@ describe("MashLab core verification", async () => {
     assert.equal(snapshot.beat.state, "failed");
     assert.equal(snapshot.key.state, "failed");
     assert.equal(snapshot.stems.status, "engine-pending");
+  });
+
+  it("creates a track job with metadata marked implemented", () => {
+    const job = createTrackJob({
+      sessionId: "session-1",
+      slotId: "trackA",
+      inspectionId: "inspection-1",
+    });
+
+    assert.equal(job.steps.length, 8);
+    assert.equal(job.steps[0]?.id, "metadata");
+    assert.equal(job.steps[0]?.status, "implemented");
+    assert.equal(deriveJobState(job.steps), "idle");
+  });
+
+  it("runs a sequential track job and completes metadata first", async () => {
+    const job = await runTrackJob({
+      sessionId: "session-2",
+      slotId: "trackB",
+      inspection: {
+        id: "inspection-2",
+        fileName: "authorized.wav",
+        fileType: "audio/wav",
+        fileSizeBytes: 2048,
+        durationSeconds: 90,
+        sampleRate: 44100,
+        channelCount: 2,
+        waveformPeaks: [0.2, 0.6],
+        decoded: true,
+        notes: [],
+      },
+    });
+
+    const metadataStep = job.steps.find((step: { id: string }) => step.id === "metadata");
+    assert.equal(metadataStep?.state, "complete");
+    assert.equal(metadataStep?.status, "implemented");
+
+    const summary = summarizeTrackJob(job);
+    assert.equal(summary.completedSteps, 1);
+    assert.ok(summary.nextPendingLabel);
+  });
+
+  it("stops the track job when a required MIR lane fails on undecoded audio", async () => {
+    const job = await runTrackJob({
+      sessionId: "session-3",
+      slotId: "trackA",
+      inspection: {
+        id: "inspection-3",
+        fileName: "limited.mp3",
+        fileType: "audio/mpeg",
+        fileSizeBytes: 1024,
+        durationSeconds: 45,
+        sampleRate: null,
+        channelCount: null,
+        waveformPeaks: [],
+        decoded: false,
+        notes: ["Browser decode unavailable"],
+      },
+    });
+
+    const beatStep = job.steps.find((step: { id: string }) => step.id === "beat");
+    assert.equal(beatStep?.state, "failed");
+    assert.equal(job.state, "failed");
+  });
+
+  it("uses the three MVP draft template names", () => {
+    assert.ok(engineCapabilities.length >= 8);
+    assert.deepEqual(
+      draftTemplates.map((draft: { name: string }) => draft.name),
+      ["Clean Blend", "Club Edit", "Creative Blend"]
+    );
   });
 
   it("isolates adapter failures to the failing lane", async () => {

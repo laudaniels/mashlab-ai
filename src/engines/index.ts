@@ -1,3 +1,4 @@
+export { browserMetadataEngine } from "./metadataAdapter.ts";
 export * from "./contracts.ts";
 export { createEngineRegistry, engineRegistry } from "./engineRegistry.ts";
 export {

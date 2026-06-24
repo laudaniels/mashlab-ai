@@ -26,20 +26,27 @@ src/
     TrackAnalysisPanel.tsx
   domain/
     enginePlan.ts
+    jobs.ts
     types.ts
   engines/
     contracts.ts
     engineRegistry.ts
+    metadataAdapter.ts
     stubEngines.ts
     index.ts
   hooks/
     useMashAnalysis.ts
+    useTrackJob.ts
   lib/
     analysisPipeline.ts
     audioMetadata.ts
+    jobRunner.ts
     legal.ts
   scripts/
     verify-core.mts
+  local-engine/
+    README.md
+    check-binaries.mts
 ```
 
 ## Implemented Adapter Skeleton

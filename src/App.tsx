@@ -74,6 +74,7 @@ const emptySlotErrors: SlotErrorMap = {
 };
 
 function App() {
+  const sessionIdRef = useRef(crypto.randomUUID());
   const [activeScreen, setActiveScreen] = useState<ScreenId>("intro");
   const [tracks, setTracks] = useState<TrackMap>(emptyTracks);
   const [slotErrors, setSlotErrors] = useState<SlotErrorMap>(emptySlotErrors);
@@ -334,7 +335,7 @@ function App() {
             {readyTracks.length > 0 ? (
               <div className="analysis-track-grid">
                 {readyTracks.map((track) => (
-                  <TrackAnalysisPanel key={track.objectUrl} track={track} />
+                  <TrackAnalysisPanel key={track.objectUrl} sessionId={sessionIdRef.current} track={track} />
                 ))}
               </div>
             ) : null}

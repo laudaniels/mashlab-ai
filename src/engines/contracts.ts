@@ -48,9 +48,24 @@ export interface ExportMasteringResult {
 }
 
 export interface MashAnalysisSnapshot {
+  metadata: EngineJobResult<MetadataAnalysisResult>;
   beat: EngineJobResult<BeatAnalysisResult>;
   key: EngineJobResult<KeyAnalysisResult>;
   stems: EngineJobResult<StemSeparationResult>;
+}
+
+export interface MetadataAnalysisResult {
+  fileName: string;
+  fileType: string;
+  fileSizeBytes: number;
+  fileSizeLabel: string;
+  durationSeconds: number | null;
+  durationLabel: string;
+  sampleRate: number | null;
+  channelCount: number | null;
+  decoded: boolean;
+  waveformPeakCount: number;
+  notes: string[];
 }
 
 export interface AudioEngineAdapter<TInput, TOutput> {
@@ -60,6 +75,7 @@ export interface AudioEngineAdapter<TInput, TOutput> {
   analyze(input: TInput): Promise<EngineJobResult<TOutput>>;
 }
 
+export type MetadataEngine = AudioEngineAdapter<AudioInspection, MetadataAnalysisResult>;
 export type BeatEngine = AudioEngineAdapter<AudioInspection, BeatAnalysisResult>;
 export type KeyEngine = AudioEngineAdapter<AudioInspection, KeyAnalysisResult>;
 export type StemEngine = AudioEngineAdapter<AudioInspection, StemSeparationResult>;

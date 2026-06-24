@@ -1,56 +1,64 @@
-import { Activity, AlertTriangle, Gauge, KeyRound } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  FileAudio2,
+  Gauge,
+  KeyRound,
+  LoaderCircle,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { TrackState } from "../domain/types.ts";
-import { useMashAnalysis } from "../hooks/useMashAnalysis.ts";
+import type { MashJobStep } from "../domain/jobs.ts";
+import { summarizeTrackJob } from "../lib/jobRunner.ts";
+import { useTrackJob } from "../hooks/useTrackJob.ts";
 
 interface TrackAnalysisPanelProps {
+  sessionId: string;
   track: TrackState;
 }
 
-export function TrackAnalysisPanel({ track }: TrackAnalysisPanelProps) {
-  const { snapshot, isRunning } = useMashAnalysis(track.inspection);
+export function TrackAnalysisPanel({ sessionId, track }: TrackAnalysisPanelProps) {
+  const { job, isRunning } = useTrackJob({
+    sessionId,
+    slotId: track.slotId,
+    inspection: track.inspection,
+  });
 
   if (!track.inspection) {
     return (
       <article className="analysis-track-card">
         <h3>{track.file.name}</h3>
-        <p className="note-text">Local metadata is still loading.</p>
+        <div className="loading-inline">
+          <LoaderCircle aria-hidden="true" className="spin-icon" size={18} />
+          <span>Inspecting local metadata…</span>
+        </div>
       </article>
     );
   }
+
+  const summary = job ? summarizeTrackJob(job) : null;
 
   return (
     <article className="analysis-track-card">
       <div className="analysis-track-header">
         <h3>{track.file.name}</h3>
-        <span className="status-text">{isRunning ? "Running adapter hooks" : "Adapter hooks ready"}</span>
+        <span className="status-text">
+          {isRunning
+            ? "Running engine job queue"
+            : summary
+              ? `${summary.completedSteps}/${summary.totalSteps} phases complete`
+              : "Job queue pending"}
+        </span>
       </div>
 
       <div className="analysis-engine-grid">
-        <EngineLane
-          icon={Gauge}
-          label="Beat / tempo / phrase"
-          message={snapshot?.beat.message ?? "Waiting for adapter lane"}
-          status={snapshot?.beat.status ?? "analysis-coming-next"}
-          state={snapshot?.beat.state ?? "idle"}
-        />
-        <EngineLane
-          icon={KeyRound}
-          label="Key / harmony"
-          message={snapshot?.key.message ?? "Waiting for adapter lane"}
-          status={snapshot?.key.status ?? "analysis-coming-next"}
-          state={snapshot?.key.state ?? "idle"}
-        />
-        <EngineLane
-          icon={Activity}
-          label="Stem separation"
-          message={snapshot?.stems.message ?? "Waiting for adapter lane"}
-          status={snapshot?.stems.status ?? "engine-pending"}
-          state={snapshot?.stems.state ?? "idle"}
-        />
+        {(job?.steps ?? []).map((step) => (
+          <JobStepLane key={step.id} step={step} />
+        ))}
       </div>
 
-      {snapshot?.beat.state === "failed" || snapshot?.key.state === "failed" ? (
+      {job?.steps.some((step) => step.id !== "metadata" && step.state === "failed") ? (
         <div className="empty-analysis">
           <AlertTriangle aria-hidden="true" size={18} />
           <span>Decoded audio is required before MIR engines can run on this track.</span>
@@ -60,25 +68,52 @@ export function TrackAnalysisPanel({ track }: TrackAnalysisPanelProps) {
   );
 }
 
-interface EngineLaneProps {
-  icon: LucideIcon;
-  label: string;
-  message: string;
-  status: "implemented" | "engine-pending" | "analysis-coming-next";
-  state: "idle" | "queued" | "running" | "complete" | "failed";
-}
+function JobStepLane({ step }: { step: MashJobStep }) {
+  const Icon = phaseIcon(step.id);
 
-function EngineLane({ icon: Icon, label, message, status, state }: EngineLaneProps) {
   return (
     <div className="analysis-engine-lane">
       <div className="analysis-engine-lane-header">
-        <Icon aria-hidden="true" size={18} />
-        <strong>{label}</strong>
-        <span className={`status-pill status-${status}`}>
-          {state === "failed" ? "Decode required" : status.replace(/-/g, " ")}
-        </span>
+        {step.state === "running" ? (
+          <LoaderCircle aria-hidden="true" className="spin-icon" size={18} />
+        ) : step.state === "complete" ? (
+          <CheckCircle2 aria-hidden="true" size={18} />
+        ) : (
+          <Icon aria-hidden="true" size={18} />
+        )}
+        <strong>{step.label}</strong>
+        <span className={`status-pill status-${step.status}`}>{stepStatusLabel(step)}</span>
       </div>
-      <p>{message}</p>
+      <p>{step.message}</p>
     </div>
   );
+}
+
+function stepStatusLabel(step: MashJobStep): string {
+  if (step.state === "running") {
+    return "Running";
+  }
+
+  if (step.state === "complete" && step.status === "implemented") {
+    return "Implemented";
+  }
+
+  if (step.state === "failed") {
+    return step.id === "metadata" ? "Failed" : "Decode required";
+  }
+
+  return step.status.replace(/-/g, " ");
+}
+
+function phaseIcon(phase: MashJobStep["id"]): LucideIcon {
+  switch (phase) {
+    case "metadata":
+      return FileAudio2;
+    case "beat":
+      return Gauge;
+    case "key":
+      return KeyRound;
+    default:
+      return Activity;
+  }
 }

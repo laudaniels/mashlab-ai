@@ -6,13 +6,14 @@ export async function runMashAnalysis(
   inspection: AudioInspection,
   registry: EngineRegistry = engineRegistry
 ): Promise<MashAnalysisSnapshot> {
-  const [beat, key, stems] = await Promise.all([
+  const [metadata, beat, key, stems] = await Promise.all([
+    settleEngineResult(registry.metadata.analyze(inspection), registry.metadata.status, registry.metadata.name),
     settleEngineResult(registry.beat.analyze(inspection), registry.beat.status, registry.beat.name),
     settleEngineResult(registry.key.analyze(inspection), registry.key.status, registry.key.name),
     settleEngineResult(registry.stems.analyze(inspection), registry.stems.status, registry.stems.name),
   ]);
 
-  return { beat, key, stems };
+  return { metadata, beat, key, stems };
 }
 
 async function settleEngineResult<T>(

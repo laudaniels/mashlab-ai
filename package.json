@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test scripts/verify-core.mts"
+    "test": "node --experimental-strip-types --test scripts/verify-core.mts",
+    "check:local-engine": "node --experimental-strip-types local-engine/check-binaries.mts"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

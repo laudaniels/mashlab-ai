@@ -45,6 +45,13 @@ export const workflowScreens: WorkflowScreen[] = [
 
 export const engineCapabilities: EngineCapability[] = [
   {
+    id: "metadata",
+    name: "Local metadata inspection",
+    status: "implemented",
+    target: "Duration, sample rate, channels, file size, waveform summary",
+    adapterPlan: "Browser Web Audio and media metadata; ffprobe path in local engine service.",
+  },
+  {
     id: "stem-separation",
     name: "Stem separation",
     status: "engine-pending",
@@ -101,11 +108,11 @@ export const draftTemplates = [
     description: "Phrase-safe intro/outro transition with conservative vocal handling.",
   },
   {
-    name: "Hook Over Drop",
-    description: "Vocal hook from one track over the highest-energy section of the other.",
+    name: "Club Edit",
+    description: "Longer 16/32-bar DJ mix shape with controllable energy and exit.",
   },
   {
-    name: "Club Blend",
-    description: "Longer 16/32-bar DJ mix shape with controllable energy and exit.",
+    name: "Creative Blend",
+    description: "More experimental phrasing and vocal/instrument layering when the user wants options.",
   },
 ];

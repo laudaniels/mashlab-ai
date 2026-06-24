@@ -8,3 +8,5 @@ dist
 coverage
 *.log
 *.tsbuildinfo
+local-engine/artifacts
+local-engine/.work

@@ -22,7 +22,14 @@ describe("MashLab core verification", async () => {
     parseCapabilitiesResponse,
     summarizeCapabilities,
   } = await importSrc("src/lib/localEngine/capabilities.ts");
+  const {
+    beatResultDetails,
+    isLibrosaAvailable,
+    parseBeatAnalysisResponse,
+    parseKeyAnalysisResponse,
+  } = await importSrc("src/lib/localEngine/analysis.ts");
   const { LocalEngineClient } = await importSrc("src/lib/localEngine/client.ts");
+  const { createLocalAwareBeatEngine } = await importSrc("src/engines/localMirEngines.ts");
 
   it("includes the required rights notice verbatim", () => {
     assert.match(legal.requiredRightsNotice, /Upload audio you own or are authorized to use/);
@@ -269,6 +276,73 @@ describe("MashLab core verification", async () => {
       "arrangement",
       "export",
     ]);
+  });
+
+  it("parses beat and key analysis responses", () => {
+    const beat = parseBeatAnalysisResponse({
+      ok: true,
+      status: "implemented",
+      message: "Experimental BPM",
+      result: {
+        file_name: "authorized.wav",
+        bpm: 128.2,
+        beat_times: [0.5, 1.0],
+        beat_count: 2,
+        method: "librosa.beat.beat_track (experimental prototype)",
+        limitations: ["Experimental prototype"],
+        confidence: 0.71,
+        downbeat_status: "not_implemented",
+        phrase_marker_status: "not_implemented",
+      },
+    });
+
+    assert.ok(beat?.result);
+    assert.equal(beat?.result?.beat_count, 2);
+    assert.match(beatResultDetails(beat!.result!)[0], /128.2/);
+
+    const key = parseKeyAnalysisResponse({
+      ok: false,
+      status: "missing_dependency",
+      message: "librosa is not installed",
+      setup_guidance: "pip install librosa soundfile",
+    });
+
+    assert.equal(key?.ok, false);
+    assert.equal(key?.status, "missing_dependency");
+  });
+
+  it("detects librosa availability from capability payloads", () => {
+    assert.equal(
+      isLibrosaAvailable([
+        { id: "librosa", label: "librosa", status: "available", message: "installed" },
+      ]),
+      true
+    );
+    assert.equal(
+      isLibrosaAvailable([
+        { id: "librosa", label: "librosa", status: "not_configured", message: "missing" },
+      ]),
+      false
+    );
+  });
+
+  it("keeps beat lane pending when local service is offline", async () => {
+    const beatEngine = createLocalAwareBeatEngine({ file: null, localStatus: null });
+    const result = await beatEngine.analyze({
+      id: "offline-beat",
+      fileName: "authorized.wav",
+      fileType: "audio/wav",
+      fileSizeBytes: 1024,
+      durationSeconds: 60,
+      sampleRate: 44100,
+      channelCount: 2,
+      waveformPeaks: [0.2],
+      decoded: true,
+      notes: [],
+    });
+
+    assert.equal(result.state, "idle");
+    assert.equal(result.status, "analysis-coming-next");
   });
 });
 

@@ -12,6 +12,7 @@ import type { TrackState } from "../domain/types.ts";
 import type { MashJobStep } from "../domain/jobs.ts";
 import { summarizeTrackJob } from "../lib/jobRunner.ts";
 import { useTrackJob } from "../hooks/useTrackJob.ts";
+import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 
 interface TrackAnalysisPanelProps {
   sessionId: string;
@@ -19,10 +20,13 @@ interface TrackAnalysisPanelProps {
 }
 
 export function TrackAnalysisPanel({ sessionId, track }: TrackAnalysisPanelProps) {
+  const { status: localStatus } = useLocalEngineStatus();
   const { job, isRunning } = useTrackJob({
     sessionId,
     slotId: track.slotId,
     inspection: track.inspection,
+    file: track.file,
+    localStatus,
   });
 
   if (!track.inspection) {
@@ -85,6 +89,13 @@ function JobStepLane({ step }: { step: MashJobStep }) {
         <span className={`status-pill status-${step.status}`}>{stepStatusLabel(step)}</span>
       </div>
       <p>{step.message}</p>
+      {step.details && step.details.length > 0 ? (
+        <ul className="analysis-step-details">
+          {step.details.map((detail) => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -95,7 +106,11 @@ function stepStatusLabel(step: MashJobStep): string {
   }
 
   if (step.state === "complete" && step.status === "implemented") {
-    return "Implemented";
+    return step.id === "beat" || step.id === "key" ? "Prototype" : "Implemented";
+  }
+
+  if (step.state === "failed" && step.message.toLowerCase().includes("librosa")) {
+    return "Missing dependency";
   }
 
   if (step.state === "failed") {

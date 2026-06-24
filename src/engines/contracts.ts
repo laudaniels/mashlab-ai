@@ -7,19 +7,29 @@ export interface EngineJobResult<T> {
   data: T | null;
   status: EngineStatus;
   message: string;
+  details?: string[];
 }
 
 export interface BeatAnalysisResult {
   bpm: number | null;
   bpmConfidence: number | null;
+  beatTimes: number[];
+  beatCount: number;
+  method: string;
+  limitations: string[];
   downbeatOffsetMs: number | null;
   phraseBarMarkers: number[];
+  downbeatStatus?: "not_implemented" | "implemented";
+  phraseMarkerStatus?: "not_implemented" | "implemented";
 }
 
 export interface KeyAnalysisResult {
   key: string | null;
+  mode: "major" | "minor" | "unknown";
   camelot: string | null;
   confidence: number | null;
+  method: string;
+  limitations: string[];
   pitchShiftSemitones: number | null;
 }
 

@@ -1,0 +1,6 @@
+# Optional analysis dependencies for BPM/key prototype lanes.
+# Install after base service requirements:
+#   pip install -r requirements-analysis.txt
+librosa>=0.10.2
+soundfile>=0.12.1
+numpy>=1.26.0

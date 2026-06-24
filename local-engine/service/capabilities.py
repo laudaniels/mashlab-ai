@@ -106,7 +106,7 @@ def detect_capabilities() -> list[ServiceCapability]:
         _python_capability(),
         _binary_capability("ffmpeg", "FFmpeg", ["ffmpeg"]),
         _binary_capability("ffprobe", "ffprobe", ["ffprobe"]),
-        _optional_python_package("librosa", "librosa", "librosa", planned=True),
+        _optional_python_package("librosa", "librosa", "librosa"),
         _optional_python_package("essentia", "Essentia", "essentia", planned=True),
         _optional_python_package("torch", "PyTorch", "torch", planned=True),
         _optional_python_package("demucs", "Demucs", "demucs", planned=True),

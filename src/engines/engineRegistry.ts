@@ -11,11 +11,11 @@ import type {
   VocalCleanupEngine,
 } from "./contracts.ts";
 import { browserMetadataEngine } from "./metadataAdapter.ts";
+import { createLocalAwareBeatEngine, createLocalAwareKeyEngine } from "./localMirEngines.ts";
+import type { LocalMirContext } from "./localMirEngines.ts";
 import {
   stubArrangementEngine,
-  stubBeatEngine,
   stubExportMasteringEngine,
-  stubKeyEngine,
   stubPitchTimeEngine,
   stubStemEngine,
   stubVocalCleanupEngine,
@@ -33,11 +33,11 @@ export interface EngineRegistry {
   capabilities: EngineCapability[];
 }
 
-export function createEngineRegistry(): EngineRegistry {
+export function createEngineRegistry(context: LocalMirContext = { file: null, localStatus: null }): EngineRegistry {
   return {
     metadata: browserMetadataEngine,
-    beat: stubBeatEngine,
-    key: stubKeyEngine,
+    beat: createLocalAwareBeatEngine(context),
+    key: createLocalAwareKeyEngine(context),
     stems: stubStemEngine,
     pitchTime: stubPitchTimeEngine,
     vocalCleanup: stubVocalCleanupEngine,
@@ -48,3 +48,5 @@ export function createEngineRegistry(): EngineRegistry {
 }
 
 export const engineRegistry = createEngineRegistry();
+
+export type { LocalMirContext };

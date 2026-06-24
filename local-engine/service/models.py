@@ -82,3 +82,41 @@ class MetadataAnalysisResponse(BaseModel):
     message: str
     result: MetadataAnalysisResult | None = None
     setup_guidance: str | None = None
+
+
+class BeatAnalysisResult(BaseModel):
+    file_name: str
+    bpm: float | None = None
+    beat_times: list[float] = Field(default_factory=list)
+    beat_count: int = 0
+    method: str
+    limitations: list[str] = Field(default_factory=list)
+    confidence: float | None = None
+    downbeat_status: Literal["not_implemented", "implemented"] = "not_implemented"
+    phrase_marker_status: Literal["not_implemented", "implemented"] = "not_implemented"
+
+
+class BeatAnalysisResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    result: BeatAnalysisResult | None = None
+    setup_guidance: str | None = None
+
+
+class KeyAnalysisResult(BaseModel):
+    file_name: str
+    key: str | None = None
+    mode: Literal["major", "minor", "unknown"] = "unknown"
+    camelot: str | None = None
+    method: str
+    limitations: list[str] = Field(default_factory=list)
+    confidence: float | None = None
+
+
+class KeyAnalysisResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    result: KeyAnalysisResult | None = None
+    setup_guidance: str | None = None

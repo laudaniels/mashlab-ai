@@ -21,12 +21,13 @@ Implemented:
 - Web Audio decoding for duration and waveform summaries when the browser supports the file.
 - Honest adapter-hook placeholders for beat/key/stem analysis.
 - Sequential track job queue with implemented browser metadata adapter.
-- Local Python sidecar foundation at `local-engine/service/` with health, capabilities, jobs, and ffprobe metadata endpoints.
-- Local engine status indicator in the app sidebar with browser-only fallback.
+- Local Python sidecar at `local-engine/service/` with health, capabilities, jobs, ffprobe metadata, and experimental librosa BPM/key endpoints.
+- Local engine status indicator and beat/key lanes that call the sidecar when librosa is available.
+- Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
-- BPM/key detection, beat/downbeat grids, phrase detection, stem separation, AI arrangement, pitch/time processing, vocal cleanup, mastering, or export rendering.
+- Downbeat/phrase grids, stem separation, AI arrangement, pitch/time processing, vocal cleanup, mastering, or export rendering.
 
 ## Legal Notice
 
@@ -52,10 +53,11 @@ cd local-engine\service
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md` for ffprobe setup and smoke tests.
+See `local-engine/service/README.md` and `docs/BPM_KEY_ANALYSIS.md` for optional dependency setup and prototype limitations.
 
 ## Quality Commands
 

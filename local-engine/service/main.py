@@ -2,24 +2,25 @@
 
 from __future__ import annotations
 
-import shutil
-from pathlib import Path
-from uuid import uuid4
-
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 import config
+from beat_analysis import analyze_beat_file
 from capabilities import detect_capabilities, python_version_label
 from jobs import complete_metadata_job, create_job, fail_job, get_job, update_job
+from key_analysis import analyze_key_file
 from metadata import analyze_metadata_file
 from models import (
+    BeatAnalysisResponse,
     CapabilitiesResponse,
     CreateJobRequest,
     HealthResponse,
     JobResponse,
+    KeyAnalysisResponse,
     MetadataAnalysisResponse,
 )
+from uploads import cleanup_path, save_upload
 
 app = FastAPI(
     title="MashLab Local Engine",
@@ -77,21 +78,27 @@ def capabilities() -> CapabilitiesResponse:
 def submit_job(request: CreateJobRequest) -> JobResponse:
     job = create_job(request)
 
-    if request.phase != "metadata":
+    if request.phase not in {"metadata", "beat", "key"}:
         return update_job(
             job.job_id,
             state="failed",
             status=_phase_status_for(request.phase),
             message=(
-                f"{request.phase} is not implemented in the local service foundation phase. "
-                "Only metadata jobs are supported today."
+                f"{request.phase} is not implemented in this service phase. "
+                "Beat and key prototype analysis are available through /v1/analyze/beat and /v1/analyze/key."
             ),
         ) or job
+
+    endpoint_hint = {
+        "metadata": "POST /v1/analyze/metadata",
+        "beat": "POST /v1/analyze/beat",
+        "key": "POST /v1/analyze/key",
+    }[request.phase]
 
     return update_job(
         job.job_id,
         state="queued",
-        message="Metadata job accepted. Upload the file through POST /v1/analyze/metadata.",
+        message=f"{request.phase} job accepted. Upload the file through {endpoint_hint}.",
     ) or job
 
 
@@ -108,17 +115,10 @@ async def analyze_metadata(
     file: UploadFile = File(...),
     job_id: str | None = None,
 ) -> MetadataAnalysisResponse:
-    if file.filename is None or file.filename.strip() == "":
-        raise HTTPException(status_code=400, detail="A local audio filename is required.")
-
-    suffix = Path(file.filename).suffix or ".audio"
-    temp_path = config.TEMP_DIR / f"metadata-{uuid4().hex}{suffix}"
+    temp_path, filename = await save_upload(file, "metadata")
 
     try:
-        with temp_path.open("wb") as handle:
-            shutil.copyfileobj(file.file, handle)
-
-        response = analyze_metadata_file(temp_path, file.filename)
+        response = analyze_metadata_file(temp_path, filename)
 
         if job_id is not None:
             if response.ok and response.result is not None:
@@ -128,8 +128,27 @@ async def analyze_metadata(
 
         return response
     finally:
-        if temp_path.exists():
-            temp_path.unlink(missing_ok=True)
+        cleanup_path(temp_path)
+
+
+@app.post("/v1/analyze/beat", response_model=BeatAnalysisResponse)
+async def analyze_beat(file: UploadFile = File(...)) -> BeatAnalysisResponse:
+    temp_path, filename = await save_upload(file, "beat")
+
+    try:
+        return analyze_beat_file(temp_path, filename)
+    finally:
+        cleanup_path(temp_path)
+
+
+@app.post("/v1/analyze/key", response_model=KeyAnalysisResponse)
+async def analyze_key(file: UploadFile = File(...)) -> KeyAnalysisResponse:
+    temp_path, filename = await save_upload(file, "key")
+
+    try:
+        return analyze_key_file(temp_path, filename)
+    finally:
+        cleanup_path(temp_path)
 
 
 def _phase_status_for(phase: str) -> str:

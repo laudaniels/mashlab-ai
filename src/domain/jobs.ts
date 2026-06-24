@@ -18,6 +18,7 @@ export interface MashJobStep {
   state: JobState;
   status: EngineStatus;
   message: string;
+  details?: string[];
   startedAt: string | null;
   completedAt: string | null;
 }

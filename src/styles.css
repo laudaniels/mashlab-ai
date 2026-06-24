@@ -780,6 +780,17 @@ audio {
   font-size: 13px;
 }
 
+.analysis-step-details {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #9eb0cb;
+  font-size: 12px;
+}
+
+.analysis-step-details li + li {
+  margin-top: 4px;
+}
+
 .analysis-engine-lane-header {
   display: flex;
   align-items: center;

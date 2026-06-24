@@ -1,12 +1,19 @@
 import { createBrowserOnlyStatus, parseCapabilitiesResponse } from "./capabilities.ts";
+import { parseBeatAnalysisResponse, parseKeyAnalysisResponse } from "./analysis.ts";
 import type {
+  BeatAnalysisResponse,
   CreateLocalJobRequest,
+  KeyAnalysisResponse,
   LocalEngineConnectionStatus,
   LocalEngineHealth,
   LocalServiceJob,
   MetadataAnalysisResponse,
 } from "./types.ts";
-import { DEFAULT_LOCAL_ENGINE_URL, LOCAL_ENGINE_REQUEST_TIMEOUT_MS } from "./types.ts";
+import {
+  DEFAULT_LOCAL_ENGINE_URL,
+  LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
+  LOCAL_ENGINE_REQUEST_TIMEOUT_MS,
+} from "./types.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -95,6 +102,7 @@ export class LocalEngineClient {
     const response = await this.request(`/v1/analyze/metadata${query}`, {
       method: "POST",
       body: formData,
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
     });
 
     if (!response?.ok) {
@@ -104,11 +112,52 @@ export class LocalEngineClient {
     return (await response.json()) as MetadataAnalysisResponse;
   }
 
-  private async request(path: string, init?: RequestInit): Promise<Response | null> {
+  async analyzeBeat(file: File): Promise<BeatAnalysisResponse | null> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await this.request("/v1/analyze/beat", {
+      method: "POST",
+      body: formData,
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseBeatAnalysisResponse(payload);
+  }
+
+  async analyzeKey(file: File): Promise<KeyAnalysisResponse | null> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await this.request("/v1/analyze/key", {
+      method: "POST",
+      body: formData,
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseKeyAnalysisResponse(payload);
+  }
+
+  private async request(
+    path: string,
+    init?: RequestInit & { timeoutMs?: number }
+  ): Promise<Response | null> {
+    const timeoutMs = init?.timeoutMs ?? LOCAL_ENGINE_REQUEST_TIMEOUT_MS;
+
     try {
       const response = await fetch(`${this.baseUrl}${path}`, {
         ...init,
-        signal: AbortSignal.timeout(LOCAL_ENGINE_REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       return response;
     } catch {

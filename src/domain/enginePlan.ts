@@ -63,14 +63,14 @@ export const engineCapabilities: EngineCapability[] = [
     name: "Beat, downbeat, tempo, phrase",
     status: "analysis-coming-next",
     target: "Beat grid, downbeats, tempo confidence, 8/16/32-bar phrases",
-    adapterPlan: "BeatNet+ and Essentia as preferred lanes; librosa-style prototype path.",
+    adapterPlan: "Local librosa beat_track prototype now; BeatNet+ and Essentia upgrade path next.",
   },
   {
     id: "key-harmony",
     name: "Key and harmonic matching",
     status: "analysis-coming-next",
     target: "Detected key, Camelot compatibility, relative major/minor hints",
-    adapterPlan: "Key detector behind confidence scoring and pitch-shift guardrails.",
+    adapterPlan: "Local librosa chroma/CQT prototype now; Essentia key profiles and pitch-shift guardrails next.",
   },
   {
     id: "pitch-time",

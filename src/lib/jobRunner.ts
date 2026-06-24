@@ -47,9 +47,15 @@ export async function runTrackJob(params: {
     );
 
     job = applyEngineResult(job, phase, result);
+
+    if (shouldStopQueue(phase, result, params.inspection)) {
+      job = { ...job, state: deriveJobState(job.steps), updatedAt: new Date().toISOString() };
+      break;
+    }
+
     job = { ...job, state: deriveJobState(job.steps), updatedAt: new Date().toISOString() };
 
-    if (result.state === "failed") {
+    if (result.state === "failed" && phase === "metadata") {
       break;
     }
   }
@@ -75,8 +81,25 @@ function applyEngineResult(
     state: nextState,
     status: result.status,
     message: result.message,
+    details: result.details,
     completedAt: nextState === "complete" || nextState === "failed" ? new Date().toISOString() : null,
   });
+}
+
+function shouldStopQueue(
+  phase: JobPhase,
+  result: EngineJobResult<unknown>,
+  inspection: AudioInspection
+): boolean {
+  if (phase !== "beat" && phase !== "key") {
+    return false;
+  }
+
+  if (result.state !== "failed") {
+    return false;
+  }
+
+  return !inspection.decoded || result.message.toLowerCase().includes("decoded audio buffer");
 }
 
 function markStep(

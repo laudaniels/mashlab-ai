@@ -76,6 +76,44 @@ export interface MetadataAnalysisResponse {
   setup_guidance: string | null;
 }
 
+export interface BeatAnalysisResultPayload {
+  file_name: string;
+  bpm: number | null;
+  beat_times: number[];
+  beat_count: number;
+  method: string;
+  limitations: string[];
+  confidence: number | null;
+  downbeat_status: "not_implemented" | "implemented";
+  phrase_marker_status: "not_implemented" | "implemented";
+}
+
+export interface BeatAnalysisResponse {
+  ok: boolean;
+  status: string;
+  message: string;
+  result: BeatAnalysisResultPayload | null;
+  setup_guidance: string | null;
+}
+
+export interface KeyAnalysisResultPayload {
+  file_name: string;
+  key: string | null;
+  mode: "major" | "minor" | "unknown";
+  camelot: string | null;
+  method: string;
+  limitations: string[];
+  confidence: number | null;
+}
+
+export interface KeyAnalysisResponse {
+  ok: boolean;
+  status: string;
+  message: string;
+  result: KeyAnalysisResultPayload | null;
+  setup_guidance: string | null;
+}
+
 export interface LocalEngineConnectionStatus {
   online: boolean;
   mode: "browser-only" | "local-service";
@@ -87,3 +125,5 @@ export interface LocalEngineConnectionStatus {
 export const DEFAULT_LOCAL_ENGINE_URL = "http://127.0.0.1:47831";
 
 export const LOCAL_ENGINE_REQUEST_TIMEOUT_MS = 2500;
+
+export const LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS = 90000;

@@ -29,6 +29,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
@@ -48,6 +49,8 @@ npm run dev
 | POST | `/v1/jobs` | Queue a typed local job |
 | GET | `/v1/jobs/{job_id}` | Read job status |
 | POST | `/v1/analyze/metadata` | Upload a local audio file for ffprobe metadata |
+| POST | `/v1/analyze/beat` | Upload a local audio file for experimental BPM/beat analysis |
+| POST | `/v1/analyze/key` | Upload a local audio file for experimental key analysis |
 
 ## Capability Statuses
 
@@ -97,10 +100,12 @@ python -m unittest discover -s tests -p "test_*.py"
 - Job create/read skeleton
 - ffprobe metadata when available
 - Graceful structured errors when ffprobe is missing
+- Experimental librosa BPM/beat and key endpoints when optional analysis dependencies are installed
 
 ## Not Implemented Yet
 
-- BPM / key analysis
+- Downbeat and phrase marker detection
+- BeatNet+ / Essentia upgrade path
 - Stem separation
 - Arrangement drafts
 - Export/mastering

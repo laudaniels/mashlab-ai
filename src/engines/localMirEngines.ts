@@ -48,7 +48,7 @@ export function createLocalAwareBeatEngine(context: LocalMirContext): BeatEngine
         return stubBeatEngine.analyze(inspection);
       }
 
-      const response = await localEngineClient.analyzeBeat(context.file);
+      const response = await localEngineClient.analyzeBeat(context.file, inspection.id);
 
       if (!response) {
         return {
@@ -116,7 +116,7 @@ export function createLocalAwareKeyEngine(context: LocalMirContext): KeyEngine {
         return stubKeyEngine.analyze(inspection);
       }
 
-      const response = await localEngineClient.analyzeKey(context.file);
+      const response = await localEngineClient.analyzeKey(context.file, inspection.id);
 
       if (!response) {
         return {

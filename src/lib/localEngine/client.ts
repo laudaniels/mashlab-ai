@@ -1,5 +1,11 @@
 import { createBrowserOnlyStatus, parseCapabilitiesResponse } from "./capabilities.ts";
 import { parseBeatAnalysisResponse, parseKeyAnalysisResponse } from "./analysis.ts";
+import {
+  getCachedBeatAnalysis,
+  getCachedKeyAnalysis,
+  setCachedBeatAnalysis,
+  setCachedKeyAnalysis,
+} from "./analysisCache.ts";
 import type {
   BeatAnalysisResponse,
   CreateLocalJobRequest,
@@ -112,7 +118,27 @@ export class LocalEngineClient {
     return (await response.json()) as MetadataAnalysisResponse;
   }
 
-  async analyzeBeat(file: File): Promise<BeatAnalysisResponse | null> {
+  async analyzeBeat(file: File, inspectionId?: string): Promise<BeatAnalysisResponse | null> {
+    const cached = getCachedBeatAnalysis<BeatAnalysisResponse | null>(file, inspectionId);
+    if (cached) {
+      return cached;
+    }
+
+    const request = this.requestBeatAnalysis(file);
+    return setCachedBeatAnalysis(file, request, inspectionId);
+  }
+
+  async analyzeKey(file: File, inspectionId?: string): Promise<KeyAnalysisResponse | null> {
+    const cached = getCachedKeyAnalysis<KeyAnalysisResponse | null>(file, inspectionId);
+    if (cached) {
+      return cached;
+    }
+
+    const request = this.requestKeyAnalysis(file);
+    return setCachedKeyAnalysis(file, request, inspectionId);
+  }
+
+  private async requestBeatAnalysis(file: File): Promise<BeatAnalysisResponse | null> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -130,7 +156,7 @@ export class LocalEngineClient {
     return parseBeatAnalysisResponse(payload);
   }
 
-  async analyzeKey(file: File): Promise<KeyAnalysisResponse | null> {
+  private async requestKeyAnalysis(file: File): Promise<KeyAnalysisResponse | null> {
     const formData = new FormData();
     formData.append("file", file);
 

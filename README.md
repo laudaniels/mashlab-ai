@@ -23,11 +23,16 @@ Implemented:
 - Sequential track job queue with implemented browser metadata adapter.
 - Local Python sidecar at `local-engine/service/` with health, capabilities, jobs, ffprobe metadata, and experimental librosa BPM/key endpoints.
 - Local engine status indicator and beat/key lanes that call the sidecar when librosa is available.
+- Beat grid model with heuristic 8-bar phrase planning (DJ review required).
+- Harmonic compatibility planner with Camelot-style labels and pitch-shift suggestions (planning only).
+- Mashup Planning panel when both tracks are analyzed.
+- In-memory beat/key analysis cache to avoid duplicate uploads within a session.
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
-- Downbeat/phrase grids, stem separation, AI arrangement, pitch/time processing, vocal cleanup, mastering, or export rendering.
+- True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
+- Stem separation, AI arrangement, pitch/time processing, vocal cleanup, mastering, or export rendering.
 
 ## Legal Notice
 
@@ -57,7 +62,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md` and `docs/BPM_KEY_ANALYSIS.md` for optional dependency setup and prototype limitations.
+See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, and `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md` for optional dependency setup, prototype limitations, and mashup planning behavior.
 
 ## Quality Commands
 

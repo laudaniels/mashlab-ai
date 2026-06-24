@@ -43,6 +43,10 @@ import {
 import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
+import { MashupPlanningPanel } from "./components/MashupPlanningPanel";
+import type { MashTrackJob } from "./domain/jobs.ts";
+import { extractBeatResult } from "./domain/mashupPlanning.ts";
+import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
 
 type ScreenId = WorkflowScreen["id"];
 type TrackMap = Record<SlotId, TrackState | null>;
@@ -79,6 +83,10 @@ function App() {
   const [activeScreen, setActiveScreen] = useState<ScreenId>("intro");
   const [tracks, setTracks] = useState<TrackMap>(emptyTracks);
   const [slotErrors, setSlotErrors] = useState<SlotErrorMap>(emptySlotErrors);
+  const [trackJobs, setTrackJobs] = useState<Record<SlotId, MashTrackJob | null>>({
+    trackA: null,
+    trackB: null,
+  });
   const tracksRef = useRef(tracks);
 
   useEffect(() => {
@@ -100,6 +108,10 @@ function App() {
     [tracks]
   );
   const readyTracks = loadedTracks.filter((track) => track.status === "ready");
+
+  function updateTrackJob(slotId: SlotId, job: MashTrackJob | null) {
+    setTrackJobs((current) => ({ ...current, [slotId]: job }));
+  }
 
   async function handleFileChange(slotId: SlotId, event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
@@ -185,6 +197,8 @@ function App() {
     }
     setTracks((current) => ({ ...current, [slotId]: null }));
     setSlotErrors((current) => ({ ...current, [slotId]: null }));
+    updateTrackJob(slotId, null);
+    clearAnalysisCache();
   }
 
   return (
@@ -319,15 +333,26 @@ function App() {
             <ScreenTitle
               eyebrow="Analysis dashboard"
               icon={Activity}
-              title="Local Metadata Now, MIR Engines Next"
-              subtitle="Duration, sample rate, channels, file size, and waveform summary are real when browser decoding succeeds. BPM, key, downbeat, and phrase structure remain pending."
+              title="Track Analysis and Mashup Planning"
+              subtitle="Browser metadata is local. BPM/key prototypes run through the optional sidecar when librosa is installed. Harmonic and phrase planning are advisory and require DJ review."
             />
             <div className="stats-grid">
               <StatTile icon={FileAudio2} label="Loaded files" value={`${loadedTracks.length}/2`} />
               <StatTile icon={Clock3} label="Total duration" value={totalDurationLabel(readyTracks)} />
-              <StatTile icon={Gauge} label="BPM / beat grid" value="Analysis coming next" />
-              <StatTile icon={KeyRound} label="Key match" value="Engine pending" />
+              <StatTile
+                icon={Gauge}
+                label="BPM / beat grid"
+                value={planningBpmLabel(trackJobs.trackA, trackJobs.trackB)}
+              />
+              <StatTile
+                icon={KeyRound}
+                label="Harmonic planning"
+                value={readyTracks.length === 2 ? "Ready to compare" : "Load both tracks"}
+              />
             </div>
+            {readyTracks.length === 2 ? (
+              <MashupPlanningPanel trackAJob={trackJobs.trackA} trackBJob={trackJobs.trackB} />
+            ) : null}
             <div className="capability-grid">
               {engineCapabilities.slice(1, 3).map((capability) => (
                 <CapabilityCard capability={capability} key={capability.id} />
@@ -337,7 +362,12 @@ function App() {
             {readyTracks.length > 0 ? (
               <div className="analysis-track-grid">
                 {readyTracks.map((track) => (
-                  <TrackAnalysisPanel key={track.objectUrl} sessionId={sessionIdRef.current} track={track} />
+                  <TrackAnalysisPanel
+                    key={track.objectUrl}
+                    onJobUpdate={(job) => updateTrackJob(track.slotId, job)}
+                    sessionId={sessionIdRef.current}
+                    track={track}
+                  />
                 ))}
               </div>
             ) : null}
@@ -775,7 +805,7 @@ function TimelinePreview({ tracks }: { tracks: TrackState[] }) {
       })}
       <div className="timeline-note">
         <TimerReset aria-hidden="true" size={18} />
-        <span>Beat grid, downbeat, phrase markers, and alignment edits are engine pending.</span>
+        <span>Beat grid refinement and heuristic phrase planning are advisory. True downbeat alignment and stem lanes remain future work.</span>
       </div>
     </div>
   );
@@ -784,6 +814,28 @@ function TimelinePreview({ tracks }: { tracks: TrackState[] }) {
 function totalDurationLabel(tracks: TrackState[]) {
   const seconds = tracks.reduce((sum, track) => sum + (track.inspection?.durationSeconds ?? 0), 0);
   return tracks.length > 0 ? formatDuration(seconds) : "No files";
+}
+
+function planningBpmLabel(
+  trackAJob: MashTrackJob | null,
+  trackBJob: MashTrackJob | null
+): string {
+  const beatA = extractBeatResult(trackAJob);
+  const beatB = extractBeatResult(trackBJob);
+
+  if (beatA?.bpm && beatB?.bpm) {
+    return `${beatA.bpm} / ${beatB.bpm} BPM`;
+  }
+
+  if (beatA?.bpm || beatB?.bpm) {
+    return `${beatA?.bpm ?? "—"} / ${beatB?.bpm ?? "—"} BPM`;
+  }
+
+  if (trackAJob || trackBJob) {
+    return "Analysis in progress";
+  }
+
+  return "Pending analysis";
 }
 
 export default App;

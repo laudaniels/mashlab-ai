@@ -12,6 +12,7 @@ export function useTrackJob(params: {
   inspection: AudioInspection | null;
   file: File | null;
   localStatus: LocalEngineConnectionStatus | null;
+  onJobUpdate?: (job: MashTrackJob | null) => void;
 }) {
   const [job, setJob] = useState<MashTrackJob | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -20,6 +21,7 @@ export function useTrackJob(params: {
     if (!params.inspection) {
       setJob(null);
       setIsRunning(false);
+      params.onJobUpdate?.(null);
       return;
     }
 
@@ -36,10 +38,17 @@ export function useTrackJob(params: {
       slotId: params.slotId,
       inspection: params.inspection,
       registry,
+      onProgress: (nextJob) => {
+        if (!cancelled) {
+          setJob(nextJob);
+          params.onJobUpdate?.(nextJob);
+        }
+      },
     }).then((result) => {
       if (!cancelled) {
         setJob(result);
         setIsRunning(false);
+        params.onJobUpdate?.(result);
       }
     });
 

@@ -344,6 +344,227 @@ describe("MashLab core verification", async () => {
     assert.equal(result.state, "idle");
     assert.equal(result.status, "analysis-coming-next");
   });
+
+  const { classifyCamelotCompatibility, planHarmonicCompatibility, formatPlanningPanelLines, buildMashupPlanningSummary, keyProfileFromAnalysis, suggestInstrumentalShiftSemitones } = await importSrc("src/domain/harmonicPlanning.ts");
+  const { planHeuristicPhrases, buildBeatGridFromAnalysis } = await importSrc("src/domain/beatGrid.ts");
+  const { buildPairPlanningSummary } = await importSrc("src/domain/mashupPlanning.ts");
+
+  it("maps Camelot compatibility labels", () => {
+    assert.equal(classifyCamelotCompatibility("8A", "8A"), "strong");
+    assert.equal(classifyCamelotCompatibility("8A", "9A"), "compatible");
+    assert.equal(classifyCamelotCompatibility("8A", "8B"), "compatible");
+    assert.equal(classifyCamelotCompatibility("8A", "11B"), "risky");
+    assert.equal(classifyCamelotCompatibility("bad", "8A"), "unknown");
+  });
+
+  it("suggests practical pitch-shift planning values", () => {
+    const trackA = keyProfileFromAnalysis(
+      {
+        key: "A",
+        mode: "minor",
+        camelot: "8A",
+        confidence: 0.72,
+        method: "test",
+        limitations: [],
+        pitchShiftSemitones: null,
+      },
+      true
+    );
+    const trackB = keyProfileFromAnalysis(
+      {
+        key: "C",
+        mode: "major",
+        camelot: "8B",
+        confidence: 0.68,
+        method: "test",
+        limitations: [],
+      },
+      true
+    );
+
+    const plan = planHarmonicCompatibility(trackA, trackB);
+    assert.equal(plan.label, "compatible");
+    assert.equal(suggestInstrumentalShiftSemitones(trackA, trackB), -3);
+    assert.ok(plan.suggestedInstrumentalShiftSemitones !== null);
+  });
+
+  it("returns unknown harmonic planning for uncertain keys", () => {
+    const uncertain = keyProfileFromAnalysis(
+      {
+        key: "F#",
+        mode: "minor",
+        camelot: "11A",
+        confidence: 0.4,
+        method: "test",
+        limitations: [],
+      },
+      true
+    );
+    const missing = keyProfileFromAnalysis(null, false);
+    const plan = planHarmonicCompatibility(uncertain, missing);
+
+    assert.equal(plan.label, "unknown");
+    assert.match(plan.experimentalKeyWarning ?? "", /low-confidence/i);
+    assert.equal(plan.suggestedInstrumentalShiftSemitones, null);
+  });
+
+  it("builds heuristic phrase windows from detected beats", () => {
+    const beatTimes = Array.from({ length: 64 }, (_, index) => index * 0.5);
+    const plan = planHeuristicPhrases(beatTimes, 120);
+
+    assert.ok(plan);
+    assert.equal(plan?.phraseLengthBars, 8);
+    assert.equal(plan?.phraseLengthBeats, 32);
+    assert.equal(plan?.method, "heuristic_from_detected_beats");
+    assert.equal(plan?.phraseStartTimes.length, 2);
+    assert.match(plan?.limitations.join(" "), /not true downbeat detection/i);
+  });
+
+  it("does not fake phrase markers when beats are missing", () => {
+    const grid = buildBeatGridFromAnalysis(null, { jobComplete: false });
+    assert.equal(grid.phraseMarkers.length, 0);
+    assert.equal(grid.phrasePlan, null);
+    assert.equal(grid.phraseStatus, "unavailable");
+
+    const sparse = buildBeatGridFromAnalysis(
+      {
+        bpm: 128,
+        beatTimes: [0, 0.5, 1],
+        beatCount: 3,
+        bpmConfidence: 0.6,
+        method: "test",
+        limitations: [],
+        downbeatOffsetMs: null,
+        phraseBarMarkers: [],
+        downbeatStatus: "not_implemented",
+        phraseMarkerStatus: "not_implemented",
+      },
+      { jobComplete: true }
+    );
+    assert.equal(sparse.phrasePlan, null);
+    assert.equal(sparse.phraseMarkers.length, 0);
+  });
+
+  it("formats mashup planning panel lines", () => {
+    const summary = buildMashupPlanningSummary({
+      trackALabel: "Track A",
+      trackBLabel: "Track B",
+      trackABpm: 128,
+      trackBBpm: 130,
+      trackAKey: keyProfileFromAnalysis(
+        {
+          key: "A",
+          mode: "minor",
+          camelot: "8A",
+          confidence: 0.7,
+          method: "test",
+          limitations: [],
+        },
+        true
+      ),
+      trackBKey: keyProfileFromAnalysis(
+        {
+          key: "A",
+          mode: "minor",
+          camelot: "8A",
+          confidence: 0.66,
+          method: "test",
+          limitations: [],
+        },
+        true
+      ),
+      phraseReadinessA: "Heuristic 2 phrase windows",
+      phraseReadinessB: "Phrase planning unavailable",
+    });
+
+    const lines = formatPlanningPanelLines(summary);
+    assert.match(lines[0], /Track A: 128 BPM/);
+    assert.match(lines[1], /Track B: 130 BPM/);
+    assert.match(lines[3], /strong/);
+  });
+
+  it("stores beat and key result data on completed job steps", async () => {
+    const beatData = {
+      bpm: 124,
+      beatTimes: Array.from({ length: 40 }, (_, index) => index * 0.48),
+      beatCount: 40,
+      bpmConfidence: 0.7,
+      method: "test-beat",
+      limitations: [],
+      downbeatOffsetMs: null,
+      phraseBarMarkers: [],
+      downbeatStatus: "not_implemented" as const,
+      phraseMarkerStatus: "not_implemented" as const,
+    };
+    const keyData = {
+      key: "G",
+      mode: "major" as const,
+      camelot: "9B",
+      confidence: 0.62,
+      method: "test-key",
+      limitations: [],
+      pitchShiftSemitones: null,
+    };
+
+    const registry = createEngineRegistry();
+    const job = await runTrackJob({
+      sessionId: "planning-session",
+      slotId: "trackA",
+      inspection: {
+        id: "planning-inspection",
+        fileName: "authorized.wav",
+        fileType: "audio/wav",
+        fileSizeBytes: 2048,
+        durationSeconds: 120,
+        sampleRate: 44100,
+        channelCount: 2,
+        waveformPeaks: [0.2, 0.5],
+        decoded: true,
+        notes: [],
+      },
+      registry: {
+        ...registry,
+        beat: {
+          ...registry.beat,
+          async analyze() {
+            return {
+              state: "complete" as const,
+              status: "implemented" as const,
+              message: "Beat complete",
+              data: beatData,
+            };
+          },
+        },
+        key: {
+          ...registry.key,
+          async analyze() {
+            return {
+              state: "complete" as const,
+              status: "implemented" as const,
+              message: "Key complete",
+              data: keyData,
+            };
+          },
+        },
+      },
+    });
+
+    const beatStep = job.steps.find((step: { id: string }) => step.id === "beat");
+    const keyStep = job.steps.find((step: { id: string }) => step.id === "key");
+    assert.deepEqual(beatStep?.resultData, beatData);
+    assert.deepEqual(keyStep?.resultData, keyData);
+
+    const summary = buildPairPlanningSummary({
+      trackALabel: "Track A",
+      trackBLabel: "Track B",
+      trackAJob: job,
+      trackBJob: job,
+    });
+
+    assert.ok(summary);
+    assert.equal(summary?.harmonic.label, "strong");
+    assert.equal(summary?.trackA.beatCount, 40);
+  });
 });
 
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {

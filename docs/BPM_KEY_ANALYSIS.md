@@ -52,9 +52,20 @@ This phase is **not pro-grade MIR**:
 - Sparse or heavily produced material can reduce beat confidence
 - Key detection is experimental and can misidentify mode/key
 - Camelot codes are heuristic helpers, not legal or licensing guidance
-- Downbeats, phrase markers, energy curves, and harmonic match planning are still future work
+- Downbeat detection is not implemented; phrase markers are heuristic when beats exist (see `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`)
 
 Label all UI output as **prototype**.
+
+## Phase 6 Planning (Frontend)
+
+Beat/key results feed a frontend-only mashup planner:
+
+- Heuristic 8-bar phrase windows when enough beats are detected
+- Camelot-style harmonic compatibility (`strong` / `compatible` / `risky` / `unknown`)
+- Pitch-shift **suggestions only** — no audio processing
+- In-memory session cache avoids re-uploading the same file for beat + key lanes
+
+DJ review is required for all planning output.
 
 ## Browser-Only Fallback
 
@@ -70,7 +81,7 @@ If the sidecar is offline or librosa is missing:
 |-------------------|-----------------|
 | librosa beat_track | BeatNet+ / Essentia downbeat-aware grids |
 | chroma/CQT correlation | Essentia key profiles + confidence guardrails |
-| local multipart upload | session-scoped artifact reuse |
+| local multipart upload | session-scoped in-memory analysis cache (no filesystem store yet) |
 | experimental labels | DJ-facing confidence thresholds and edit tools |
 
 Essentia remains optional/planned in `/v1/capabilities` until explicitly integrated.

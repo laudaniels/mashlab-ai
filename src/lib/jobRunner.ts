@@ -27,6 +27,7 @@ export async function runTrackJob(params: {
   slotId: SlotId;
   inspection: AudioInspection;
   registry?: EngineRegistry;
+  onProgress?: (job: MashTrackJob) => void;
 }): Promise<MashTrackJob> {
   const registry = params.registry ?? engineRegistry;
   let job = createTrackJob({
@@ -37,6 +38,7 @@ export async function runTrackJob(params: {
 
   for (const phase of job.steps.map((step) => step.id)) {
     job = markStep(job, phase, { state: "running", startedAt: new Date().toISOString() });
+    params.onProgress?.(job);
 
     const engineKey = PHASE_TO_ENGINE[phase];
     const engine = registry[engineKey];
@@ -47,6 +49,7 @@ export async function runTrackJob(params: {
     );
 
     job = applyEngineResult(job, phase, result);
+    params.onProgress?.(job);
 
     if (shouldStopQueue(phase, result, params.inspection)) {
       job = { ...job, state: deriveJobState(job.steps), updatedAt: new Date().toISOString() };
@@ -82,6 +85,7 @@ function applyEngineResult(
     status: result.status,
     message: result.message,
     details: result.details,
+    resultData: result.data ?? undefined,
     completedAt: nextState === "complete" || nextState === "failed" ? new Date().toISOString() : null,
   });
 }

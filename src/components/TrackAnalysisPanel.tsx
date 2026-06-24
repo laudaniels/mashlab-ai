@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { TrackState } from "../domain/types.ts";
-import type { MashJobStep } from "../domain/jobs.ts";
+import type { MashJobStep, MashTrackJob } from "../domain/jobs.ts";
 import { summarizeTrackJob } from "../lib/jobRunner.ts";
 import { useTrackJob } from "../hooks/useTrackJob.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
@@ -17,9 +17,10 @@ import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 interface TrackAnalysisPanelProps {
   sessionId: string;
   track: TrackState;
+  onJobUpdate?: (job: MashTrackJob | null) => void;
 }
 
-export function TrackAnalysisPanel({ sessionId, track }: TrackAnalysisPanelProps) {
+export function TrackAnalysisPanel({ sessionId, track, onJobUpdate }: TrackAnalysisPanelProps) {
   const { status: localStatus } = useLocalEngineStatus();
   const { job, isRunning } = useTrackJob({
     sessionId,
@@ -27,6 +28,7 @@ export function TrackAnalysisPanel({ sessionId, track }: TrackAnalysisPanelProps
     inspection: track.inspection,
     file: track.file,
     localStatus,
+    onJobUpdate,
   });
 
   if (!track.inspection) {

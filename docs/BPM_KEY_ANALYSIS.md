@@ -67,6 +67,15 @@ Beat/key results feed a frontend-only mashup planner:
 
 DJ review is required for all planning output.
 
+## Phase 7: DJ Overrides and Session Artifacts
+
+- Session artifacts store analysis + overrides per track (session-only, no cloud).
+- DJ overrides take precedence over experimental analysis for planning.
+- Mashup Planning and Timeline screens show value source: detected, heuristic, or DJ override.
+- Phrase length can be overridden to 4, 8, or 16 bars.
+
+See `docs/SESSION_ARTIFACTS.md` and `docs/TIMELINE_ALIGNMENT.md`.
+
 ## Browser-Only Fallback
 
 If the sidecar is offline or librosa is missing:

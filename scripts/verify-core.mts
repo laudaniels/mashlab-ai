@@ -565,6 +565,287 @@ describe("MashLab core verification", async () => {
     assert.equal(summary?.harmonic.label, "strong");
     assert.equal(summary?.trackA.beatCount, 40);
   });
+
+  const {
+    createSessionArtifactStore,
+    createTrackArtifact,
+    syncTrackArtifactFromJob,
+    updateTrackArtifactOverrides,
+    resolvePlanningBpm,
+    rebuildTrackArtifact,
+  } = await importSrc("src/domain/sessionArtifacts.ts");
+  const { buildTimelineLaneData, formatTimelineSummaryLines } = await importSrc("src/domain/timelineAlignment.ts");
+
+  it("creates and syncs session artifacts per track slot", () => {
+    const store = createSessionArtifactStore("session-artifacts");
+    const artifact = createTrackArtifact({
+      sessionId: "session-artifacts",
+      slotId: "trackA",
+      file: new File(["audio"], "authorized.wav", { type: "audio/wav", lastModified: 1000 }),
+      inspection: {
+        id: "inspection-artifact",
+        fileName: "authorized.wav",
+        fileType: "audio/wav",
+        fileSizeBytes: 1024,
+        durationSeconds: 120,
+        sampleRate: 44100,
+        channelCount: 2,
+        waveformPeaks: [0.2, 0.5],
+        decoded: true,
+        notes: [],
+      },
+    });
+
+    assert.equal(artifact.sessionId, "session-artifacts");
+    assert.equal(artifact.version, 1);
+    assert.equal(artifact.fileIdentity.name, "authorized.wav");
+
+    const synced = syncTrackArtifactFromJob(artifact, {
+      jobId: "job-1",
+      sessionId: "session-artifacts",
+      slotId: "trackA",
+      inspectionId: "inspection-artifact",
+      state: "running",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      steps: [
+        {
+          id: "beat",
+          label: "Beat",
+          state: "complete",
+          status: "implemented",
+          message: "done",
+          resultData: {
+            bpm: 126,
+            beatTimes: Array.from({ length: 40 }, (_, index) => index * 0.47),
+            beatCount: 40,
+            bpmConfidence: 0.7,
+            method: "test",
+            limitations: [],
+            downbeatOffsetMs: null,
+            phraseBarMarkers: [],
+          },
+          startedAt: null,
+          completedAt: null,
+        },
+      ],
+    });
+
+    assert.equal(synced.beatAnalysis?.bpm, 126);
+    assert.ok(synced.effectiveBeatGrid);
+    assert.equal(store.tracks.trackA, null);
+  });
+
+  it("prefers DJ overrides over detected analysis for planning", () => {
+    const beatData = {
+      bpm: 124,
+      beatTimes: Array.from({ length: 40 }, (_, index) => index * 0.48),
+      beatCount: 40,
+      bpmConfidence: 0.7,
+      method: "test-beat",
+      limitations: [],
+      downbeatOffsetMs: null,
+      phraseBarMarkers: [],
+      downbeatStatus: "not_implemented" as const,
+      phraseMarkerStatus: "not_implemented" as const,
+    };
+    const keyData = {
+      key: "G",
+      mode: "major" as const,
+      camelot: "9B",
+      confidence: 0.62,
+      method: "test-key",
+      limitations: [],
+      pitchShiftSemitones: null,
+    };
+
+    let artifact = createTrackArtifact({
+      sessionId: "override-session",
+      slotId: "trackA",
+      file: new File(["audio"], "authorized.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+
+    artifact = rebuildTrackArtifact({
+      ...artifact,
+      beatAnalysis: beatData,
+      keyAnalysis: keyData,
+    });
+
+    artifact = updateTrackArtifactOverrides(artifact, {
+      bpm: 130,
+      camelot: "8A",
+      key: "A",
+      mode: "minor",
+    });
+
+    const bpm = resolvePlanningBpm(artifact);
+    assert.equal(bpm.value, 130);
+    assert.equal(bpm.source, "user_override");
+    assert.equal(artifact.effectiveKeyProfile?.camelot, "8A");
+    assert.equal(artifact.effectiveKeyProfile?.keySource, "user_override");
+    assert.equal(artifact.effectiveKeyProfile?.confidence, null);
+  });
+
+  it("recalculates pair planning when overrides change tempo compatibility", () => {
+    const beat = {
+      bpm: 120,
+      beatTimes: Array.from({ length: 40 }, (_, index) => index * 0.5),
+      beatCount: 40,
+      bpmConfidence: 0.7,
+      method: "test",
+      limitations: [],
+      downbeatOffsetMs: null,
+      phraseBarMarkers: [],
+      downbeatStatus: "not_implemented" as const,
+      phraseMarkerStatus: "not_implemented" as const,
+    };
+
+    const buildArtifact = (slotId: "trackA" | "trackB", bpm: number, withOverride: boolean) =>
+      updateTrackArtifactOverrides(
+        rebuildTrackArtifact({
+          ...createTrackArtifact({
+            sessionId: "pair-session",
+            slotId,
+            file: new File(["audio"], `${slotId}.wav`, { type: "audio/wav" }),
+            inspection: null,
+          }),
+          beatAnalysis: { ...beat, bpm },
+          keyAnalysis: {
+            key: "A",
+            mode: "minor" as const,
+            camelot: "8A",
+            confidence: 0.7,
+            method: "test",
+            limitations: [],
+            pitchShiftSemitones: null,
+          },
+        }),
+        withOverride && slotId === "trackB" ? { bpm: 128 } : {}
+      );
+
+    const store = createSessionArtifactStore("pair-session");
+    store.tracks.trackA = buildArtifact("trackA", 120, false);
+    store.tracks.trackB = buildArtifact("trackB", 124, false);
+
+    const detectedSummary = buildPairPlanningSummary({
+      trackALabel: "Track A",
+      trackBLabel: "Track B",
+      artifactStore: store,
+    });
+
+    assert.equal(detectedSummary?.tempo.bpmDifference, 4);
+    assert.equal(detectedSummary?.trackB.bpmSource, "detected");
+
+    store.tracks.trackB = buildArtifact("trackB", 124, true);
+    const overrideSummary = buildPairPlanningSummary({
+      trackALabel: "Track A",
+      trackBLabel: "Track B",
+      artifactStore: store,
+    });
+
+    assert.equal(overrideSummary?.trackB.bpmSource, "user_override");
+    assert.equal(overrideSummary?.tempo.bpmDifference, 8);
+  });
+
+  it("builds phrase windows for custom phrase lengths", () => {
+    const beatTimes = Array.from({ length: 64 }, (_, index) => index * 0.5);
+    const fourBarPlan = planHeuristicPhrases(beatTimes, 120, 4);
+    const sixteenBarPlan = planHeuristicPhrases(beatTimes, 120, 16);
+
+    assert.equal(fourBarPlan?.phraseLengthBars, 4);
+    assert.equal(fourBarPlan?.phraseLengthBeats, 16);
+    assert.ok((fourBarPlan?.phraseStartTimes.length ?? 0) > (sixteenBarPlan?.phraseStartTimes.length ?? 0));
+    assert.equal(sixteenBarPlan?.phraseLengthBars, 16);
+  });
+
+  it("formats timeline lane data and summary lines", () => {
+    const artifact = rebuildTrackArtifact({
+      ...createTrackArtifact({
+        sessionId: "timeline-session",
+        slotId: "trackA",
+        file: new File(["audio"], "authorized.wav", { type: "audio/wav" }),
+        inspection: null,
+      }),
+      beatAnalysis: {
+        bpm: 128,
+        beatTimes: Array.from({ length: 40 }, (_, index) => index * 0.47),
+        beatCount: 40,
+        bpmConfidence: 0.66,
+        method: "test",
+        limitations: [],
+        downbeatOffsetMs: null,
+        phraseBarMarkers: [],
+      },
+    });
+
+    const lane = buildTimelineLaneData(
+      {
+        slotId: "trackA",
+        label: "Track A",
+        file: new File(["audio"], "authorized.wav", { type: "audio/wav" }),
+        objectUrl: "blob:track-a",
+        inspection: {
+          id: "inspection-timeline",
+          fileName: "authorized.wav",
+          fileType: "audio/wav",
+          fileSizeBytes: 1024,
+          durationSeconds: 60,
+          sampleRate: 44100,
+          channelCount: 2,
+          waveformPeaks: [0.1, 0.8, 0.3],
+          decoded: true,
+          notes: [],
+        },
+        status: "ready",
+        error: null,
+      },
+      artifact
+    );
+
+    assert.ok(lane);
+    assert.equal(lane?.hasBeatData, true);
+    assert.ok(lane!.beatMarkers.length > 0);
+    assert.ok(lane!.phraseRegions.length > 0);
+    assert.match(formatTimelineSummaryLines([lane!])[0], /Track A/);
+  });
+
+  it("does not fake timeline markers when beat data is missing", () => {
+    const lane = buildTimelineLaneData(
+      {
+        slotId: "trackB",
+        label: "Track B",
+        file: new File(["audio"], "pending.wav", { type: "audio/wav" }),
+        objectUrl: "blob:track-b",
+        inspection: {
+          id: "inspection-empty",
+          fileName: "pending.wav",
+          fileType: "audio/wav",
+          fileSizeBytes: 512,
+          durationSeconds: 45,
+          sampleRate: 44100,
+          channelCount: 2,
+          waveformPeaks: [],
+          decoded: true,
+          notes: [],
+        },
+        status: "ready",
+        error: null,
+      },
+      createTrackArtifact({
+        sessionId: "timeline-empty",
+        slotId: "trackB",
+        file: new File(["audio"], "pending.wav", { type: "audio/wav" }),
+        inspection: null,
+      })
+    );
+
+    assert.ok(lane);
+    assert.equal(lane?.hasBeatData, false);
+    assert.equal(lane?.beatMarkers.length, 0);
+    assert.equal(lane?.phraseRegions.length, 0);
+    assert.match(lane?.phraseReadiness ?? "", /unavailable/i);
+  });
 });
 
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {

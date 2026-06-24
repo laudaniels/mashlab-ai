@@ -27,6 +27,9 @@ Implemented:
 - Harmonic compatibility planner with Camelot-style labels and pitch-shift suggestions (planning only).
 - Mashup Planning panel when both tracks are analyzed.
 - In-memory beat/key analysis cache to avoid duplicate uploads within a session.
+- Session-scoped artifact store per track (browser memory only, no cloud).
+- DJ override controls for BPM, key, mode, Camelot, alignment offset, and phrase length.
+- Timeline alignment UI with waveform preview, beat markers, and heuristic phrase regions.
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
@@ -62,7 +65,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, and `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md` for optional dependency setup, prototype limitations, and mashup planning behavior.
+See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, session artifacts, and timeline alignment.
 
 ## Quality Commands
 

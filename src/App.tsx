@@ -16,7 +16,6 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
-  TimerReset,
   UploadCloud,
   Waves,
   type LucideIcon,
@@ -44,8 +43,19 @@ import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
 import { MashupPlanningPanel } from "./components/MashupPlanningPanel";
+import { TimelineAlignmentPanel } from "./components/TimelineAlignmentPanel";
+import { TrackOverridePanel } from "./components/TrackOverridePanel";
 import type { MashTrackJob } from "./domain/jobs.ts";
-import { extractBeatResult } from "./domain/mashupPlanning.ts";
+import {
+  clearTrackArtifactOverrides,
+  createSessionArtifactStore,
+  createTrackArtifact,
+  resolvePlanningBpm,
+  syncTrackArtifactFromJob,
+  updateTrackArtifactOverrides,
+  type SessionArtifactStore,
+} from "./domain/sessionArtifacts.ts";
+import type { TrackDjOverrides } from "./domain/trackOverrides.ts";
 import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
 
 type ScreenId = WorkflowScreen["id"];
@@ -87,6 +97,9 @@ function App() {
     trackA: null,
     trackB: null,
   });
+  const [artifactStore, setArtifactStore] = useState<SessionArtifactStore>(() =>
+    createSessionArtifactStore(sessionIdRef.current)
+  );
   const tracksRef = useRef(tracks);
 
   useEffect(() => {
@@ -111,6 +124,101 @@ function App() {
 
   function updateTrackJob(slotId: SlotId, job: MashTrackJob | null) {
     setTrackJobs((current) => ({ ...current, [slotId]: job }));
+    setArtifactStore((current) => {
+      const artifact = current.tracks[slotId];
+      if (!artifact) {
+        return current;
+      }
+
+      return {
+        ...current,
+        tracks: {
+          ...current.tracks,
+          [slotId]: syncTrackArtifactFromJob(artifact, job),
+        },
+      };
+    });
+  }
+
+  function ensureTrackArtifact(slotId: SlotId, track: TrackState) {
+    setArtifactStore((current) => {
+      const existing = current.tracks[slotId];
+      const identityMatches =
+        existing &&
+        existing.fileIdentity.name === track.file.name &&
+        existing.fileIdentity.sizeBytes === track.file.size &&
+        existing.fileIdentity.lastModified === track.file.lastModified;
+
+      if (identityMatches && existing) {
+        if (existing.browserMetadata?.id === track.inspection?.id) {
+          return current;
+        }
+
+        return {
+          ...current,
+          tracks: {
+            ...current.tracks,
+            [slotId]: syncTrackArtifactFromJob(
+              {
+                ...existing,
+                browserMetadata: track.inspection,
+                inspectionId: track.inspection?.id ?? null,
+              },
+              trackJobs[slotId]
+            ),
+          },
+        };
+      }
+
+      const artifact = createTrackArtifact({
+        sessionId: sessionIdRef.current,
+        slotId,
+        file: track.file,
+        inspection: track.inspection,
+      });
+
+      return {
+        ...current,
+        tracks: {
+          ...current.tracks,
+          [slotId]: syncTrackArtifactFromJob(artifact, null),
+        },
+      };
+    });
+  }
+
+  function updateTrackOverrides(slotId: SlotId, patch: Partial<TrackDjOverrides>) {
+    setArtifactStore((current) => {
+      const artifact = current.tracks[slotId];
+      if (!artifact) {
+        return current;
+      }
+
+      return {
+        ...current,
+        tracks: {
+          ...current.tracks,
+          [slotId]: updateTrackArtifactOverrides(artifact, patch),
+        },
+      };
+    });
+  }
+
+  function resetTrackOverrides(slotId: SlotId) {
+    setArtifactStore((current) => {
+      const artifact = current.tracks[slotId];
+      if (!artifact) {
+        return current;
+      }
+
+      return {
+        ...current,
+        tracks: {
+          ...current.tracks,
+          [slotId]: clearTrackArtifactOverrides(artifact),
+        },
+      };
+    });
   }
 
   async function handleFileChange(slotId: SlotId, event: ChangeEvent<HTMLInputElement>) {
@@ -158,14 +266,18 @@ function App() {
           return current;
         }
 
+        const updatedTrack: TrackState = {
+          ...activeTrack,
+          inspection,
+          status: "ready",
+          error: null,
+        };
+
+        queueMicrotask(() => ensureTrackArtifact(slotId, updatedTrack));
+
         return {
           ...current,
-          [slotId]: {
-            ...activeTrack,
-            inspection,
-            status: "ready",
-            error: null,
-          },
+          [slotId]: updatedTrack,
         };
       });
     } catch (error) {
@@ -198,6 +310,10 @@ function App() {
     setTracks((current) => ({ ...current, [slotId]: null }));
     setSlotErrors((current) => ({ ...current, [slotId]: null }));
     updateTrackJob(slotId, null);
+    setArtifactStore((current) => ({
+      ...current,
+      tracks: { ...current.tracks, [slotId]: null },
+    }));
     clearAnalysisCache();
   }
 
@@ -342,7 +458,7 @@ function App() {
               <StatTile
                 icon={Gauge}
                 label="BPM / beat grid"
-                value={planningBpmLabel(trackJobs.trackA, trackJobs.trackB)}
+                value={planningBpmLabel(artifactStore)}
               />
               <StatTile
                 icon={KeyRound}
@@ -350,8 +466,20 @@ function App() {
                 value={readyTracks.length === 2 ? "Ready to compare" : "Load both tracks"}
               />
             </div>
-            {readyTracks.length === 2 ? (
-              <MashupPlanningPanel trackAJob={trackJobs.trackA} trackBJob={trackJobs.trackB} />
+            {readyTracks.length === 2 ? <MashupPlanningPanel artifactStore={artifactStore} /> : null}
+            {readyTracks.length > 0 ? (
+              <div className="override-panel-grid">
+                {readyTracks.map((track) => (
+                  <TrackOverridePanel
+                    key={track.objectUrl}
+                    artifact={artifactStore.tracks[track.slotId]}
+                    label={track.label}
+                    onChange={(patch) => updateTrackOverrides(track.slotId, patch)}
+                    onClear={() => resetTrackOverrides(track.slotId)}
+                    slotId={track.slotId}
+                  />
+                ))}
+              </div>
             ) : null}
             <div className="capability-grid">
               {engineCapabilities.slice(1, 3).map((capability) => (
@@ -434,20 +562,25 @@ function App() {
             <ScreenTitle
               eyebrow="Arrangement preview"
               icon={SlidersHorizontal}
-              title="Phrase Timeline Placeholder"
-              subtitle="The future timeline will expose bar-aligned edits, stems, vocal timing, energy curves, intro length, and outro length."
+              title="Timeline Alignment and DJ Overrides"
+              subtitle="Read-only beat and phrase planning with manual override controls. Intro/verse/drop structure and stem lanes remain future work."
             />
-            <TimelinePreview tracks={loadedTracks} />
-            <div className="control-grid">
-              {["Tempo", "Key", "Vocal level", "Timing", "Reverb", "Tone", "Energy", "Intro/outro"].map(
-                (control) => (
-                  <div className="control-placeholder" key={control}>
-                    <span>{control}</span>
-                    <strong>Control pending</strong>
-                  </div>
-                )
-              )}
-            </div>
+            <TimelineAlignmentPanel artifactStore={artifactStore} tracks={readyTracks} />
+            {readyTracks.length > 0 ? (
+              <div className="override-panel-grid">
+                {readyTracks.map((track) => (
+                  <TrackOverridePanel
+                    key={track.objectUrl}
+                    artifact={artifactStore.tracks[track.slotId]}
+                    label={track.label}
+                    onChange={(patch) => updateTrackOverrides(track.slotId, patch)}
+                    onClear={() => resetTrackOverrides(track.slotId)}
+                    slotId={track.slotId}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {readyTracks.length === 2 ? <MashupPlanningPanel artifactStore={artifactStore} /> : null}
           </section>
         );
       case "export":
@@ -778,60 +911,24 @@ function TrackMetadataTable({ tracks }: { tracks: TrackState[] }) {
   );
 }
 
-function TimelinePreview({ tracks }: { tracks: TrackState[] }) {
-  return (
-    <div className="timeline-preview">
-      <div className="timeline-ruler" aria-hidden="true">
-        {["1", "9", "17", "25", "33", "41", "49", "57"].map((bar) => (
-          <span key={bar}>Bar {bar}</span>
-        ))}
-      </div>
-      {["trackA", "trackB"].map((slot, index) => {
-        const track = tracks.find((candidate) => candidate.slotId === slot);
-
-        return (
-          <div className="timeline-row" key={slot}>
-            <div className="timeline-label">{track?.label ?? trackLabels[slot as SlotId]}</div>
-            <div className="timeline-lane">
-              <div
-                className={`timeline-region region-${index + 1}`}
-                style={{ width: track ? `${index === 0 ? 78 : 64}%` : "36%" }}
-              >
-                {track?.file.name ?? "Awaiting local file"}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-      <div className="timeline-note">
-        <TimerReset aria-hidden="true" size={18} />
-        <span>Beat grid refinement and heuristic phrase planning are advisory. True downbeat alignment and stem lanes remain future work.</span>
-      </div>
-    </div>
-  );
-}
-
 function totalDurationLabel(tracks: TrackState[]) {
   const seconds = tracks.reduce((sum, track) => sum + (track.inspection?.durationSeconds ?? 0), 0);
   return tracks.length > 0 ? formatDuration(seconds) : "No files";
 }
 
-function planningBpmLabel(
-  trackAJob: MashTrackJob | null,
-  trackBJob: MashTrackJob | null
-): string {
-  const beatA = extractBeatResult(trackAJob);
-  const beatB = extractBeatResult(trackBJob);
+function planningBpmLabel(artifactStore: SessionArtifactStore): string {
+  const bpmA = resolvePlanningBpm(artifactStore.tracks.trackA);
+  const bpmB = resolvePlanningBpm(artifactStore.tracks.trackB);
 
-  if (beatA?.bpm && beatB?.bpm) {
-    return `${beatA.bpm} / ${beatB.bpm} BPM`;
+  if (bpmA.value !== null && bpmB.value !== null) {
+    return `${bpmA.value} / ${bpmB.value} BPM`;
   }
 
-  if (beatA?.bpm || beatB?.bpm) {
-    return `${beatA?.bpm ?? "—"} / ${beatB?.bpm ?? "—"} BPM`;
+  if (bpmA.value !== null || bpmB.value !== null) {
+    return `${bpmA.value ?? "—"} / ${bpmB.value ?? "—"} BPM`;
   }
 
-  if (trackAJob || trackBJob) {
+  if (artifactStore.tracks.trackA || artifactStore.tracks.trackB) {
     return "Analysis in progress";
   }
 

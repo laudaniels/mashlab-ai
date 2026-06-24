@@ -1,4 +1,5 @@
 import type { KeyAnalysisResult } from "../engines/contracts.ts";
+import type { PlanningValueSource, TrackDjOverrides } from "./trackOverrides.ts";
 
 export type CompatibilityLabel = "strong" | "compatible" | "risky" | "unknown";
 
@@ -8,6 +9,12 @@ export interface KeyProfile {
   camelot: string | null;
   confidence: number | null;
   method?: string | null;
+}
+
+export interface EffectiveKeyProfile extends KeyProfile {
+  keySource: PlanningValueSource;
+  camelotSource: PlanningValueSource;
+  isUserSupplied: boolean;
 }
 
 export interface HarmonicCompatibilityPlan {
@@ -44,8 +51,11 @@ export interface MashupPlanningSummary {
 export interface TrackPlanningSnapshot {
   label: string;
   bpm: number | null;
+  bpmSource: PlanningValueSource;
   keyLabel: string;
+  keySource: PlanningValueSource;
   camelot: string | null;
+  camelotSource: PlanningValueSource;
   keyConfidence: number | null;
   beatCount: number | null;
 }
@@ -84,6 +94,40 @@ export function keyProfileFromAnalysis(key: KeyAnalysisResult | null, jobComplet
     camelot: key.camelot,
     confidence: key.confidence,
     method: key.method,
+  };
+}
+
+export function buildEffectiveKeyProfile(
+  key: KeyAnalysisResult | null,
+  overrides: TrackDjOverrides
+): EffectiveKeyProfile {
+  const detected = keyProfileFromAnalysis(key, Boolean(key));
+  const hasKeyOverride = overrides.key !== null || overrides.mode !== null;
+  const hasCamelotOverride = overrides.camelot !== null;
+
+  const effectiveKey = overrides.key ?? detected.key;
+  const effectiveMode = overrides.mode ?? detected.mode;
+  const effectiveCamelot = overrides.camelot ?? detected.camelot;
+
+  return {
+    key: effectiveKey,
+    mode: effectiveMode,
+    camelot: effectiveCamelot,
+    confidence: hasKeyOverride || hasCamelotOverride ? null : detected.confidence,
+    method: hasKeyOverride || hasCamelotOverride ? "dj_override" : detected.method,
+    keySource: hasKeyOverride ? "user_override" : detected.key ? "detected" : "unavailable",
+    camelotSource: hasCamelotOverride ? "user_override" : detected.camelot ? "detected" : "unavailable",
+    isUserSupplied: hasKeyOverride || hasCamelotOverride,
+  };
+}
+
+export function effectiveKeyToProfile(profile: EffectiveKeyProfile): KeyProfile {
+  return {
+    key: profile.key,
+    mode: profile.mode,
+    camelot: profile.camelot,
+    confidence: profile.confidence,
+    method: profile.method,
   };
 }
 
@@ -171,29 +215,39 @@ export function buildMashupPlanningSummary(params: {
   trackBLabel: string;
   trackABpm: number | null;
   trackBBpm: number | null;
-  trackAKey: KeyProfile;
-  trackBKey: KeyProfile;
+  trackABpmSource?: PlanningValueSource;
+  trackBBpmSource?: PlanningValueSource;
+  trackAKey: KeyProfile | EffectiveKeyProfile;
+  trackBKey: KeyProfile | EffectiveKeyProfile;
   phraseReadinessA: string;
   phraseReadinessB: string;
 }): MashupPlanningSummary {
+  const trackAKey = normalizeEffectiveKey(params.trackAKey);
+  const trackBKey = normalizeEffectiveKey(params.trackBKey);
   const tempo = planTempoCompatibility(params.trackABpm, params.trackBBpm);
-  const harmonic = planHarmonicCompatibility(params.trackAKey, params.trackBKey);
+  const harmonic = planHarmonicCompatibility(effectiveKeyToProfile(trackAKey), effectiveKeyToProfile(trackBKey));
 
   return {
     trackA: {
       label: params.trackALabel,
       bpm: params.trackABpm,
-      keyLabel: formatKeyLabel(params.trackAKey),
-      camelot: params.trackAKey.camelot,
-      keyConfidence: params.trackAKey.confidence,
+      bpmSource: params.trackABpmSource ?? "unavailable",
+      keyLabel: formatKeyLabel(trackAKey),
+      keySource: trackAKey.keySource,
+      camelot: trackAKey.camelot,
+      camelotSource: trackAKey.camelotSource,
+      keyConfidence: trackAKey.confidence,
       beatCount: null,
     },
     trackB: {
       label: params.trackBLabel,
       bpm: params.trackBBpm,
-      keyLabel: formatKeyLabel(params.trackBKey),
-      camelot: params.trackBKey.camelot,
-      keyConfidence: params.trackBKey.confidence,
+      bpmSource: params.trackBBpmSource ?? "unavailable",
+      keyLabel: formatKeyLabel(trackBKey),
+      keySource: trackBKey.keySource,
+      camelot: trackBKey.camelot,
+      camelotSource: trackBKey.camelotSource,
+      keyConfidence: trackBKey.confidence,
       beatCount: null,
     },
     tempo,
@@ -386,4 +440,17 @@ function clampSemitones(value: number): number {
 
 function roundOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function normalizeEffectiveKey(profile: KeyProfile | EffectiveKeyProfile): EffectiveKeyProfile {
+  if ("keySource" in profile) {
+    return profile;
+  }
+
+  return {
+    ...profile,
+    keySource: profile.key ? "detected" : "unavailable",
+    camelotSource: profile.camelot ? "detected" : "unavailable",
+    isUserSupplied: false,
+  };
 }

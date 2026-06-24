@@ -104,4 +104,13 @@ All Phase 6 output is advisory:
 - Tempo doubling/halving is not resolved here
 - Pitch-shift values are suggestions for later processing lanes
 
-Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
+## Phase 7 Integration
+
+- Session artifacts (`src/domain/sessionArtifacts.ts`) hold beat/key results and DJ overrides per track.
+- Effective beat grid and key profile merge overrides before planning.
+- Mashup Planning panel reads effective values and shows source labels.
+- Timeline alignment UI visualizes beats and heuristic phrase windows (read-only).
+
+Override precedence: **DJ override > detected analysis > unavailable** (never faked).
+
+See `docs/SESSION_ARTIFACTS.md` and `docs/TIMELINE_ALIGNMENT.md`.

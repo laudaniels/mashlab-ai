@@ -1,19 +1,18 @@
 import { AlertTriangle, Gauge, KeyRound, Scale, TimerReset } from "lucide-react";
 import { buildPairPlanningSummary } from "../domain/mashupPlanning.ts";
-import type { MashTrackJob } from "../domain/jobs.ts";
+import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
 import type { CompatibilityLabel } from "../domain/harmonicPlanning.ts";
+import { formatPlanningSource } from "../domain/trackOverrides.ts";
 
 interface MashupPlanningPanelProps {
-  trackAJob: MashTrackJob | null;
-  trackBJob: MashTrackJob | null;
+  artifactStore: SessionArtifactStore;
 }
 
-export function MashupPlanningPanel({ trackAJob, trackBJob }: MashupPlanningPanelProps) {
+export function MashupPlanningPanel({ artifactStore }: MashupPlanningPanelProps) {
   const summary = buildPairPlanningSummary({
     trackALabel: "Track A",
     trackBLabel: "Track B",
-    trackAJob: trackAJob,
-    trackBJob: trackBJob,
+    artifactStore,
   });
 
   if (!summary) {
@@ -36,7 +35,7 @@ export function MashupPlanningPanel({ trackAJob, trackBJob }: MashupPlanningPane
         <Scale aria-hidden="true" size={20} />
         <div>
           <h3>Mashup Planning</h3>
-          <p>Planning only. No pitch/time processing or export is applied in this phase.</p>
+          <p>Planning only. DJ overrides take precedence over experimental analysis.</p>
         </div>
         <span className={`planning-badge planning-badge-${summary.harmonic.label}`}>
           {summary.harmonic.label}
@@ -47,18 +46,24 @@ export function MashupPlanningPanel({ trackAJob, trackBJob }: MashupPlanningPane
         <PlanningTrackCard
           beatCount={summary.trackA.beatCount}
           bpm={summary.trackA.bpm}
+          bpmSource={summary.trackA.bpmSource}
           camelot={summary.trackA.camelot}
+          camelotSource={summary.trackA.camelotSource}
           confidence={summary.trackA.keyConfidence}
           keyLabel={summary.trackA.keyLabel}
+          keySource={summary.trackA.keySource}
           label={summary.trackA.label}
           phraseReadiness={summary.phraseReadinessA}
         />
         <PlanningTrackCard
           beatCount={summary.trackB.beatCount}
           bpm={summary.trackB.bpm}
+          bpmSource={summary.trackB.bpmSource}
           camelot={summary.trackB.camelot}
+          camelotSource={summary.trackB.camelotSource}
           confidence={summary.trackB.keyConfidence}
           keyLabel={summary.trackB.keyLabel}
+          keySource={summary.trackB.keySource}
           label={summary.trackB.label}
           phraseReadiness={summary.phraseReadinessB}
         />
@@ -110,7 +115,7 @@ export function MashupPlanningPanel({ trackAJob, trackBJob }: MashupPlanningPane
       ) : null}
 
       <p className="planning-review-note">
-        DJ review required. Phrase windows are heuristic unless true downbeat detection is added later.
+        DJ review required. Values marked DJ override are user-supplied, not AI-detected.
       </p>
     </section>
   );
@@ -119,8 +124,11 @@ export function MashupPlanningPanel({ trackAJob, trackBJob }: MashupPlanningPane
 function PlanningTrackCard(props: {
   label: string;
   bpm: number | null;
+  bpmSource: "detected" | "heuristic" | "user_override" | "unavailable";
   keyLabel: string;
+  keySource: "detected" | "heuristic" | "user_override" | "unavailable";
   camelot: string | null;
+  camelotSource: "detected" | "heuristic" | "user_override" | "unavailable";
   confidence: number | null;
   beatCount: number | null;
   phraseReadiness: string;
@@ -133,12 +141,24 @@ function PlanningTrackCard(props: {
         <strong>{props.bpm ?? "Unknown"}</strong>
       </div>
       <div className="planning-metric">
+        <span>BPM source</span>
+        <strong>{formatPlanningSource(props.bpmSource)}</strong>
+      </div>
+      <div className="planning-metric">
         <span>Key</span>
         <strong>{props.keyLabel}</strong>
       </div>
       <div className="planning-metric">
+        <span>Key source</span>
+        <strong>{formatPlanningSource(props.keySource)}</strong>
+      </div>
+      <div className="planning-metric">
         <span>Camelot</span>
         <strong>{props.camelot ?? "Unknown"}</strong>
+      </div>
+      <div className="planning-metric">
+        <span>Camelot source</span>
+        <strong>{formatPlanningSource(props.camelotSource)}</strong>
       </div>
       <div className="planning-metric">
         <span>Beats detected</span>

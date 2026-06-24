@@ -1,4 +1,5 @@
 import type { BeatAnalysisResult } from "../engines/contracts.ts";
+import type { PhraseLengthBars, TrackDjOverrides } from "./trackOverrides.ts";
 
 export type BeatEstimateStatus = "available" | "heuristic" | "not_implemented" | "unavailable";
 
@@ -44,9 +45,15 @@ const HEURISTIC_PHRASE_LIMITATIONS = [
 
 export function buildBeatGridFromAnalysis(
   beat: BeatAnalysisResult | null,
-  options: { jobComplete: boolean } = { jobComplete: false }
+  options: {
+    jobComplete?: boolean;
+    phraseLengthBars?: PhraseLengthBars;
+    alignmentOffsetSeconds?: number | null;
+  } = {}
 ): BeatGridModel {
-  if (!beat || !options.jobComplete || beat.beatCount === 0) {
+  const jobComplete = options.jobComplete ?? false;
+
+  if (!beat || !jobComplete || beat.beatCount === 0) {
     return emptyBeatGrid(
       beat
         ? [
@@ -57,15 +64,17 @@ export function buildBeatGridFromAnalysis(
     );
   }
 
-  const phrasePlan = planHeuristicPhrases(beat.beatTimes, beat.bpm);
+  const alignedBeatTimes = alignBeatTimesForPlanning(beat.beatTimes, options.alignmentOffsetSeconds ?? null);
+  const phraseLengthBars = options.phraseLengthBars ?? 8;
+  const phrasePlan = planHeuristicPhrases(alignedBeatTimes, beat.bpm, phraseLengthBars);
   const downbeatImplemented = beat.downbeatStatus === "implemented";
 
   return {
     bpm: beat.bpm,
-    beatTimes: beat.beatTimes,
-    beatCount: beat.beatCount,
-    estimatedFirstDownbeat: downbeatImplemented ? beat.beatTimes[0] ?? null : null,
-    downbeatTimes: downbeatImplemented ? beat.beatTimes : [],
+    beatTimes: alignedBeatTimes,
+    beatCount: alignedBeatTimes.length,
+    estimatedFirstDownbeat: downbeatImplemented ? alignedBeatTimes[0] ?? null : null,
+    downbeatTimes: downbeatImplemented ? alignedBeatTimes : [],
     downbeatStatus: downbeatImplemented ? "implemented" : "not_implemented",
     phraseMarkers: phrasePlan ? phraseMarkersFromPlan(phrasePlan) : [],
     phrasePlan,
@@ -73,16 +82,64 @@ export function buildBeatGridFromAnalysis(
     confidence: beat.bpmConfidence,
     estimateStatus: phrasePlan ? "heuristic" : "available",
     method: beat.method,
-    limitations: [...beat.limitations, ...(phrasePlan ? phrasePlan.limitations : ["Phrase planning unavailable without enough detected beats."])],
+    limitations: [
+      ...beat.limitations,
+      ...(options.alignmentOffsetSeconds !== null && options.alignmentOffsetSeconds !== undefined
+        ? ["Alignment offset applied for planning. DJ override — not AI-detected downbeat."]
+        : []),
+      ...(phrasePlan ? phrasePlan.limitations : ["Phrase planning unavailable without enough detected beats."]),
+    ],
+  };
+}
+
+export function buildEffectiveBeatGrid(
+  grid: BeatGridModel,
+  overrides: TrackDjOverrides
+): BeatGridModel {
+  const bpm = overrides.bpm ?? grid.bpm;
+  const beatTimes = grid.beatTimes;
+
+  if (beatTimes.length === 0 && grid.beatCount === 0 && bpm === null) {
+    return grid;
+  }
+
+  const phraseLengthBars = overrides.phraseLengthBars ?? grid.phrasePlan?.phraseLengthBars ?? 8;
+  const phrasePlan = planHeuristicPhrases(
+    beatTimes,
+    bpm,
+    phraseLengthBars as PhraseLengthBars
+  );
+
+  const limitations = [...grid.limitations];
+  if (overrides.bpm !== null) {
+    limitations.push("BPM uses DJ override value.");
+  }
+  if (overrides.alignmentOffsetSeconds !== null) {
+    limitations.push("Beat alignment uses DJ override offset.");
+  }
+  if (overrides.phraseLengthBars !== null) {
+    limitations.push(`Phrase windows use DJ override length (${overrides.phraseLengthBars} bars).`);
+  }
+
+  return {
+    ...grid,
+    bpm,
+    beatTimes,
+    beatCount: beatTimes.length,
+    phraseMarkers: phrasePlan ? phraseMarkersFromPlan(phrasePlan) : [],
+    phrasePlan,
+    phraseStatus: phrasePlan ? "heuristic" : grid.phraseStatus,
+    estimateStatus: overrides.bpm !== null || overrides.alignmentOffsetSeconds !== null ? "heuristic" : grid.estimateStatus,
+    limitations,
   };
 }
 
 export function planHeuristicPhrases(
   beatTimes: number[],
-  bpm: number | null
+  bpm: number | null,
+  phraseLengthBars: PhraseLengthBars | number = 8
 ): HeuristicPhrasePlan | null {
-  const phraseLengthBars = 8;
-  const phraseLengthBeats = 32;
+  const phraseLengthBeats = phraseLengthBars * 4;
 
   if (beatTimes.length < phraseLengthBeats) {
     return null;
@@ -115,6 +172,23 @@ export function planHeuristicPhrases(
   };
 }
 
+export function alignBeatTimesForPlanning(
+  beatTimes: number[],
+  alignmentOffsetSeconds: number | null
+): number[] {
+  if (alignmentOffsetSeconds === null || !Number.isFinite(alignmentOffsetSeconds)) {
+    return beatTimes;
+  }
+
+  const startIndex = beatTimes.findIndex((time) => time >= alignmentOffsetSeconds);
+  if (startIndex === -1) {
+    return [];
+  }
+
+  const anchor = beatTimes[startIndex] ?? alignmentOffsetSeconds;
+  return beatTimes.slice(startIndex).map((time) => roundMillis(time - anchor));
+}
+
 function phraseMarkersFromPlan(plan: HeuristicPhrasePlan): PhraseMarker[] {
   return plan.phraseStartTimes.map((startTimeSeconds, barIndexFromStart) => ({
     startTimeSeconds,
@@ -145,7 +219,7 @@ function emptyBeatGrid(limitations: string[]): BeatGridModel {
 
 export function formatPhraseReadiness(grid: BeatGridModel): string {
   if (grid.phraseStatus === "heuristic") {
-    return `Heuristic ${grid.phrasePlan?.phraseStartTimes.length ?? 0} phrase windows`;
+    return `Heuristic ${grid.phrasePlan?.phraseStartTimes.length ?? 0} phrase windows · DJ review required`;
   }
 
   if (grid.phraseStatus === "not_implemented") {
@@ -153,4 +227,8 @@ export function formatPhraseReadiness(grid: BeatGridModel): string {
   }
 
   return "Phrase planning unavailable";
+}
+
+function roundMillis(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }

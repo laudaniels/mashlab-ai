@@ -21,7 +21,8 @@ Implemented:
 - Web Audio decoding for duration and waveform summaries when the browser supports the file.
 - Honest adapter-hook placeholders for beat/key/stem analysis.
 - Sequential track job queue with implemented browser metadata adapter.
-- Local-engine binary check script for future FFmpeg/ffprobe integration.
+- Local Python sidecar foundation at `local-engine/service/` with health, capabilities, jobs, and ffprobe metadata endpoints.
+- Local engine status indicator in the app sidebar with browser-only fallback.
 
 Not implemented yet:
 
@@ -42,6 +43,20 @@ npm run dev
 
 Then open the local URL printed by Vite.
 
+## Local Helper Service (Optional)
+
+The browser MVP works without this service. To run the localhost analysis sidecar:
+
+```powershell
+cd local-engine\service
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m uvicorn main:app --host 127.0.0.1 --port 47831
+```
+
+See `local-engine/service/README.md` for ffprobe setup and smoke tests.
+
 ## Quality Commands
 
 ```bash
@@ -50,4 +65,6 @@ npm run typecheck
 npm run build
 npm test
 npm run check:local-engine
+npm run check:python-service
+npm run check:python-service:test
 ```

@@ -17,6 +17,12 @@ describe("MashLab core verification", async () => {
   const { runMashAnalysis } = await importSrc("src/lib/analysisPipeline.ts");
   const { createTrackJob, deriveJobState } = await importSrc("src/domain/jobs.ts");
   const { runTrackJob, summarizeTrackJob } = await importSrc("src/lib/jobRunner.ts");
+  const {
+    createBrowserOnlyStatus,
+    parseCapabilitiesResponse,
+    summarizeCapabilities,
+  } = await importSrc("src/lib/localEngine/capabilities.ts");
+  const { LocalEngineClient } = await importSrc("src/lib/localEngine/client.ts");
 
   it("includes the required rights notice verbatim", () => {
     assert.match(legal.requiredRightsNotice, /Upload audio you own or are authorized to use/);
@@ -212,6 +218,57 @@ describe("MashLab core verification", async () => {
     assert.match(snapshot.beat.message, /adapter failed/);
     assert.equal(snapshot.key.status, "analysis-coming-next");
     assert.equal(snapshot.stems.status, "engine-pending");
+  });
+
+  it("parses local engine capability payloads", () => {
+    const parsed = parseCapabilitiesResponse({
+      service: "mashlab-local-engine",
+      version: "0.1.0",
+      python_version: "3.12.0",
+      capabilities: [
+        {
+          id: "ffprobe",
+          label: "ffprobe",
+          status: "missing",
+          message: "Install FFmpeg.",
+        },
+      ],
+    });
+
+    assert.ok(parsed);
+    assert.equal(parsed?.capabilities[0]?.status, "missing");
+    assert.match(summarizeCapabilities(parsed?.capabilities ?? []), /0\/1 local capabilities available/);
+  });
+
+  it("falls back to browser-only mode when local service is offline", async () => {
+    const offline = createBrowserOnlyStatus("Local helper service is offline.");
+    assert.equal(offline.mode, "browser-only");
+    assert.equal(offline.online, false);
+
+    const client = new LocalEngineClient("http://127.0.0.1:59999");
+    const status = await client.probeConnection();
+    assert.equal(status.online, false);
+    assert.equal(status.mode, "browser-only");
+  });
+
+  it("maps local service job phases to the existing track job model", () => {
+    const job = createTrackJob({
+      sessionId: "session-local",
+      slotId: "trackA",
+      inspectionId: "inspection-local",
+    });
+
+    const localPhases = job.steps.map((step: { id: string }) => step.id);
+    assert.deepEqual(localPhases, [
+      "metadata",
+      "beat",
+      "key",
+      "stems",
+      "pitch-time",
+      "vocal-cleanup",
+      "arrangement",
+      "export",
+    ]);
   });
 });
 

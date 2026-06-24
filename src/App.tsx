@@ -42,6 +42,7 @@ import {
 } from "./lib/audioMetadata";
 import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
+import { LocalEngineStatus } from "./components/LocalEngineStatus";
 
 type ScreenId = WorkflowScreen["id"];
 type TrackMap = Record<SlotId, TrackState | null>;
@@ -228,6 +229,7 @@ function App() {
               );
             })}
           </nav>
+          <LocalEngineStatus />
           <div className="legal-mini">
             <ShieldCheck aria-hidden="true" size={18} />
             <p>{requiredRightsNotice}</p>

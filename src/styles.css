@@ -191,6 +191,60 @@ audio {
   outline: 1px solid rgba(46, 230, 166, 0.24);
 }
 
+.local-engine-status {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid rgba(132, 146, 176, 0.16);
+  background: rgba(16, 21, 31, 0.72);
+}
+
+.local-engine-status.is-online {
+  box-shadow: inset 0 1px 0 rgba(46, 230, 166, 0.12);
+}
+
+.local-engine-status-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.local-engine-status-header strong {
+  display: block;
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.local-engine-status-header span {
+  display: block;
+  margin-top: 2px;
+  color: #9aa8c0;
+  font-size: 12px;
+}
+
+.local-engine-capability-list {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.local-engine-capability-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #c2cde0;
+  font-size: 12px;
+}
+
+.local-engine-offline-note {
+  margin: 12px 0 0;
+  color: #9aa8c0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .legal-mini {
   display: grid;
   gap: 10px;

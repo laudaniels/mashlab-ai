@@ -76,9 +76,19 @@ Suggested install guidance:
 | `POST /v1/analyze/metadata` | ffprobe metadata |
 | `POST /v1/analyze/beat` | librosa beat prototype |
 | `POST /v1/analyze/key` | librosa key prototype |
-| `POST /v1/plan/pitch-time` | **Planning-only** tempo/key strategy from JSON summaries (no audio) |
+| `POST /v1/plan/pitch-time` | Planning-only tempo/key strategy from JSON summaries (no audio) |
+| `POST /v1/process/pitch-time-preview` | **Rubber Band preview clip** from multipart upload (user-initiated) |
+| `GET /v1/artifacts/pitch-time-preview/{id}` | Serve processed preview WAV from local workspace |
 
-Rubber Band is detected via `rubberband`, `rubberband-cli`, `rubberband.exe`, or `rubberband-cli.exe` on PATH. Status is `available` or `missing`. Browser-only planning works when Rubber Band is absent.
+Rubber Band is detected via `rubberband`, `rubberband-cli`, `rubberband.exe`, or `rubberband-cli.exe` on PATH. Status is `available` or `missing`. Browser-only planning works when Rubber Band is absent; preview processing requires Rubber Band and FFmpeg.
+
+Preview artifacts are stored under `.work/artifacts/pitch-time-preview/`. Raw uploads are not kept beyond temp processing. See `docs/RUBBER_BAND_PROCESSING.md`.
+
+## Planned Engine Integrations (Future Lanes)
+
+| Lane | Primary target | Notes |
+|------|----------------|-------|
+| Stems | Demucs / HTDemucs | MDX-Net and UVR-style options later |
 | Vocal cleanup | Deterministic DSP chain | User-controlled gain/EQ/comp/de-ess/space |
 | Arrangement | Phrase-aware draft generator | Clean Blend, Club Edit, Creative Blend |
 | Export | FFmpeg + loudness/true-peak checks | WAV primary; MP3 optional |

@@ -120,3 +120,38 @@ class KeyAnalysisResponse(BaseModel):
     message: str
     result: KeyAnalysisResult | None = None
     setup_guidance: str | None = None
+
+
+class PitchTimePreviewInputSummary(BaseModel):
+    file_name: str
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    tempo_ratio: float | None = None
+    pitch_shift_semitones: float = 0
+    max_preview_seconds: int = 30
+    formant_preservation: bool = True
+
+
+class PitchTimePreviewOutputSummary(BaseModel):
+    file_name: str
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    artifact_id: str
+
+
+class PitchTimePreviewResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    method: str | None = None
+    audio_processed: bool = False
+    input_summary: PitchTimePreviewInputSummary | None = None
+    output_summary: PitchTimePreviewOutputSummary | None = None
+    artifact_path: str | None = None
+    artifact_url: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    setup_guidance: str | None = None
+    validation_errors: list[str] | None = None

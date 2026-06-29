@@ -83,6 +83,10 @@ export function findCapability(
   return capabilities.find((capability) => capability.id === capabilityId);
 }
 
+export function isRubberBandAvailable(capabilities: ServiceCapability[]): boolean {
+  return findCapability(capabilities, "rubberband")?.status === "available";
+}
+
 export function rubberBandCapabilitySummary(capabilities: ServiceCapability[]): {
   status: ServiceCapability["status"] | "unknown";
   message: string;

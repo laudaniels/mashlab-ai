@@ -518,6 +518,7 @@ function App() {
                   artifactStore={artifactStore}
                   intent={mashIntent}
                   onIntentChange={setMashIntent}
+                  tracks={readyTracks}
                 />
               </>
             ) : null}
@@ -641,6 +642,7 @@ function App() {
                   artifactStore={artifactStore}
                   intent={mashIntent}
                   onIntentChange={setMashIntent}
+                  tracks={readyTracks}
                 />
               </>
             ) : null}

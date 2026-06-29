@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 import config
 from beat_analysis import analyze_beat_file
@@ -12,6 +13,12 @@ from jobs import complete_metadata_job, create_job, fail_job, get_job, update_jo
 from key_analysis import analyze_key_file
 from metadata import analyze_metadata_file
 from pitch_time_planning import PitchTimePlanRequest, PitchTimePlanResponse, build_pitch_time_plan
+from rubber_band_processing import (
+    DEFAULT_MAX_PREVIEW_SECONDS,
+    PitchTimePreviewFailure,
+    PitchTimePreviewSuccess,
+    process_pitch_time_preview,
+)
 from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
@@ -20,6 +27,9 @@ from models import (
     JobResponse,
     KeyAnalysisResponse,
     MetadataAnalysisResponse,
+    PitchTimePreviewInputSummary,
+    PitchTimePreviewOutputSummary,
+    PitchTimePreviewResponse,
 )
 from uploads import cleanup_path, save_upload
 
@@ -160,6 +170,90 @@ def plan_pitch_time(request: PitchTimePlanRequest) -> PitchTimePlanResponse:
         status="planning-only",
         message="Pitch/time plan generated. No audio was processed.",
         plan=plan,
+    )
+
+
+@app.post("/v1/process/pitch-time-preview", response_model=PitchTimePreviewResponse)
+async def process_pitch_time_preview_endpoint(
+    file: UploadFile = File(...),
+    tempo_ratio: float | None = Form(default=None),
+    source_bpm: float | None = Form(default=None),
+    target_bpm: float | None = Form(default=None),
+    pitch_shift_semitones: float = Form(default=0),
+    max_preview_seconds: int = Form(default=DEFAULT_MAX_PREVIEW_SECONDS),
+    formant_preservation: bool = Form(default=True),
+) -> PitchTimePreviewResponse:
+    temp_path, filename = await save_upload(file, "pitch-time-preview")
+
+    try:
+        result = process_pitch_time_preview(
+            temp_path,
+            filename,
+            tempo_ratio=tempo_ratio,
+            source_bpm=source_bpm,
+            target_bpm=target_bpm,
+            pitch_shift_semitones=pitch_shift_semitones,
+            max_preview_seconds=max_preview_seconds,
+            formant_preservation=formant_preservation,
+        )
+    finally:
+        cleanup_path(temp_path)
+
+    if isinstance(result, PitchTimePreviewFailure):
+        return PitchTimePreviewResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            setup_guidance=result.setup_guidance,
+            validation_errors=result.validation_errors,
+            limitations=[
+                "Preview only — not a final mashup, stem separation, or export.",
+            ],
+        )
+
+    return PitchTimePreviewResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        method=result.method,
+        audio_processed=result.audio_processed,
+        input_summary=PitchTimePreviewInputSummary(
+            file_name=result.input_summary.file_name,
+            duration_seconds=result.input_summary.duration_seconds,
+            sample_rate=result.input_summary.sample_rate,
+            channel_count=result.input_summary.channel_count,
+            tempo_ratio=result.input_summary.tempo_ratio,
+            pitch_shift_semitones=result.input_summary.pitch_shift_semitones,
+            max_preview_seconds=result.input_summary.max_preview_seconds,
+            formant_preservation=result.input_summary.formant_preservation,
+        ),
+        output_summary=PitchTimePreviewOutputSummary(
+            file_name=result.output_summary.file_name,
+            duration_seconds=result.output_summary.duration_seconds,
+            sample_rate=result.output_summary.sample_rate,
+            channel_count=result.output_summary.channel_count,
+            artifact_id=result.output_summary.artifact_id,
+        ),
+        artifact_path=result.artifact_path,
+        artifact_url=result.artifact_url,
+        warnings=result.warnings,
+        limitations=result.limitations,
+    )
+
+
+@app.get("/v1/artifacts/pitch-time-preview/{artifact_id}")
+def get_pitch_time_preview_artifact(artifact_id: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    artifact_path = config.WORK_DIR / "artifacts" / "pitch-time-preview" / f"{artifact_id}.wav"
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail="Preview artifact not found.")
+
+    return FileResponse(
+        path=artifact_path,
+        media_type="audio/wav",
+        filename=artifact_path.name,
     )
 
 

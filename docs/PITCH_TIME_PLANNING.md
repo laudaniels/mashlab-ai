@@ -1,13 +1,19 @@
-# Pitch / Time Planning — Phase 8
+# Pitch / Time Planning — Phases 8–9
 
-Phase 8 adds **planning-only** pitch and tempo strategy tooling. MashLab can explain what would need to happen technically before any audio is transformed.
+Phase 8 adds **planning-only** pitch and tempo strategy tooling. Phase 9 adds an optional **user-initiated Rubber Band preview lane** — still not a final mashup or export.
 
-## Planning Only
+## Planning vs Preview
 
-- No audio is processed, pitch-shifted, or time-stretched in this phase.
-- No Rubber Band subprocess is invoked.
-- No export or rendered preview is produced.
-- All UI copy states: **Planning only — no audio has been processed yet.**
+| Mode | Audio processed? | Trigger |
+|------|------------------|---------|
+| Planning (Phase 8) | No | Automatic when both tracks analyzed |
+| Preview (Phase 9) | Yes — short clip only | User clicks “Create pitch/time preview” |
+
+Planning copy: **Planning only until you create an explicit pitch/time preview.**
+
+Preview copy: **Preview only — not a final mashup, stem separation, or export.**
+
+See `docs/RUBBER_BAND_PROCESSING.md` for processing details.
 
 ## Pitch/Time Plan Model
 
@@ -36,7 +42,7 @@ Users choose a planning assumption (stem separation is **not** implemented):
 | Vocal B over Beat A | Track B vocal over Track A bed |
 | Compare both directions | Shows both strategies side-by-side |
 
-This is a **planning assumption only**. True vocal/instrumental stems require a future Demucs/stem phase.
+Preview processing applies pitch/time to the **vocal/source track only** for the selected direction. True vocal/instrumental stems require a future Demucs/stem phase.
 
 ## Rubber Band Readiness
 
@@ -45,24 +51,28 @@ The local sidecar reports Rubber Band CLI status via `/v1/capabilities`:
 | Status | Meaning |
 |--------|---------|
 | `available` | `rubberband`, `rubberband-cli`, or Windows executable found on PATH |
-| `missing` | Not installed — planning still works in browser |
+| `missing` | Not installed — planning still works; preview disabled |
 | `planned` | Legacy label if capability not yet probed |
 
-Rubber Band is the **preferred future engine** for high-quality pitch/time processing. SoundTouch remains a possible lightweight fallback later.
+Rubber Band is the **preferred engine** for high-quality pitch/time preview processing.
 
 ### Setup guidance (when missing)
 
 Install [Rubber Band CLI](https://breakfastquay.com/rubberband/) and ensure `rubberband` or `rubberband-cli` is on PATH. MashLab remains fully usable for planning without it.
 
-## Optional Sidecar Endpoint
+## Sidecar Endpoints
 
-`POST /v1/plan/pitch-time` accepts JSON track summaries (BPM, key, Camelot) and returns a planning-only result. **No raw audio** is accepted.
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /v1/plan/pitch-time` | Planning-only JSON summaries (no audio) |
+| `POST /v1/process/pitch-time-preview` | Short Rubber Band preview clip from uploaded audio |
+| `GET /v1/artifacts/pitch-time-preview/{id}` | Local playback/download of preview WAV |
 
-Primary planning runs in the frontend for stability; the endpoint mirrors the same logic for validation and future tooling.
+Primary planning runs in the frontend for stability; the planning endpoint mirrors the same logic for validation and future tooling.
 
 ## Formant Preservation
 
-When a non-zero vocal pitch shift is suggested, the plan recommends **Rubber Band formant preservation** to reduce chipmunk/boomy artifacts. This is advisory only until processing is implemented.
+When a non-zero vocal pitch shift is suggested or applied, the plan and preview recommend **Rubber Band formant preservation** (`-F`) to reduce chipmunk/boomy artifacts.
 
 ## Missing BPM / Key Data
 

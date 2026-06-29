@@ -997,6 +997,209 @@ describe("MashLab core verification", async () => {
   });
 });
 
+describe("Pitch/time preview processing", async () => {
+  const {
+    PREVIEW_ONLY_NOTICE,
+    PREVIEW_PROCESSED_LABEL,
+    buildPreviewRequestParams,
+    hasActionablePitchTimeAdjustment,
+    isPreviewProcessingReady,
+    previewResultClaimsFinalExport,
+    resolvePreviewDirections,
+  } = await importSrc("src/domain/pitchTimePreview.ts");
+  const {
+    buildPitchTimePlan,
+    buildTrackPlanningInput,
+  } = await importSrc("src/domain/pitchTimePlanning.ts");
+  const {
+    parsePitchTimePreviewResponse,
+    previewFailureIsMissingDependency,
+    previewResponseIsProcessedPreview,
+    validatePreviewRequestParams,
+  } = await importSrc("src/lib/localEngine/pitchTimePreview.ts");
+  const { isRubberBandAvailable } = await importSrc("src/lib/localEngine/capabilities.ts");
+  const { createSessionArtifactStore } = await importSrc("src/domain/sessionArtifacts.ts");
+
+  const sampleDirection = {
+    intentLabel: "Vocal A over Beat B",
+    vocalTrackLabel: "Track A",
+    instrumentalTrackLabel: "Track B",
+    sourceBpm: 120,
+    targetBpm: 128,
+    bpmDifference: 8,
+    tempoStretchRatio: 1.067,
+    tempoStretchPercent: 6.7,
+    tempoDirection: "speed_up" as const,
+    tempoPlanSummary: "Planning only",
+    sourceKeyLabel: "8A",
+    targetKeyLabel: "8B",
+    sourceCamelot: "8A",
+    targetCamelot: "8B",
+    suggestedPitchShiftSemitones: 1,
+    safeRangeWarning: null,
+    formantPreservationNote: "Use formants",
+    vocalAdjustmentNote: "Vocal note",
+    instrumentalAdjustmentNote: "Instrumental note",
+    bpmSource: "detected" as const,
+    keySource: "detected" as const,
+    camelotSource: "detected" as const,
+    limitations: [PREVIEW_ONLY_NOTICE],
+    djReviewRequired: true as const,
+  };
+
+  it("validates preview request parameters", () => {
+    const errors = validatePreviewRequestParams({
+      tempoRatio: 1,
+      sourceBpm: 120,
+      targetBpm: 120,
+      pitchShiftSemitones: 0,
+      maxPreviewSeconds: 30,
+      formantPreservation: true,
+      vocalSlotId: "trackA",
+      vocalFileName: "a.wav",
+    });
+    assert.ok(errors.some((error: string) => error.includes("actionable")));
+  });
+
+  it("detects preview-ready actionable plans", () => {
+    assert.equal(hasActionablePitchTimeAdjustment(sampleDirection), true);
+    assert.equal(
+      hasActionablePitchTimeAdjustment({
+        ...sampleDirection,
+        tempoStretchRatio: 1,
+        suggestedPitchShiftSemitones: 0,
+      }),
+      false
+    );
+  });
+
+  it("requires sidecar, Rubber Band, and user file before preview is ready", () => {
+    const vocalTrack = {
+      slotId: "trackA" as const,
+      label: "Track A",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      objectUrl: "blob:a",
+      inspection: null,
+      status: "ready" as const,
+      error: null,
+    };
+
+    const ready = isPreviewProcessingReady({
+      sidecarOnline: true,
+      rubberBandStatus: "available",
+      direction: sampleDirection,
+      vocalTrack,
+    });
+    const offline = isPreviewProcessingReady({
+      sidecarOnline: false,
+      rubberBandStatus: "available",
+      direction: sampleDirection,
+      vocalTrack,
+    });
+
+    assert.equal(ready.ready, true);
+    assert.equal(offline.ready, false);
+  });
+
+  it("parses missing Rubber Band preview responses", () => {
+    const parsed = parsePitchTimePreviewResponse({
+      ok: false,
+      status: "missing_dependency",
+      message: "Rubber Band CLI is not available.",
+      setup_guidance: "Install Rubber Band CLI.",
+      limitations: [PREVIEW_ONLY_NOTICE],
+    });
+
+    assert.ok(parsed);
+    assert.equal(previewFailureIsMissingDependency(parsed!), true);
+    assert.equal(parsed?.audioProcessed, false);
+  });
+
+  it("parses processed preview responses without claiming final export", () => {
+    const parsed = parsePitchTimePreviewResponse({
+      ok: true,
+      status: "preview_complete",
+      message: "Pitch/time preview processed locally.",
+      method: "rubberband-cli preview",
+      audio_processed: true,
+      artifact_url: "/v1/artifacts/pitch-time-preview/abc123",
+      limitations: [PREVIEW_ONLY_NOTICE],
+      warnings: [],
+    });
+
+    assert.ok(parsed);
+    assert.equal(previewResponseIsProcessedPreview(parsed!), true);
+    assert.equal(previewResultClaimsFinalExport(parsed!), false);
+    assert.match(PREVIEW_ONLY_NOTICE, /not a final mashup/i);
+    assert.match(PREVIEW_PROCESSED_LABEL, /Processed preview/i);
+  });
+
+  it("maps preview directions to vocal source tracks by mash intent", () => {
+    const store = createSessionArtifactStore("preview-session");
+    const plan = buildPitchTimePlan({
+      trackA: buildTrackPlanningInput(store, "trackA", "Track A"),
+      trackB: buildTrackPlanningInput(store, "trackB", "Track B"),
+      intent: "compare_both",
+    });
+    const directions = resolvePreviewDirections(plan, store, "compare_both");
+
+    assert.equal(directions.length, 2);
+    assert.equal(directions[0]?.vocalSlotId, "trackA");
+    assert.equal(directions[1]?.vocalSlotId, "trackB");
+  });
+
+  it("builds preview request params from direction and track", () => {
+    const params = buildPreviewRequestParams(sampleDirection, {
+      slotId: "trackA",
+      label: "Track A",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      objectUrl: "blob:a",
+      inspection: null,
+      status: "ready",
+      error: null,
+    });
+
+    assert.equal(params.tempoRatio, 1.067);
+    assert.equal(params.pitchShiftSemitones, 1);
+    assert.equal(params.maxPreviewSeconds, 30);
+  });
+
+  it("does not auto-process preview through job queue pitch-time stub", async () => {
+    const { stubPitchTimeEngine } = await importSrc("src/engines/stubEngines.ts");
+    const result = await stubPitchTimeEngine.analyze({
+      id: "inspection-preview",
+      fileName: "a.wav",
+      fileType: "audio/wav",
+      fileSizeBytes: 1024,
+      durationSeconds: 60,
+      sampleRate: 44100,
+      channelCount: 2,
+      waveformPeaks: [],
+      decoded: true,
+      notes: [],
+    });
+
+    assert.equal(result.state, "idle");
+    assert.equal(result.status, "engine-pending");
+    assert.match(result.message, /planning|Rubber Band|pending/i);
+  });
+
+  it("reports Rubber Band availability from capabilities", () => {
+    assert.equal(
+      isRubberBandAvailable([
+        { id: "rubberband", label: "Rubber Band CLI", status: "available", message: "ok", version: null },
+      ]),
+      true
+    );
+    assert.equal(
+      isRubberBandAvailable([
+        { id: "rubberband", label: "Rubber Band CLI", status: "missing", message: "missing", version: null },
+      ]),
+      false
+    );
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

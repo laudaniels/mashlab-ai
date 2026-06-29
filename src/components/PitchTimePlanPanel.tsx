@@ -12,11 +12,14 @@ import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
 import { formatPlanningSource } from "../domain/trackOverrides.ts";
 import { rubberBandCapabilitySummary } from "../lib/localEngine/capabilities.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
+import type { TrackState } from "../domain/types.ts";
+import { PitchTimePreviewSection } from "./PitchTimePreviewSection.tsx";
 
 interface PitchTimePlanPanelProps {
   artifactStore: SessionArtifactStore;
   intent: MashIntent;
   onIntentChange: (intent: MashIntent) => void;
+  tracks: TrackState[];
 }
 
 const INTENT_OPTIONS: Array<{ id: MashIntent; label: string }> = [
@@ -29,6 +32,7 @@ export function PitchTimePlanPanel({
   artifactStore,
   intent,
   onIntentChange,
+  tracks,
 }: PitchTimePlanPanelProps) {
   const { status: localStatus } = useLocalEngineStatus();
   const rubberBand = rubberBandCapabilitySummary(localStatus.capabilities);
@@ -138,7 +142,18 @@ export function PitchTimePlanPanel({
         ))}
       </div>
 
-      <p className="planning-review-note">DJ review required. No audio has been transformed in this phase.</p>
+      <PitchTimePreviewSection
+        artifactStore={artifactStore}
+        intent={intent}
+        localStatus={localStatus}
+        plan={plan}
+        rubberBandStatus={rubberBandStatus}
+        tracks={tracks}
+      />
+
+      <p className="planning-review-note">
+        DJ review required. Preview processing is user-initiated and does not run automatically.
+      </p>
     </section>
   );
 }

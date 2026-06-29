@@ -14,7 +14,7 @@ export type MashIntent = "vocal_a_over_beat_b" | "vocal_b_over_beat_a" | "compar
 export type RubberBandReadiness = "available" | "missing" | "planned" | "unknown";
 
 export const PLANNING_ONLY_NOTICE =
-  "Planning only — no audio has been processed yet. Rubber Band processing is a future lane.";
+  "Planning only until you create an explicit pitch/time preview. Preview clips are local-only and not a final mashup or export.";
 
 const SAFE_PITCH_SHIFT_SEMITONES = 4;
 const WARN_PITCH_SHIFT_SEMITONES = 6;

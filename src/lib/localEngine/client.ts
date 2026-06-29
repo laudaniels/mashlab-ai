@@ -1,6 +1,10 @@
 import { createBrowserOnlyStatus, parseCapabilitiesResponse } from "./capabilities.ts";
 import { parseBeatAnalysisResponse, parseKeyAnalysisResponse } from "./analysis.ts";
 import {
+  buildPreviewFormData,
+  parsePitchTimePreviewResponse,
+} from "./pitchTimePreview.ts";
+import {
   getCachedBeatAnalysis,
   getCachedKeyAnalysis,
   setCachedBeatAnalysis,
@@ -20,6 +24,8 @@ import {
   LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
   LOCAL_ENGINE_REQUEST_TIMEOUT_MS,
 } from "./types.ts";
+import type { PitchTimePreviewRequestParams } from "../../domain/pitchTimePreview.ts";
+import type { PitchTimePreviewResult } from "../../domain/pitchTimePreview.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -136,6 +142,26 @@ export class LocalEngineClient {
 
     const request = this.requestKeyAnalysis(file);
     return setCachedKeyAnalysis(file, request, inspectionId);
+  }
+
+  async processPitchTimePreview(
+    file: File,
+    params: PitchTimePreviewRequestParams
+  ): Promise<PitchTimePreviewResult | null> {
+    const formData = buildPreviewFormData(file, params);
+
+    const response = await this.request("/v1/process/pitch-time-preview", {
+      method: "POST",
+      body: formData,
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 2,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parsePitchTimePreviewResponse(payload, this.baseUrl);
   }
 
   private async requestBeatAnalysis(file: File): Promise<BeatAnalysisResponse | null> {

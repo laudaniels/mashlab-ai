@@ -1,4 +1,4 @@
-"""Phrase and downbeat analysis — heuristic fallback with optional advanced engine upgrade path."""
+"""Phrase and downbeat analysis — heuristic fallback with optional advanced rhythm engines."""
 
 from __future__ import annotations
 
@@ -9,6 +9,13 @@ from typing import Literal
 
 from librosa_support import LIBROSA_SETUP_GUIDANCE, librosa_available, missing_librosa_response
 from models import PhraseAnalysisResponse, PhraseAnalysisResult
+from rhythm_engines.base import setup_guidance_for
+from rhythm_engines.registry import (
+    analyze_with_engine,
+    engine_status,
+    map_engine_output_to_phrase_result,
+    run_auto_advanced,
+)
 
 PhraseBasis = Literal[
     "verified_downbeat",
@@ -26,17 +33,7 @@ HEURISTIC_LIMITATIONS = [
     "DJ review required before live use.",
 ]
 
-ESSENTIA_SETUP = (
-    "Install Essentia (pip install essentia) for verified downbeat/phrase analysis upgrade path."
-)
-BEATNET_SETUP = "Install BeatNet+ dependencies for verified rhythm analysis upgrade path."
-MADMOM_SETUP = "Install madmom (pip install madmom) for verified downbeat analysis upgrade path."
-
-
-def _import_available(module_name: str) -> bool:
-    import importlib.util
-
-    return importlib.util.find_spec(module_name) is not None
+ADVANCED_ENGINE_IDS = frozenset({"essentia", "beatnet", "madmom"})
 
 
 def _parse_beat_times(raw: str | None) -> list[float]:
@@ -89,7 +86,7 @@ def _detect_beats_from_file(file_path: Path) -> tuple[list[float], float | None,
     return [round(value, 4) for value in beat_times], round(tempo_value, 2), []
 
 
-def _heuristic_phrase_start_times(beat_times: list[float], phrase_length_bars: int) -> list[float]:
+def heuristic_phrase_start_times(beat_times: list[float], phrase_length_bars: int) -> list[float]:
     phrase_length_beats = phrase_length_bars * 4
     if len(beat_times) < phrase_length_beats:
         return []
@@ -102,35 +99,6 @@ def _heuristic_phrase_start_times(beat_times: list[float], phrase_length_bars: i
     return starts
 
 
-def _try_essentia_phrase_analysis(
-    file_path: Path,
-    phrase_length_bars: int,
-) -> PhraseAnalysisResult | None:
-    if not _import_available("essentia"):
-        return None
-
-    # Essentia is optional — integration hook only; no fabricated verified output yet.
-    return None
-
-
-def _try_beatnet_phrase_analysis(
-    file_path: Path,
-    phrase_length_bars: int,
-) -> PhraseAnalysisResult | None:
-    if not _import_available("beatnet"):
-        return None
-    return None
-
-
-def _try_madmom_phrase_analysis(
-    file_path: Path,
-    phrase_length_bars: int,
-) -> PhraseAnalysisResult | None:
-    if not _import_available("madmom"):
-        return None
-    return None
-
-
 def _build_heuristic_result(
     *,
     file_name: str,
@@ -140,7 +108,7 @@ def _build_heuristic_result(
     method: str,
     extra_limitations: list[str] | None = None,
 ) -> PhraseAnalysisResult:
-    phrase_starts = _heuristic_phrase_start_times(beat_times, phrase_length_bars)
+    phrase_starts = heuristic_phrase_start_times(beat_times, phrase_length_bars)
     limitations = list(HEURISTIC_LIMITATIONS)
     if extra_limitations:
         limitations.extend(extra_limitations)
@@ -175,6 +143,54 @@ def _build_heuristic_result(
     )
 
 
+def _advanced_method_response(
+    *,
+    engine_id: str,
+    file_path: Path,
+    original_name: str,
+    phrase_length_bars: int,
+) -> PhraseAnalysisResponse:
+    status = engine_status(engine_id)  # type: ignore[arg-type]
+
+    if not status.importable:
+        return PhraseAnalysisResponse(
+            ok=False,
+            status="missing_dependency",
+            message=f"{engine_id} is not installed in this service environment.",
+            setup_guidance=status.setup_guidance,
+        )
+
+    output = analyze_with_engine(engine_id, file_path, phrase_length_bars)  # type: ignore[arg-type]
+    if output is None:
+        if engine_id == "beatnet":
+            return PhraseAnalysisResponse(
+                ok=False,
+                status="not_implemented",
+                message=(
+                    "BeatNet+ is installed but verified phrase/downbeat integration is not active yet. "
+                    "Use heuristic method or auto fallback."
+                ),
+                setup_guidance=status.setup_guidance,
+            )
+        return PhraseAnalysisResponse(
+            ok=False,
+            status="failed",
+            message=(
+                f"{engine_id} is installed but could not produce rhythm analysis for this upload. "
+                "Try heuristic method or auto fallback."
+            ),
+            setup_guidance=status.setup_guidance,
+        )
+
+    result = map_engine_output_to_phrase_result(output, original_name)
+    return PhraseAnalysisResponse(
+        ok=True,
+        status="implemented",
+        message=f"Phrase analysis completed with {engine_id}.",
+        result=result,
+    )
+
+
 def analyze_phrase_file(
     file_path: Path | None,
     original_name: str,
@@ -205,68 +221,30 @@ def analyze_phrase_file(
             validation_errors=validation_errors,
         )
 
-    if method in {"essentia", "beatnet", "madmom"}:
+    if method in ADVANCED_ENGINE_IDS:
         if file_path is None:
             return PhraseAnalysisResponse(
                 ok=False,
                 status="validation_error",
                 message="Audio upload required for advanced phrase analysis methods.",
             )
-
-        advanced = {
-            "essentia": (_try_essentia_phrase_analysis, ESSENTIA_SETUP),
-            "beatnet": (_try_beatnet_phrase_analysis, BEATNET_SETUP),
-            "madmom": (_try_madmom_phrase_analysis, MADMOM_SETUP),
-        }[method]
-
-        if not _import_available({"essentia": "essentia", "beatnet": "beatnet", "madmom": "madmom"}[method]):
-            return PhraseAnalysisResponse(
-                ok=False,
-                status="missing_dependency",
-                message=f"{method} is not installed in this service environment.",
-                setup_guidance=advanced[1],
-            )
-
-        result = advanced[0](file_path, resolved_length)
-        if result is None:
-            return PhraseAnalysisResponse(
-                ok=False,
-                status="not_implemented",
-                message=(
-                    f"{method} is installed but verified phrase/downbeat integration is not active yet. "
-                    "Use heuristic method or auto fallback."
-                ),
-                setup_guidance=advanced[1],
-            )
-
-        return PhraseAnalysisResponse(
-            ok=True,
-            status="implemented",
-            message=f"Phrase analysis completed with {method}.",
-            result=result,
+        return _advanced_method_response(
+            engine_id=method,
+            file_path=file_path,
+            original_name=original_name,
+            phrase_length_bars=resolved_length,
         )
 
     if method == "auto" and file_path is not None:
-        for engine, setup in (
-            ("essentia", ESSENTIA_SETUP),
-            ("beatnet", BEATNET_SETUP),
-            ("madmom", MADMOM_SETUP),
-        ):
-            if not _import_available(engine):
-                continue
-            runner = {
-                "essentia": _try_essentia_phrase_analysis,
-                "beatnet": _try_beatnet_phrase_analysis,
-                "madmom": _try_madmom_phrase_analysis,
-            }[engine]
-            advanced_result = runner(file_path, resolved_length)
-            if advanced_result is not None:
-                return PhraseAnalysisResponse(
-                    ok=True,
-                    status="implemented",
-                    message=f"Phrase analysis completed with {engine}.",
-                    result=advanced_result,
-                )
+        advanced_output = run_auto_advanced(file_path, resolved_length)
+        if advanced_output is not None:
+            result = map_engine_output_to_phrase_result(advanced_output, original_name)
+            return PhraseAnalysisResponse(
+                ok=True,
+                status="implemented",
+                message=f"Phrase analysis completed with {advanced_output.engine_id}.",
+                result=result,
+            )
 
     if not beat_times:
         if file_path is None:
@@ -310,3 +288,9 @@ def analyze_phrase_file(
         message="Heuristic phrase windows computed from beat times. Not verified downbeats.",
         result=result,
     )
+
+
+def advanced_setup_guidance(engine_id: str) -> str:
+    if engine_id in ADVANCED_ENGINE_IDS:
+        return setup_guidance_for(engine_id)  # type: ignore[arg-type]
+    return "Optional advanced rhythm engine not configured."

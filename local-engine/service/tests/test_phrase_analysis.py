@@ -3,7 +3,7 @@ import unittest
 
 from phrase_analysis import (
     ALLOWED_METHODS,
-    _heuristic_phrase_start_times,
+    heuristic_phrase_start_times,
     _parse_beat_times,
     _validate_phrase_length,
     analyze_phrase_file,
@@ -112,7 +112,7 @@ class PhraseAnalysisHelperTests(unittest.TestCase):
 
     def test_heuristic_phrase_starts(self) -> None:
         beat_times = [float(i) for i in range(32)]
-        starts = _heuristic_phrase_start_times(beat_times, 8)
+        starts = heuristic_phrase_start_times(beat_times, 8)
         self.assertEqual(starts, [0.0])
 
     def test_allowed_methods(self) -> None:

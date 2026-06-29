@@ -1119,6 +1119,137 @@ audio {
   font-size: 13px;
 }
 
+.phrase-analysis-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(132, 146, 176, 0.18);
+  border-radius: 8px;
+  background: #151b26;
+}
+
+.phrase-analysis-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.phrase-analysis-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.phrase-analysis-rights,
+.phrase-analysis-capability,
+.phrase-analysis-note,
+.phrase-analysis-stored {
+  margin: 0;
+  color: #9eb0cb;
+  font-size: 13px;
+}
+
+.phrase-analysis-deps {
+  margin: 0;
+  padding-left: 18px;
+  color: #b8c4d9;
+  font-size: 13px;
+}
+
+.phrase-analysis-form {
+  display: grid;
+  gap: 12px;
+}
+
+.phrase-analysis-field span,
+.phrase-analysis-length legend {
+  display: block;
+  margin-bottom: 4px;
+  color: #b8c4d9;
+  font-size: 13px;
+}
+
+.phrase-analysis-run-button {
+  justify-self: start;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #2ee6a6;
+  color: #0a0f16;
+  font-weight: 600;
+}
+
+.phrase-analysis-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #ffb84d;
+  font-size: 13px;
+}
+
+.phrase-analysis-result h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.phrase-analysis-comparison {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(132, 146, 176, 0.16);
+}
+
+.phrase-analysis-comparison-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.phrase-analysis-comparison-lane {
+  padding: 12px;
+  border: 1px solid rgba(132, 146, 176, 0.16);
+  border-radius: 8px;
+  background: #101722;
+}
+
+.phrase-analysis-comparison-lane h5 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.phrase-analysis-comparison-lane p {
+  margin: 4px 0;
+  color: #b8c4d9;
+  font-size: 12px;
+}
+
+.phrase-analysis-basis {
+  color: #2ee6a6 !important;
+  font-weight: 600;
+}
+
+.phrase-analysis-comparison-lane-advanced .phrase-analysis-basis {
+  color: #7ec8ff !important;
+}
+
+.phrase-analysis-comparison-lane-unavailable .phrase-analysis-basis {
+  color: #ffb84d !important;
+}
+
+.phrase-analysis-limitation,
+.phrase-analysis-setup {
+  color: #9eb0cb !important;
+  font-style: italic;
+}
+
+.phrase-analysis-comparison-summary {
+  margin: 0;
+  padding-left: 18px;
+  color: #b8c4d9;
+  font-size: 12px;
+}
+
 .timeline-summary-list p {
   margin: 0;
   color: #b8c4d9;

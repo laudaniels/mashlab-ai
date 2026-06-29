@@ -3863,6 +3863,71 @@ describe("Phrase and downbeat analysis upgrade path", async () => {
     assert.ok(validatePhraseAnalysisRequest({ phraseLengthBars: 8, method: "auto" }).length === 0);
     assert.ok(validatePhraseAnalysisRequest({ phraseLengthBars: 5, method: "auto" }).length > 0);
   });
+
+  it("formats side-by-side phrase comparison", async () => {
+    const {
+      buildPhraseAnalysisComparison,
+      formatPhraseComparisonSummary,
+      buildAdvancedComparisonLane,
+    } = await importSrc("src/domain/phraseAnalysis.ts");
+
+    const beatTimes = Array.from({ length: 32 }, (_, index) => index * 0.46875);
+    const heuristicResult = {
+      fileName: "a.wav",
+      methodUsed: "heuristic_from_detected_beats",
+      phraseBasis: "heuristic_from_beats" as const,
+      beatTimes,
+      downbeatTimes: [],
+      phraseStartTimes: [0],
+      phraseLengthBars: 8,
+      confidence: null,
+      bpm: 128,
+      limitations: ["Heuristic only"],
+      djReviewRequired: true as const,
+    };
+    const comparison = buildPhraseAnalysisComparison({
+      result: heuristicResult,
+      beatTimes,
+      bpm: 128,
+      phraseLengthBars: 8,
+      advancedAvailable: false,
+      setupGuidance: "Install Essentia or madmom.",
+    });
+    assert.equal(comparison.advanced, null);
+    assert.equal(comparison.advancedUnavailable, true);
+    assert.match(formatPhraseComparisonSummary(comparison).join(" "), /Heuristic/i);
+    assert.match(formatPhraseComparisonSummary(comparison).join(" "), /unavailable/i);
+
+    const verifiedResult = {
+      ...heuristicResult,
+      methodUsed: "madmom_dbn_downbeat_tracker",
+      phraseBasis: "verified_phrase" as const,
+      downbeatTimes: [0, 2, 4, 6],
+      phraseStartTimes: [0, 16],
+    };
+    const advancedLane = buildAdvancedComparisonLane(verifiedResult);
+    assert.equal(advancedLane.basisLabel, "Verified phrase");
+    assert.equal(phraseAnalysisClaimsVerifiedWithoutEvidence(verifiedResult), false);
+  });
+
+  it("rejects verified label without downbeat evidence", () => {
+    assert.equal(
+      phraseAnalysisClaimsVerifiedWithoutEvidence({
+        fileName: "a.wav",
+        methodUsed: "fake",
+        phraseBasis: "verified_downbeat",
+        beatTimes: [],
+        downbeatTimes: [],
+        phraseStartTimes: [],
+        phraseLengthBars: 8,
+        confidence: null,
+        bpm: null,
+        limitations: [],
+        djReviewRequired: true,
+      }),
+      true
+    );
+  });
 });
 
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {

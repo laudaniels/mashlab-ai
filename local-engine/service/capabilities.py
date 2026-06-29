@@ -169,25 +169,58 @@ def _analysis_lane_capability(
 
 
 def _advanced_rhythm_available() -> bool:
-    for module_name in ("essentia", "beatnet", "madmom"):
-        if _import_available(module_name):
-            return True
-    return False
+    from rhythm_engines.registry import any_advanced_importable
+
+    return any_advanced_importable()
+
+
+def _verified_rhythm_capable() -> bool:
+    from rhythm_engines.registry import verified_capable
+
+    return verified_capable()
 
 
 def detect_capabilities() -> list[ServiceCapability]:
     librosa_cap = _optional_python_package("librosa", "librosa", "librosa")
     librosa_ready = librosa_cap.status == "available"
-    essentia_cap = _optional_python_package("essentia", "Essentia", "essentia")
-    beatnet_cap = _optional_python_package("beatnet", "BeatNet+", "beatnet")
-    madmom_cap = _optional_python_package("madmom", "madmom", "madmom")
-    advanced_ready = _advanced_rhythm_available()
+    from rhythm_engines.registry import engine_status
 
-    verified_status = "experimental" if advanced_ready else "planned"
+    essentia_status = engine_status("essentia")
+    beatnet_status = engine_status("beatnet")
+    madmom_status = engine_status("madmom")
+    essentia_cap = ServiceCapability(
+        id="essentia",
+        label="Essentia",
+        status=essentia_status.status,  # type: ignore[arg-type]
+        message=essentia_status.message,
+        version=essentia_status.version,
+    )
+    beatnet_cap = ServiceCapability(
+        id="beatnet",
+        label="BeatNet+",
+        status=beatnet_status.status,  # type: ignore[arg-type]
+        message=beatnet_status.message,
+        version=beatnet_status.version,
+    )
+    madmom_cap = ServiceCapability(
+        id="madmom",
+        label="madmom",
+        status=madmom_status.status,  # type: ignore[arg-type]
+        message=madmom_status.message,
+        version=madmom_status.version,
+    )
+    advanced_ready = _advanced_rhythm_available()
+    verified_ready = _verified_rhythm_capable()
+
+    verified_status = "available" if verified_ready else ("experimental" if advanced_ready else "planned")
     verified_message = (
-        "Optional advanced rhythm engine detected — verified integration may be enabled when configured."
-        if advanced_ready
-        else "Verified downbeat/phrase analysis requires optional Essentia, BeatNet+, or madmom."
+        "madmom downbeat tracker available — verified downbeat/phrase analysis may run when configured."
+        if verified_ready
+        else (
+            "Optional advanced rhythm engine detected — beat extraction may run; verified downbeats require madmom."
+            if advanced_ready
+            else "Verified downbeat/phrase analysis requires optional Essentia or madmom."
+        )
     )
 
     return [

@@ -2,9 +2,12 @@ import { AlertTriangle, LoaderCircle, Music2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { PhraseAnalysisMethodPreference } from "../domain/phraseAnalysis.ts";
 import {
+  buildPhraseAnalysisComparison,
   formatPhraseAnalysisSummary,
+  formatPhraseComparisonSummary,
   formatMissingPhraseDependency,
   PHRASE_ANALYSIS_DJ_REVIEW_NOTICE,
+  type PhraseAnalysisComparison,
   type PhraseAnalysisResult,
 } from "../domain/phraseAnalysis.ts";
 import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
@@ -43,6 +46,7 @@ export function PhraseAnalysisPanel({
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<PhraseAnalysisResult | null>(null);
+  const [comparison, setComparison] = useState<PhraseAnalysisComparison | null>(null);
 
   const capabilitySummary = useMemo(
     () => phraseAnalysisCapabilitySummary(localStatus.capabilities),
@@ -66,6 +70,7 @@ export function PhraseAnalysisPanel({
     setBusy(true);
     setErrorMessage(null);
     setLastResult(null);
+    setComparison(null);
 
     const beatTimes = artifact?.beatAnalysis?.beatTimes ?? [];
     const bpm = artifact?.beatAnalysis?.bpm ?? null;
@@ -96,6 +101,16 @@ export function PhraseAnalysisPanel({
     }
 
     setLastResult(result);
+    setComparison(
+      buildPhraseAnalysisComparison({
+        result,
+        beatTimes: beatTimes.length > 0 ? beatTimes : result.beatTimes,
+        bpm: bpm ?? result.bpm,
+        phraseLengthBars,
+        advancedAvailable: advancedAvailable,
+        setupGuidance: findCapability(localStatus.capabilities, "essentia")?.message ?? null,
+      })
+    );
     onPhraseAnalysisComplete(selectedSlot, result);
   }
 
@@ -216,13 +231,66 @@ export function PhraseAnalysisPanel({
         </p>
       ) : null}
 
-      {lastResult ? (
+      {lastResult && comparison ? (
         <div className="phrase-analysis-result">
+          <h4>Analysis result</h4>
           <ul>
             {formatPhraseAnalysisSummary(lastResult).map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
+
+          <div className="phrase-analysis-comparison">
+            <h4>Heuristic vs advanced comparison</h4>
+            <div className="phrase-analysis-comparison-grid">
+              <article className="phrase-analysis-comparison-lane">
+                <h5>{comparison.heuristic.label}</h5>
+                <p className="phrase-analysis-basis">{comparison.heuristic.basisLabel}</p>
+                <p>Method: {comparison.heuristic.method}</p>
+                <p>Phrase windows: {comparison.heuristic.phraseStartTimes.length}</p>
+                <p>Downbeats: none (heuristic)</p>
+                {comparison.heuristic.limitations[0] ? (
+                  <p className="phrase-analysis-limitation">{comparison.heuristic.limitations[0]}</p>
+                ) : null}
+              </article>
+
+              {comparison.advanced ? (
+                <article className="phrase-analysis-comparison-lane phrase-analysis-comparison-lane-advanced">
+                  <h5>{comparison.advanced.label}</h5>
+                  <p className="phrase-analysis-basis">{comparison.advanced.basisLabel}</p>
+                  <p>Method: {comparison.advanced.method}</p>
+                  <p>Phrase windows: {comparison.advanced.phraseStartTimes.length}</p>
+                  <p>
+                    Downbeats:{" "}
+                    {comparison.advanced.downbeatCount > 0
+                      ? comparison.advanced.downbeatCount
+                      : "none detected"}
+                  </p>
+                  {comparison.advanced.confidence !== null ? (
+                    <p>Confidence: {(comparison.advanced.confidence * 100).toFixed(1)}%</p>
+                  ) : null}
+                  {comparison.advanced.limitations[0] ? (
+                    <p className="phrase-analysis-limitation">{comparison.advanced.limitations[0]}</p>
+                  ) : null}
+                </article>
+              ) : (
+                <article className="phrase-analysis-comparison-lane phrase-analysis-comparison-lane-unavailable">
+                  <h5>Advanced engine</h5>
+                  <p className="phrase-analysis-basis">Unavailable</p>
+                  <p>No verified rhythm engine result for this run.</p>
+                  {comparison.setupGuidance ? (
+                    <p className="phrase-analysis-setup">{comparison.setupGuidance}</p>
+                  ) : null}
+                </article>
+              )}
+            </div>
+            <ul className="phrase-analysis-comparison-summary">
+              {formatPhraseComparisonSummary(comparison).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+
           <p>{PHRASE_ANALYSIS_DJ_REVIEW_NOTICE}</p>
         </div>
       ) : null}

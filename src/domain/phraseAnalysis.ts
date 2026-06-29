@@ -1,4 +1,5 @@
 import type { BeatGridModel, HeuristicPhrasePlan, PhraseMarker } from "./beatGrid.ts";
+import { planHeuristicPhrases } from "./beatGrid.ts";
 import type { PhraseLengthBars } from "./trackOverrides.ts";
 
 export type PhraseAnalysisApiBasis =
@@ -98,6 +99,108 @@ export function formatPhraseAnalysisSummary(result: PhraseAnalysisResult): strin
   ];
   if (result.confidence !== null) {
     lines.push(`Confidence: ${(result.confidence * 100).toFixed(1)}%`);
+  }
+  if (result.limitations.length > 0) {
+    lines.push(`Limitations: ${result.limitations[0]}`);
+  }
+  lines.push(PHRASE_ANALYSIS_DJ_REVIEW_NOTICE);
+  return lines;
+}
+
+export interface PhraseAnalysisComparisonLane {
+  label: string;
+  basisLabel: string;
+  method: string;
+  phraseStartTimes: number[];
+  downbeatCount: number;
+  confidence: number | null;
+  limitations: string[];
+}
+
+export interface PhraseAnalysisComparison {
+  heuristic: PhraseAnalysisComparisonLane;
+  advanced: PhraseAnalysisComparisonLane | null;
+  advancedUnavailable: boolean;
+  setupGuidance: string | null;
+  djReviewRequired: true;
+}
+
+export function buildHeuristicComparisonLane(params: {
+  beatTimes: number[];
+  bpm: number | null;
+  phraseLengthBars: PhraseLengthBars;
+}): PhraseAnalysisComparisonLane {
+  const plan = planHeuristicPhrases(params.beatTimes, params.bpm, params.phraseLengthBars);
+  return {
+    label: "Heuristic phrase windows",
+    basisLabel: "Heuristic",
+    method: "heuristic_from_detected_beats",
+    phraseStartTimes: plan?.phraseStartTimes ?? [],
+    downbeatCount: 0,
+    confidence: null,
+    limitations: plan?.limitations ?? ["Insufficient beats for heuristic phrase windows."],
+  };
+}
+
+export function buildAdvancedComparisonLane(result: PhraseAnalysisResult): PhraseAnalysisComparisonLane {
+  return {
+    label: "Advanced engine result",
+    basisLabel: formatPhraseEvidenceLabel(result.phraseBasis, result.methodUsed),
+    method: result.methodUsed,
+    phraseStartTimes: result.phraseStartTimes,
+    downbeatCount: result.downbeatTimes.length,
+    confidence: result.confidence,
+    limitations: result.limitations,
+  };
+}
+
+export function buildPhraseAnalysisComparison(params: {
+  result: PhraseAnalysisResult;
+  beatTimes: number[];
+  bpm: number | null;
+  phraseLengthBars: PhraseLengthBars;
+  advancedAvailable: boolean;
+  setupGuidance?: string | null;
+}): PhraseAnalysisComparison {
+  const compareBeatTimes =
+    params.result.beatTimes.length > 0 ? params.result.beatTimes : params.beatTimes;
+  const heuristic = buildHeuristicComparisonLane({
+    beatTimes: compareBeatTimes,
+    bpm: params.result.bpm ?? params.bpm,
+    phraseLengthBars: params.phraseLengthBars,
+  });
+
+  const isHeuristicOnlyResult = params.result.methodUsed === "heuristic_from_detected_beats";
+  const advanced = !isHeuristicOnlyResult ? buildAdvancedComparisonLane(params.result) : null;
+
+  return {
+    heuristic,
+    advanced,
+    advancedUnavailable: !params.advancedAvailable,
+    setupGuidance: !params.advancedAvailable ? (params.setupGuidance ?? null) : null,
+    djReviewRequired: true,
+  };
+}
+
+export function formatPhraseComparisonSummary(comparison: PhraseAnalysisComparison): string[] {
+  const lines: string[] = [
+    `Heuristic: ${comparison.heuristic.phraseStartTimes.length} phrase windows · ${comparison.heuristic.basisLabel}`,
+  ];
+  if (comparison.advanced) {
+    lines.push(
+      `Advanced (${comparison.advanced.method}): ${comparison.advanced.phraseStartTimes.length} phrase windows · ${comparison.advanced.basisLabel}`
+    );
+    if (comparison.advanced.downbeatCount > 0) {
+      lines.push(`Advanced downbeats: ${comparison.advanced.downbeatCount}`);
+    }
+    if (comparison.advanced.confidence !== null) {
+      lines.push(`Advanced confidence: ${(comparison.advanced.confidence * 100).toFixed(1)}%`);
+    }
+  } else if (comparison.advancedUnavailable) {
+    lines.push("Advanced engine: unavailable — heuristic fallback shown.");
+    if (comparison.setupGuidance) {
+      lines.push(comparison.setupGuidance);
+    }
   }
   lines.push(PHRASE_ANALYSIS_DJ_REVIEW_NOTICE);
   return lines;

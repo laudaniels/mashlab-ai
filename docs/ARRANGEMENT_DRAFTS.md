@@ -214,6 +214,12 @@ Arrangement drafts now prefer stronger phrase evidence when available:
 
 Run **Phrase Analysis** on the Timeline screen to populate evidence. See `docs/PHRASE_DOWNBEAT_ANALYSIS.md`.
 
+## Phase 25: Rhythm Engine Adapters
+
+When madmom is installed (Linux/WSL), verified downbeat/phrase evidence flows into drafts automatically. Essentia provides beat extraction with heuristic phrase windows only — never labeled verified. Export/package metadata inherits `phrase_evidence_method` and `phrase_basis` from arrangement context.
+
+Optional install: `local-engine/service/requirements-rhythm.txt`
+
 ## Tests
 
 `scripts/verify-core.mts` — `Arrangement draft intelligence` describe block:

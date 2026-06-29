@@ -87,7 +87,7 @@ Default bind: `http://127.0.0.1:47831`
 | `GET /v1/capabilities` | Python, FFmpeg, Rubber Band, Demucs, librosa status |
 | `POST /v1/analyze/beat` | BPM analysis |
 | `POST /v1/analyze/key` | Key analysis |
-| `POST /v1/analyze/phrases` | Phrase/downbeat analysis (heuristic + optional advanced) |
+| `POST /v1/analyze/phrases` | Phrase/downbeat analysis (heuristic + optional Essentia/madmom adapters) |
 | `POST /v1/process/pitch-time-preview` | Rubber Band short preview |
 | `POST /v1/process/stem-preview` | Demucs two-stem preview |
 | `POST /v1/process/combined-preview` | Vocal-over-bed preview |

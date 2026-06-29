@@ -48,13 +48,13 @@ Implemented:
 - **Arrangement section preview binding** — select advisory sections, bind preview duration/start/mix, deep-link missing requirements (Phase 21).
 - **Arrangement traceability + stale binding** — section context through preview/export/package metadata; stale warnings with re-apply (Phase 22).
 - **Section window export + context diff guard** — advisory planning-window WAV from stems; bound vs current diff before export (Phase 23).
-- **Phrase/downbeat analysis upgrade path** — optional `/v1/analyze/phrases`, heuristic fallback, verified engine hooks (Phase 24).
+- **Phrase/downbeat analysis upgrade path** — optional `/v1/analyze/phrases`, heuristic fallback, rhythm engine adapters (Essentia/madmom/BeatNet+) (Phase 24–25).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
-- True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
+- Verified downbeat/phrase when optional madmom is installed (Linux/WSL); Essentia beat extraction when available; Windows may require WSL/conda.
 - Automated arrangement rendering from draft plans (Phase 20–21 is planning-only; section binding configures preview — user still clicks Create preview).
 - Club version certification and public sharing.
 

@@ -1,6 +1,6 @@
-# Phrase and Downbeat Analysis Upgrade Path (Phase 24)
+# Phrase and Downbeat Analysis Upgrade Path (Phase 24–25)
 
-Phase 24 adds an optional **phrase/downbeat analysis upgrade path** while preserving the existing **heuristic phrase planner** as fallback. This improves phrase evidence quality for arrangement drafts — it does **not** add new export surfaces or claim song-structure detection.
+Phase 24 adds an optional **phrase/downbeat analysis upgrade path** while preserving the existing **heuristic phrase planner** as fallback. Phase 25 adds a **rhythm engine adapter layer** with real Essentia/madmom integrations when installable.
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 
@@ -9,12 +9,36 @@ Upload audio you own or are authorized to use. MashLab AI helps process and arra
 | Label | Meaning |
 |-------|---------|
 | **Heuristic** | Phrase windows derived from detected beat times — not verified downbeats |
-| **Verified downbeat** | Downbeat times from an optional advanced rhythm engine (when installed and integrated) |
-| **Verified phrase** | Phrase start markers from advanced engine or verified pipeline |
+| **Verified downbeat** | Downbeat times from madmom DBNDownBeatTracker (when installed) |
+| **Verified phrase** | Phrase start markers derived from verified downbeats |
 | **DJ override** | User phrase length or alignment offset |
 | **Unavailable** | Insufficient beat/phrase data |
 
 Phrase basis API values: `heuristic_from_beats`, `verified_downbeat`, `verified_phrase`, `unavailable`.
+
+## Rhythm Engine Adapters (Phase 25)
+
+Location: `local-engine/service/rhythm_engines/`
+
+| Engine | Method | Verified output | Install notes |
+|--------|--------|-----------------|---------------|
+| **Essentia** | `essentia_rhythm_extractor2013` | Beat times + confidence only; phrase windows remain **heuristic** | Linux/macOS/WSL; Windows py312 source build failed in spike |
+| **madmom** | `madmom_dbn_downbeat_tracker` | **Verified downbeat/phrase** when DBN succeeds | Requires Cython + build tools; Linux/macOS/WSL recommended |
+| **BeatNet+** | stub | Not active yet | Planned |
+
+Adapters use **lazy imports** — service startup never fails when engines are missing.
+
+### Install (optional)
+
+See `local-engine/service/requirements-rhythm.txt` for commands and Windows/WSL caveats.
+
+```bash
+# Linux/WSL example
+pip install cython numpy scipy madmom
+# Essentia: pip install essentia  OR  conda install -c conda-forge essentia
+```
+
+**Phase 25 install attempt (Windows Python 3.12):** Essentia and madmom both failed to build. Heuristic fallback remains default; all checks pass without optional engines.
 
 ## Endpoint
 
@@ -41,7 +65,18 @@ Response includes:
 
 If Essentia/BeatNet+/madmom are missing, the service returns `missing_dependency` for explicit advanced methods, or **Auto** falls back to heuristic from beat times.
 
+**Auto** tries all importable engines and picks the strongest phrase basis (verified phrase > verified downbeat > heuristic).
+
 **Never** labels heuristic output as verified. **Never** fabricates downbeats.
+
+## Comparison UI
+
+Phrase Analysis panel shows side-by-side:
+
+- Heuristic phrase windows (always)
+- Advanced engine result when one ran
+- Basis labels, method, limitations, DJ review required
+- Setup guidance when advanced engines are not installed
 
 ## Capabilities
 
@@ -50,8 +85,8 @@ The sidecar reports analysis lanes:
 - `beat_bpm_analysis` — librosa beat/BPM
 - `key_analysis_experimental` — experimental key lane
 - `heuristic_phrase_planning` — heuristic phrase windows
-- `verified_downbeat_analysis` / `verified_phrase_markers` — planned until advanced deps integrated
-- `essentia`, `beatnet`, `madmom` — optional, `not_configured` when missing
+- `verified_downbeat_analysis` / `verified_phrase_markers` — available when madmom runs; experimental when Essentia only
+- `essentia`, `beatnet`, `madmom` — optional rhythm engine adapters (`not_configured` when missing)
 
 Statuses: `available`, `missing`, `planned`, `not_configured`, `experimental`.
 

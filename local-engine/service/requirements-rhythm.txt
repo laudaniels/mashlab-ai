@@ -1,0 +1,35 @@
+# Optional advanced rhythm / downbeat engines for MashLab local sidecar
+#
+# These packages are OPTIONAL. The service starts and passes all checks without them.
+# Heuristic phrase planning (librosa beat times) remains the default fallback.
+#
+# Install attempt results (Phase 25 spike, Windows Python 3.12):
+# - essentia: FAILED — source build requires Unix tooling (rm, waf); no pre-built wheel for py312/win64
+# - madmom: FAILED — requires Cython build chain; pip install cython first, then madmom on Linux/macOS
+# - beatnet: not attempted — adapter stub only
+#
+# Recommended: install on Linux or WSL2 with build tools, or use conda-forge where available.
+
+# Core optional rhythm stack (Linux/macOS/WSL)
+# pip install -r requirements-rhythm.txt
+
+# Essentia — beat extraction via RhythmExtractor2013 (heuristic phrase from beats when no downbeats)
+# essentia>=2.1b6
+
+# madmom — verified downbeat/phrase via DBNDownBeatTracker (4/4 assumed)
+# cython>=3.0
+# numpy>=1.24
+# scipy>=1.10
+# madmom>=0.16.1
+
+# BeatNet+ — future adapter hook (not active in Phase 25)
+# beatnet
+
+# Windows notes:
+# - Prefer WSL2 Ubuntu: sudo apt install build-essential libfftw3-dev libavcodec-dev libavformat-dev libavutil-dev libswresample-dev
+# - Then: pip install cython numpy scipy madmom
+# - Essentia on Windows: try conda install -c conda-forge essentia
+#
+# Verify after install:
+#   python -c "import essentia; print('essentia ok')"
+#   python -c "import madmom; print('madmom ok')"

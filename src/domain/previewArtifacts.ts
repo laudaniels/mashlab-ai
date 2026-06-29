@@ -5,7 +5,8 @@ export type PreviewArtifactType =
   | "combined-preview"
   | "pitch-time-preview"
   | "export"
-  | "master";
+  | "master"
+  | "package";
 
 export const PREVIEW_ARTIFACT_LABEL =
   "Preview only — not a final export or master.";
@@ -18,6 +19,9 @@ export const MASTER_ARTIFACT_LABEL =
 
 export const MP3_EXPORT_ARTIFACT_LABEL =
   "Local MP3 reference export — user responsible for rights. No public distribution rights granted.";
+
+export const PACKAGE_ARTIFACT_LABEL =
+  "Local project package — user responsible for rights. No public distribution rights granted. Not public sharing.";
 
 export interface PreviewArtifactRegistryEntry {
   artifactId: string;
@@ -60,6 +64,12 @@ export interface PreviewArtifactSummary {
   sourceWavExportArtifactId: string | null;
   masterPreset: string | null;
   masteringPrototype: boolean;
+  packageOnly: boolean;
+  packageSubtype: string | null;
+  packageLabel: string | null;
+  includedFileCount: number | null;
+  selectedArtifactIds: string[] | null;
+  publicShare: boolean;
 }
 
 export interface LoudnessReadout {
@@ -103,7 +113,8 @@ export function isPreviewArtifactType(value: string): value is PreviewArtifactTy
     value === "combined-preview" ||
     value === "pitch-time-preview" ||
     value === "export" ||
-    value === "master"
+    value === "master" ||
+    value === "package"
   );
 }
 
@@ -113,6 +124,10 @@ export function isExportArtifact(artifact: PreviewArtifactSummary): boolean {
 
 export function isMasterArtifact(artifact: PreviewArtifactSummary): boolean {
   return artifact.artifactType === "master";
+}
+
+export function isPackagePreviewArtifact(artifact: PreviewArtifactSummary): boolean {
+  return artifact.artifactType === "package" || artifact.packageOnly === true;
 }
 
 export function isCombinedPreviewArtifact(artifact: PreviewArtifactSummary): boolean {

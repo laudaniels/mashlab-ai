@@ -29,6 +29,7 @@ import {
   hasFullLengthExportSource,
   isMasteringAvailable,
   isMp3ExportAvailable,
+  isProjectPackageAvailable,
   isWavExportAvailable,
 } from "../domain/exportPrep.ts";
 import {
@@ -68,6 +69,22 @@ import {
   type Mp3BitrateKbps,
   type Mp3ExportResult,
 } from "../domain/mp3Export.ts";
+import {
+  ALLOWED_PACKAGE_TYPES,
+  DEFAULT_PACKAGE_TYPE,
+  formatPackageableArtifactOption,
+  formatPackageManifestSummary,
+  formatPackageWarnings,
+  isPackageableArtifact,
+  PACKAGE_EXPORT_NOTICE,
+  PACKAGE_MANIFEST_ALWAYS_INCLUDED,
+  PACKAGE_RAW_UPLOADS_EXCLUDED_NOTICE,
+  selectDefaultPackageArtifacts,
+  validatePackageExportRequest,
+  validateSelectedArtifactIds,
+  type PackageExportResult,
+  type PackageType,
+} from "../domain/projectPackage.ts";
 import { rubberBandReadinessFromCapabilityStatus } from "../domain/pitchTimePlanning.ts";
 import type { MashIntent } from "../domain/pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
@@ -143,6 +160,16 @@ export function ExportPrepPanel({
   const [mp3Busy, setMp3Busy] = useState(false);
   const [masterBusy, setMasterBusy] = useState(false);
   const [reExportBusy, setReExportBusy] = useState(false);
+  const [packageableArtifacts, setPackageableArtifacts] = useState<
+    import("../domain/previewArtifacts.ts").PreviewArtifactSummary[]
+  >([]);
+  const [selectedPackageArtifactIds, setSelectedPackageArtifactIds] = useState<string[]>([]);
+  const [packageLabel, setPackageLabel] = useState("");
+  const [packageType, setPackageType] = useState<PackageType>(DEFAULT_PACKAGE_TYPE);
+  const [includeTechnicalReport, setIncludeTechnicalReport] = useState(false);
+  const [packageBusy, setPackageBusy] = useState(false);
+  const [packageResult, setPackageResult] = useState<PackageExportResult | null>(null);
+  const [packageErrorMessage, setPackageErrorMessage] = useState<string | null>(null);
 
   const pitchTimePlan = buildPitchTimePlanForExport(
     artifactStore,
@@ -181,6 +208,14 @@ export function ExportPrepPanel({
     setCombinedPreviews(listed.filter(isCombinedPreviewArtifact));
     const wavOnly = listed.filter(isWavExportArtifact);
     setWavExports(wavOnly);
+    const packageable = listed.filter(isPackageableArtifact);
+    setPackageableArtifacts(packageable);
+    setSelectedPackageArtifactIds((current) => {
+      if (current.length > 0 && current.every((id) => packageable.some((item) => item.artifactId === id))) {
+        return current;
+      }
+      return selectDefaultPackageArtifacts(listed);
+    });
 
     const combined = listed.filter(isCombinedPreviewArtifact);
     if (combined.length > 0) {
@@ -227,6 +262,7 @@ export function ExportPrepPanel({
   const mp3Locked = mp3ExportPanelIsLocked(wavExports);
   const masteringLocked = masteringPanelIsLocked(wavExports);
   const masteringAvailable = isMasteringAvailable(wavExports.length);
+  const packageAvailable = isProjectPackageAvailable(packageableArtifacts.length);
   const selectedPresetDef = getMasteringPresetDefinition(masteringPreset);
   const canReExport = canReExportWithCurrentSettings(
     sessionPrefs,
@@ -405,6 +441,65 @@ export function ExportPrepPanel({
     }
 
     setMasterResult(result);
+    notifyArtifactRefresh();
+    onExportComplete?.();
+  }
+
+  function togglePackageArtifact(artifactId: string) {
+    setSelectedPackageArtifactIds((current) =>
+      current.includes(artifactId)
+        ? current.filter((id) => id !== artifactId)
+        : [...current, artifactId]
+    );
+  }
+
+  async function handleCreateProjectPackage() {
+    const label = packageLabel.trim() || "MashLab Project";
+
+    const requestErrors = [
+      ...validatePackageExportRequest({
+        packageLabel: label,
+        selectedArtifactIds: selectedPackageArtifactIds,
+        packageType,
+        includeTechnicalReport,
+      }),
+      ...validateSelectedArtifactIds(selectedPackageArtifactIds, packageableArtifacts),
+    ];
+
+    if (requestErrors.length > 0) {
+      setPackageErrorMessage(requestErrors.join(" "));
+      return;
+    }
+
+    setPackageBusy(true);
+    setPackageErrorMessage(null);
+    setPackageResult(null);
+
+    const result = await localEngineClient.createProjectPackage({
+      packageLabel: label,
+      selectedArtifactIds: selectedPackageArtifactIds,
+      packageType,
+      includeTechnicalReport,
+    });
+
+    setPackageBusy(false);
+
+    if (!result) {
+      setPackageErrorMessage("Local sidecar did not respond to package export request.");
+      return;
+    }
+
+    if (!result.ok) {
+      setPackageErrorMessage(
+        result.validationErrors?.join(" ") ??
+          result.setupGuidance ??
+          result.message ??
+          "Project package export failed."
+      );
+      return;
+    }
+
+    setPackageResult(result);
     notifyArtifactRefresh();
     onExportComplete?.();
   }
@@ -960,6 +1055,92 @@ export function ExportPrepPanel({
             )}
           </div>
 
+          <div className="export-prep-form export-prep-form-section export-prep-package">
+            <h4>Project package / stem package</h4>
+            <p className="export-prep-not-mastered">{PACKAGE_EXPORT_NOTICE}</p>
+            <p className="export-prep-wav-only">{PACKAGE_RAW_UPLOADS_EXCLUDED_NOTICE}</p>
+            <p className="export-prep-wav-only">{PACKAGE_MANIFEST_ALWAYS_INCLUDED}</p>
+
+            {packageableArtifacts.length === 0 ? (
+              <p className="export-prep-wav-only">
+                Create stem previews, combined preview, or exports first to unlock project packaging.
+              </p>
+            ) : (
+              <>
+                <fieldset className="export-prep-package-artifacts">
+                  <legend>Eligible artifacts</legend>
+                  {packageableArtifacts.map((artifact) => (
+                    <label className="export-prep-package-checkbox" key={artifact.artifactId}>
+                      <input
+                        checked={selectedPackageArtifactIds.includes(artifact.artifactId)}
+                        disabled={packageBusy}
+                        onChange={() => togglePackageArtifact(artifact.artifactId)}
+                        type="checkbox"
+                      />
+                      <span>{formatPackageableArtifactOption(artifact)}</span>
+                    </label>
+                  ))}
+                </fieldset>
+                <label className="export-prep-field">
+                  <span>Package label</span>
+                  <input
+                    disabled={packageBusy}
+                    maxLength={120}
+                    onChange={(event) => setPackageLabel(event.target.value)}
+                    placeholder="My mashup project"
+                    type="text"
+                    value={packageLabel}
+                  />
+                </label>
+                <label className="export-prep-field">
+                  <span>Package type</span>
+                  <select
+                    disabled={packageBusy}
+                    onChange={(event) => setPackageType(event.target.value as PackageType)}
+                    value={packageType}
+                  >
+                    {ALLOWED_PACKAGE_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type === "folder" ? "Folder (default)" : "ZIP archive"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="export-prep-checkbox">
+                  <input
+                    checked={includeTechnicalReport}
+                    disabled={packageBusy}
+                    onChange={(event) => setIncludeTechnicalReport(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Include technical report (JSON + Markdown)</span>
+                </label>
+                <button
+                  className="export-prep-create-button export-prep-create-button-package"
+                  disabled={!packageAvailable || !localStatus.online || packageBusy}
+                  onClick={() => void handleCreateProjectPackage()}
+                  type="button"
+                >
+                  {packageBusy ? (
+                    <>
+                      <LoaderCircle aria-hidden="true" className="spin-icon" size={16} />
+                      Creating local project package…
+                    </>
+                  ) : (
+                    <>
+                      <Download aria-hidden="true" size={16} />
+                      Create local project package
+                    </>
+                  )}
+                </button>
+                {packageErrorMessage ? (
+                  <p className="export-prep-error">{packageErrorMessage}</p>
+                ) : null}
+                {packageResult?.ok ? <PackageResultBlock result={packageResult} /> : null}
+              </>
+            )}
+          </div>
+
           {sessionPrefs.lastSuccessfulExport ? (
             <div className="export-prep-session-summary">
               <h4>Last successful export</h4>
@@ -1003,6 +1184,8 @@ export function ExportPrepPanel({
               <span className="export-prep-card-status">Available above</span>
             ) : target.id === "dj-preview-master" && masteringAvailable ? (
               <span className="export-prep-card-status">Available above</span>
+            ) : target.id === "stems" && packageAvailable ? (
+              <span className="export-prep-card-status">Available above</span>
             ) : (
               <button className="disabled-action" disabled type="button">
                 {target.status === "locked" ? "Not implemented" : "Use export form"}
@@ -1027,6 +1210,7 @@ export function ExportPrepPanel({
 
       <NoticeStrip
         text={
+          packageResult?.rightsNotice ??
           masterResult?.rightsNotice ??
           mp3ExportResult?.rightsNotice ??
           fullExportResult?.rightsNotice ??
@@ -1063,6 +1247,41 @@ function ExportResultBlock({ result }: { result: ExportWavResult }) {
       ) : null}
       <ul className="export-prep-warnings">
         {formatExportWarnings(result).map((warning) => (
+          <li key={warning}>{warning}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function PackageResultBlock({ result }: { result: PackageExportResult }) {
+  return (
+    <div className="export-prep-result export-prep-result-package">
+      <p>{formatPackageManifestSummary(result)}</p>
+      <p>
+        Package artifact <strong>{result.packageArtifactId}</strong>
+        {result.localFolderPath ? <> · folder: {result.localFolderPath}</> : null}
+      </p>
+      {result.manifestPath ? <p>Manifest: {result.manifestPath}</p> : null}
+      {result.rightsNoticePath ? <p>Rights notice: {result.rightsNoticePath}</p> : null}
+      {result.technicalReportPath ? <p>Technical report: {result.technicalReportPath}</p> : null}
+      {result.playbackUrl ? (
+        <a className="export-prep-download-link" download href={result.playbackUrl}>
+          Download local package ZIP
+        </a>
+      ) : null}
+      {result.includedFiles.length > 0 ? (
+        <ul className="export-prep-package-files">
+          {result.includedFiles.map((file) => (
+            <li key={`${file.artifactId}-${file.packagePath}`}>
+              {file.packagePath} ({file.artifactType}
+              {file.artifactSubtype ? ` / ${file.artifactSubtype}` : ""})
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <ul className="export-prep-warnings">
+        {formatPackageWarnings(result).map((warning) => (
           <li key={warning}>{warning}</li>
         ))}
       </ul>

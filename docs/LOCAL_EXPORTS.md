@@ -1,6 +1,6 @@
-# Local WAV, MP3, and Mastering Exports (Phase 13–16)
+# Local WAV, MP3, Mastering, and Project Package Exports (Phase 13–17)
 
-MashLab AI / CyphaBlend AI supports **local WAV export** lanes and **MP3 reference export** from existing WAV exports. All exports are explicit, user-initiated, and rights-neutral.
+MashLab AI / CyphaBlend AI supports **local WAV export** lanes, **MP3 reference export**, **mastering preset prototypes**, and **local project package export**. All exports are explicit, user-initiated, and rights-neutral.
 
 ## Export Lanes
 
@@ -10,14 +10,16 @@ MashLab AI / CyphaBlend AI supports **local WAV export** lanes and **MP3 referen
 | Full-length re-render | `POST /v1/export/full-wav` | Stem artifacts + plan state | `full-wav` |
 | MP3 reference | `POST /v1/export/mp3` | Existing WAV export `export.wav` | `mp3` |
 | Mastering prototype | `POST /v1/master/wav` | Existing WAV export `export.wav` | preset id |
+| Project package | `POST /v1/export/package` | Selected local artifacts | `folder` or `zip` |
 
 Output:
 
 - WAV export: `.work/artifacts/exports/{uuid}/export.wav` + `export.meta.json`
 - MP3 export: `.work/artifacts/exports/{uuid}/export.mp3` + `export.meta.json`
 - Master: `.work/artifacts/masters/{uuid}/master.wav` (when preset creates audio) + `master.meta.json`
+- Package: `.work/artifacts/packages/{uuid}/MashLab_Project_{label}/` + optional `mashlab-package.zip`
 
-See `docs/MASTERING_PRESETS.md` for mastering preset details.
+See `docs/MASTERING_PRESETS.md` and `docs/PROJECT_PACKAGE_EXPORT.md` for details.
 
 ## Phase 15: MP3 Reference Export
 
@@ -92,7 +94,7 @@ Missing Rubber Band, FFmpeg, or stem artifacts → structured `missing_dependenc
 ## What This Is Not
 
 - Not full arrangement rendering or full-length mastering
-- Not stem package export, club mastering, or public sharing
+- Not club mastering certification or public sharing
 - MP3 is a lossy reference format — not proof of distribution rights
 - Not a claim that the user may publish or distribute the output
 
@@ -199,7 +201,8 @@ No raw audio is persisted. No accounts or cloud storage.
 ## Cleanup
 
 - `DELETE /v1/artifacts/{export_id}` removes export folder under `.work/artifacts/exports/` (WAV or MP3)
-- `DELETE /v1/artifacts?scope=session` clears previews **and** exports
+- Package artifacts delete under `.work/artifacts/packages/` only
+- `DELETE /v1/artifacts?scope=session` clears previews, exports, masters, and packages
 - Source uploads outside `.work` are never deleted
 
 ## Auto-Refresh
@@ -217,4 +220,4 @@ See `src/lib/artifactRefresh.ts`.
 
 - `docs/EXPORT_AND_MASTERING_PLAN.md`
 - `docs/PREVIEW_SESSION_MANAGEMENT.md`
-- `docs/COMBINED_PREVIEW.md`
+- `docs/PROJECT_PACKAGE_EXPORT.md`

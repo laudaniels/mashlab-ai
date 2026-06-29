@@ -41,6 +41,7 @@ from rubber_band_processing import (
 from mastering_processing import MasterWavFailure, MasterWavSuccess, create_master_wav
 from mp3_export_processing import ExportMp3Failure, ExportMp3Success, create_mp3_export
 from export_processing import ExportWavFailure, ExportWavSuccess, create_wav_export
+from package_export_processing import PackageExportFailure, PackageExportSuccess, create_project_package
 from full_length_export_processing import (
     FullWavExportFailure,
     FullWavExportSuccess,
@@ -60,6 +61,9 @@ from models import (
     LoudnessGateModel,
     MasterWavRequest,
     MasterWavResponse,
+    PackageExportRequest,
+    PackageExportResponse,
+    PackageIncludedFileModel,
     ExportMp3Request,
     ExportMp3Response,
     ExportWavRequest,
@@ -525,6 +529,73 @@ def get_master_artifact(artifact_id: str) -> FileResponse:
     )
 
 
+@app.get("/v1/artifacts/packages/{artifact_id}/download")
+def get_package_download(artifact_id: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    zip_path = config.WORK_DIR / "artifacts" / "packages" / artifact_id / "mashlab-package.zip"
+    if not zip_path.exists():
+        raise HTTPException(status_code=404, detail="Package ZIP artifact not found.")
+
+    return FileResponse(
+        path=zip_path,
+        media_type="application/zip",
+        filename=f"mashlab-package-{artifact_id}.zip",
+    )
+
+
+@app.post("/v1/export/package", response_model=PackageExportResponse)
+def export_package(request: PackageExportRequest) -> PackageExportResponse:
+    result = create_project_package(
+        selected_artifact_ids=request.selected_artifact_ids,
+        package_label=request.package_label,
+        package_type=request.package_type,
+        include_technical_report=request.include_technical_report,
+    )
+
+    if isinstance(result, PackageExportFailure):
+        return PackageExportResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            validation_errors=result.validation_errors,
+            setup_guidance=result.setup_guidance,
+            public_share=False,
+            package_only=False,
+        )
+
+    return PackageExportResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        package_artifact_id=result.package_artifact_id,
+        package_label=result.package_label,
+        package_type=result.package_type,
+        local_folder_path=result.local_folder_path,
+        download_url=result.download_url,
+        manifest_path=result.manifest_path,
+        rights_notice_path=result.rights_notice_path,
+        technical_report_path=result.technical_report_path,
+        included_files=[
+            PackageIncludedFileModel(
+                artifact_id=item.artifact_id,
+                artifact_type=item.artifact_type,
+                artifact_subtype=item.artifact_subtype,
+                source_path=item.source_path,
+                package_path=item.package_path,
+            )
+            for item in result.included_files
+        ],
+        included_artifact_ids=result.included_artifact_ids,
+        public_share=result.public_share,
+        package_only=result.package_only,
+        rights_notice=result.rights_notice,
+        warnings=result.warnings,
+        limitations=result.limitations,
+    )
+
+
 @app.post("/v1/export/wav", response_model=ExportWavResponse)
 def export_wav(request: ExportWavRequest) -> ExportWavResponse:
     result = create_wav_export(
@@ -798,6 +869,12 @@ def list_artifacts() -> ArtifactListResponse:
                 source_wav_export_artifact_id=item.source_wav_export_artifact_id,
                 master_preset=item.master_preset,
                 mastering_prototype=item.mastering_prototype,
+                package_only=item.package_only,
+                package_subtype=item.package_subtype,
+                package_label=item.package_label,
+                included_file_count=item.included_file_count,
+                selected_artifact_ids=item.selected_artifact_ids,
+                public_share=item.public_share,
             )
             for item in artifacts
         ],

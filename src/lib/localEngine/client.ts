@@ -51,6 +51,9 @@ import type { MasterWavRequestParams } from "../../domain/masteringPresets.ts";
 import type { MasterWavResult } from "../../domain/masteringPresets.ts";
 import type { Mp3ExportRequestParams } from "../../domain/mp3Export.ts";
 import type { Mp3ExportResult } from "../../domain/mp3Export.ts";
+import type { PackageExportRequestParams } from "../../domain/projectPackage.ts";
+import type { PackageExportResult } from "../../domain/projectPackage.ts";
+import { parsePackageExportResponse } from "./package.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -339,6 +342,31 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseMasterWavResponse(payload, this.baseUrl);
+  }
+
+  async createProjectPackage(
+    params: PackageExportRequestParams
+  ): Promise<PackageExportResult | null> {
+    const response = await this.request("/v1/export/package", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        package_label: params.packageLabel,
+        selected_artifact_ids: params.selectedArtifactIds,
+        package_type: params.packageType,
+        include_technical_report: params.includeTechnicalReport,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parsePackageExportResponse(payload, this.baseUrl);
   }
 
   async listArtifacts(registry: PreviewArtifactRegistryEntry[] = []) {

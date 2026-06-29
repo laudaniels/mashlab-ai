@@ -1,7 +1,8 @@
 # Export and Mastering Plan
 
-## Current State (Phase 16)
+## Current State (Phase 17)
 
+- **Local project package export** bundles selected local artifacts into folder or ZIP (`POST /v1/export/package`)
 - **Mastering preset prototypes** from WAV export artifacts (measurement-only, general safe normalize, DJ loudness prototype)
 - **Full-length WAV export** re-renders from stem artifacts + session plan (Rubber Band + FFmpeg full mix)
 - **Preview-length WAV export** copies existing combined preview artifact (Phase 13)
@@ -9,7 +10,8 @@
 - Export panel unlocks when both stem previews exist **or** a combined preview exists
 - Mastering and MP3 sections unlock when at least one WAV export exists
 - Loudness gate displays pass/warn/not_available against preset targets (informational only)
-- Stem package export, club mastering certification, and public sharing remain **not implemented**
+- Stem package export is **implemented** as local project package (Phase 17) — not public sharing
+- Club mastering certification and public sharing remain **not implemented**
 
 Preview artifacts (stem, combined, pitch/time) remain `finalExport: false`.
 
@@ -23,6 +25,19 @@ Preview artifacts (stem, combined, pitch/time) remain `finalExport: false`.
 | Before/after readout + informational gate | Available when FFmpeg measures |
 
 See `docs/MASTERING_PRESETS.md` for API and storage details.
+
+## Phase 17 Project Package Export (Implemented)
+
+| Item | Status |
+|------|--------|
+| Bundle selected local artifacts into folder | Available (user-initiated) |
+| Optional ZIP with local download URL | Available |
+| manifest.json + RIGHTS_NOTICE.txt always included | Available |
+| Optional technical report (honest missing values) | Available |
+| Raw uploads excluded | Enforced |
+| publicShare: false, packageOnly: true | Enforced |
+
+See `docs/PROJECT_PACKAGE_EXPORT.md` for folder structure and API.
 
 ## Phase 15 MP3 Reference Export (Implemented)
 

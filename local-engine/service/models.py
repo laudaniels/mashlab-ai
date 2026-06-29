@@ -266,6 +266,50 @@ class PreviewArtifactSummary(BaseModel):
     source_wav_export_artifact_id: str | None = None
     master_preset: str | None = None
     mastering_prototype: bool = False
+    package_only: bool = False
+    package_subtype: str | None = None
+    package_label: str | None = None
+    included_file_count: int | None = None
+    selected_artifact_ids: list[str] | None = None
+    public_share: bool = False
+
+
+class PackageIncludedFileModel(BaseModel):
+    artifact_id: str
+    artifact_type: str
+    artifact_subtype: str | None = None
+    source_path: str
+    package_path: str
+
+
+class PackageExportRequest(BaseModel):
+    package_label: str
+    selected_artifact_ids: list[str]
+    package_type: str = "folder"
+    include_technical_report: bool = False
+
+
+class PackageExportResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    package_artifact_id: str | None = None
+    package_label: str | None = None
+    package_type: str | None = None
+    local_folder_path: str | None = None
+    download_url: str | None = None
+    manifest_path: str | None = None
+    rights_notice_path: str | None = None
+    technical_report_path: str | None = None
+    included_files: list[PackageIncludedFileModel] = Field(default_factory=list)
+    included_artifact_ids: list[str] = Field(default_factory=list)
+    public_share: bool = False
+    package_only: bool = False
+    rights_notice: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    validation_errors: list[str] | None = None
+    setup_guidance: str | None = None
 
 
 class ArtifactListResponse(BaseModel):

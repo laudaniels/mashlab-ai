@@ -5,7 +5,7 @@ export const EXPORT_PREP_ACTIVE_NOTICE =
   "Local WAV export from combined preview — user-initiated only. Not a published release.";
 
 export const EXPORT_MP3_STEMS_NOTICE =
-  "Stem package export, mastering presets, and public sharing are not implemented.";
+  "Public sharing and cloud upload are not implemented. Project package export is local organization only.";
 
 export const EXPORT_GENERAL_LUFS_TARGET = "-14 LUFS";
 export const EXPORT_GENERAL_TRUE_PEAK_TARGET = "-1 dBTP";
@@ -33,9 +33,9 @@ export const exportTargetPlans: ExportTargetPlan[] = [
   },
   {
     id: "stems",
-    label: "Stems export",
-    description: "Future separated-stem package delivery.",
-    status: "locked",
+    label: "Project package",
+    description: "Bundle selected local artifacts into a DJ/project folder or ZIP.",
+    status: "available",
   },
   {
     id: "dj-preview-master",
@@ -79,6 +79,10 @@ export function isMp3ExportAvailable(wavExportCount: number): boolean {
 
 export function isMasteringAvailable(wavExportCount: number): boolean {
   return wavExportCount > 0;
+}
+
+export function isProjectPackageAvailable(artifactCount: number): boolean {
+  return artifactCount > 0;
 }
 
 export function formatLoudnessTargetSummary(): string {

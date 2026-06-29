@@ -19,6 +19,8 @@ COMBINED_DIR = ARTIFACTS_ROOT / "combined-preview"
 PITCH_TIME_DIR = ARTIFACTS_ROOT / "pitch-time-preview"
 EXPORTS_DIR = ARTIFACTS_ROOT / "exports"
 MASTERS_DIR = ARTIFACTS_ROOT / "masters"
+PACKAGES_DIR = ARTIFACTS_ROOT / "packages"
+PACKAGE_META_FILE = "package.meta.json"
 
 PREVIEW_ONLY_LABEL = "Preview only — not a final export or master."
 EXPORT_ARTIFACT_LABEL = (
@@ -31,6 +33,10 @@ MP3_EXPORT_ARTIFACT_LABEL = (
 MASTER_ARTIFACT_LABEL = (
     "Local mastering prototype — user responsible for rights. "
     "No public distribution rights granted."
+)
+PACKAGE_ARTIFACT_LABEL = (
+    "Local project package — user responsible for rights. "
+    "No public distribution rights granted. Not public sharing."
 )
 
 
@@ -61,6 +67,12 @@ class PreviewArtifactEntry:
     source_wav_export_artifact_id: str | None = None
     master_preset: str | None = None
     mastering_prototype: bool = False
+    package_only: bool = False
+    package_subtype: str | None = None
+    package_label: str | None = None
+    included_file_count: int | None = None
+    selected_artifact_ids: list[str] | None = None
+    public_share: bool = False
 
 
 @dataclass
@@ -192,6 +204,10 @@ def find_artifact_root(artifact_id: str) -> Path | None:
         (master_dir / "master.wav").exists() or (master_dir / "master.meta.json").exists()
     ):
         return master_dir
+
+    package_dir = _resolve_under(PACKAGES_DIR, artifact_id)
+    if package_dir and package_dir.is_dir() and (package_dir / PACKAGE_META_FILE).exists():
+        return package_dir
 
     return None
 
@@ -377,6 +393,58 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     source_wav_export_artifact_id=source_wav_id,
                     master_preset=master_preset,
                     mastering_prototype=True,
+                )
+            )
+
+    if PACKAGES_DIR.exists():
+        for child in sorted(PACKAGES_DIR.iterdir()):
+            if not child.is_dir() or not is_valid_artifact_id(child.name):
+                continue
+            meta_path = child / PACKAGE_META_FILE
+            if not meta_path.is_file():
+                continue
+            meta = _read_package_meta(child)
+            package_subtype = "folder"
+            package_label = None
+            included_count = None
+            selected_ids: list[str] | None = None
+            if meta:
+                if isinstance(meta.get("package_subtype"), str):
+                    package_subtype = meta["package_subtype"]
+                if isinstance(meta.get("package_label"), str):
+                    package_label = meta["package_label"]
+                if isinstance(meta.get("included_file_count"), int):
+                    included_count = meta["included_file_count"]
+                if isinstance(meta.get("selected_artifact_ids"), list):
+                    selected_ids = [
+                        item for item in meta["selected_artifact_ids"] if isinstance(item, str)
+                    ]
+            zip_path = child / "mashlab-package.zip"
+            primary_name = "mashlab-package.zip" if zip_path.exists() else "manifest.json"
+            primary_file = zip_path if zip_path.exists() else meta_path
+            playback = (
+                f"/v1/artifacts/packages/{child.name}/download"
+                if package_subtype == "zip" and zip_path.exists()
+                else None
+            )
+            entries.append(
+                PreviewArtifactEntry(
+                    artifact_id=child.name,
+                    artifact_type="package",
+                    status="ready",
+                    created_at=_iso_from_mtime(primary_file),
+                    duration_seconds=None,
+                    playback_urls=ArtifactPlaybackUrls(primary=playback),
+                    preview_only=False,
+                    final_export=False,
+                    primary_file_name=primary_name,
+                    preview_label=PACKAGE_ARTIFACT_LABEL,
+                    package_only=True,
+                    package_subtype=package_subtype,
+                    package_label=package_label,
+                    included_file_count=included_count,
+                    selected_artifact_ids=selected_ids,
+                    public_share=False,
                 )
             )
 
@@ -634,6 +702,17 @@ def _probe_duration(path: Path) -> float | None:
 
 def _read_export_meta(export_dir: Path) -> dict | None:
     meta_path = export_dir / "export.meta.json"
+    if not meta_path.is_file():
+        return None
+    try:
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _read_package_meta(package_dir: Path) -> dict | None:
+    meta_path = package_dir / PACKAGE_META_FILE
     if not meta_path.is_file():
         return None
     try:

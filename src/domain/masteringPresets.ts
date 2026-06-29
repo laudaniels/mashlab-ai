@@ -227,6 +227,9 @@ export function formatMasteringWarnings(result: MasterWavResult): string[] {
 }
 
 export function formatArtifactTypeLabel(artifact: PreviewArtifactSummary): string {
+  if (artifact.artifactType === "package") {
+    return artifact.packageSubtype ? `package / ${artifact.packageSubtype}` : "package / folder";
+  }
   if (artifact.artifactType === "master") {
     return artifact.masterPreset ? `master / ${artifact.masterPreset}` : "master / wav";
   }

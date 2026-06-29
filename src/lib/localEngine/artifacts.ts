@@ -4,7 +4,7 @@ import type {
   LoudnessReadout,
   PreviewArtifactSummary,
 } from "../../domain/previewArtifacts.ts";
-import { EXPORT_ARTIFACT_LABEL, MASTER_ARTIFACT_LABEL, PREVIEW_ARTIFACT_LABEL, formatTrackSlotLabel, isPreviewArtifactType } from "../../domain/previewArtifacts.ts";
+import { EXPORT_ARTIFACT_LABEL, MASTER_ARTIFACT_LABEL, PACKAGE_ARTIFACT_LABEL, PREVIEW_ARTIFACT_LABEL, formatTrackSlotLabel, isPreviewArtifactType } from "../../domain/previewArtifacts.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 import { findRegistryEntry } from "../previewArtifactRegistry.ts";
 import { DEFAULT_LOCAL_ENGINE_URL } from "./types.ts";
@@ -72,9 +72,11 @@ export function parseArtifactSummary(
         ? record.preview_label
         : record.artifact_type === "master"
           ? MASTER_ARTIFACT_LABEL
-          : record.artifact_type === "export"
-            ? EXPORT_ARTIFACT_LABEL
-            : PREVIEW_ARTIFACT_LABEL,
+          : record.artifact_type === "package"
+            ? PACKAGE_ARTIFACT_LABEL
+            : record.artifact_type === "export"
+              ? EXPORT_ARTIFACT_LABEL
+              : PREVIEW_ARTIFACT_LABEL,
     primaryFileName:
       typeof record.primary_file_name === "string" ? record.primary_file_name : "preview.wav",
     sourceTrackLabel: formatTrackSlotLabel(registryEntry?.sourceTrackSlot ?? null),
@@ -100,6 +102,12 @@ export function parseArtifactSummary(
         : null,
     masterPreset: typeof record.master_preset === "string" ? record.master_preset : null,
     masteringPrototype: record.mastering_prototype === true,
+    packageOnly: record.package_only === true,
+    packageSubtype: typeof record.package_subtype === "string" ? record.package_subtype : null,
+    packageLabel: typeof record.package_label === "string" ? record.package_label : null,
+    includedFileCount: parseNullableNumber(record.included_file_count),
+    selectedArtifactIds: parseStringArrayOrNull(record.selected_artifact_ids),
+    publicShare: record.public_share === true,
   };
 }
 
@@ -212,4 +220,12 @@ function parseNullableNumber(value: unknown): number | null {
   }
 
   return value;
+}
+
+function parseStringArrayOrNull(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const items = value.filter((item): item is string => typeof item === "string");
+  return items.length > 0 ? items : null;
 }

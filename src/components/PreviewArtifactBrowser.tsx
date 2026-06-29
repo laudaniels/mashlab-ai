@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ArtifactMetadataResult, PreviewArtifactSummary } from "../domain/previewArtifacts.ts";
 import { PREVIEW_ARTIFACT_LABEL } from "../domain/previewArtifacts.ts";
 import { formatArtifactTypeLabel, isMasterArtifact } from "../domain/masteringPresets.ts";
+import { formatPackageArtifactLabel, isPackageArtifact } from "../domain/projectPackage.ts";
 import { isMp3ExportArtifact } from "../domain/mp3Export.ts";
 import { localEngineClient } from "../lib/localEngine/client.ts";
 import {
@@ -121,7 +122,11 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
           return (
             <article className="preview-artifact-card" key={`${artifact.artifactType}-${artifact.artifactId}`}>
               <div className="preview-artifact-card-header">
-                <strong>{artifact.registryLabel ?? artifact.artifactType}</strong>
+                <strong>
+                  {isPackageArtifact(artifact)
+                    ? formatPackageArtifactLabel(artifact)
+                    : (artifact.registryLabel ?? artifact.artifactType)}
+                </strong>
                 <span className="preview-artifact-type">{formatArtifactTypeLabel(artifact)}</span>
               </div>
 
@@ -180,11 +185,31 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                     <dd>{artifact.masterPreset}</dd>
                   </div>
                 ) : null}
+                {artifact.packageSubtype ? (
+                  <div>
+                    <dt>Package type</dt>
+                    <dd>{artifact.packageSubtype}</dd>
+                  </div>
+                ) : null}
+                {artifact.includedFileCount !== null ? (
+                  <div>
+                    <dt>Included files</dt>
+                    <dd>{artifact.includedFileCount}</dd>
+                  </div>
+                ) : null}
+                {artifact.selectedArtifactIds && artifact.selectedArtifactIds.length > 0 ? (
+                  <div>
+                    <dt>Source artifacts</dt>
+                    <dd>{artifact.selectedArtifactIds.join(", ")}</dd>
+                  </div>
+                ) : null}
               </dl>
 
               <p
                 className={`preview-artifact-label ${
-                  artifact.artifactType === "export" || artifact.artifactType === "master"
+                  artifact.artifactType === "export" ||
+                  artifact.artifactType === "master" ||
+                  isPackageArtifact(artifact)
                     ? "preview-artifact-label-export"
                     : ""
                 }`}
@@ -194,21 +219,36 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
 
               {artifact.playbackUrl ? (
                 <>
-                  <audio controls preload="none" src={artifact.playbackUrl} />
                   {artifact.artifactType === "export" ? (
+                    <>
+                      <audio controls preload="none" src={artifact.playbackUrl} />
+                      <a className="preview-artifact-download" download href={artifact.playbackUrl}>
+                        {isMp3ExportArtifact(artifact)
+                          ? "Download local MP3 reference"
+                          : "Download local export WAV"}
+                      </a>
+                    </>
+                  ) : artifact.artifactType === "master" ? (
+                    <>
+                      <audio controls preload="none" src={artifact.playbackUrl} />
+                      <a className="preview-artifact-download" download href={artifact.playbackUrl}>
+                        Download local master WAV
+                      </a>
+                    </>
+                  ) : isPackageArtifact(artifact) ? (
                     <a className="preview-artifact-download" download href={artifact.playbackUrl}>
-                      {isMp3ExportArtifact(artifact)
-                        ? "Download local MP3 reference"
-                        : "Download local export WAV"}
+                      Download local package ZIP
                     </a>
-                  ) : artifact.artifactType === "master" && artifact.playbackUrl ? (
-                    <a className="preview-artifact-download" download href={artifact.playbackUrl}>
-                      Download local master WAV
-                    </a>
-                  ) : isMasterArtifact(artifact) ? (
-                    <p className="preview-artifact-no-playback">Measurement-only — no master audio file.</p>
-                  ) : null}
+                  ) : (
+                    <audio controls preload="none" src={artifact.playbackUrl} />
+                  )}
                 </>
+              ) : isMasterArtifact(artifact) ? (
+                <p className="preview-artifact-no-playback">Measurement-only — no master audio file.</p>
+              ) : isPackageArtifact(artifact) ? (
+                <p className="preview-artifact-no-playback">
+                  Folder package — open local folder on disk. Not public sharing.
+                </p>
               ) : (
                 <p className="preview-artifact-no-playback">Playback unavailable.</p>
               )}

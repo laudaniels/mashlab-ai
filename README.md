@@ -39,15 +39,16 @@ Implemented:
 - **Local WAV export** from combined preview copy or **full-length re-render from stem artifacts + plan state**.
 - **Local MP3 reference export** from existing WAV export artifacts (320/256/192 kbps).
 - **Local mastering preset prototypes** (measurement-only, general safe normalize, DJ loudness prototype).
+- **Local project package export** — bundle selected artifacts into folder or ZIP (not public sharing).
 - **Export session UX** — local preferences for mode, bitrate, loudness, and explicit re-export.
-- **Locked future targets** for stem package and public sharing (not implemented).
+- **Locked future targets** for club version certification and public sharing (not implemented).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
 - True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
-- Full stem package export, club version certification, or public sharing.
+- Club version certification and public sharing.
 
 ## Legal Notice
 
@@ -77,7 +78,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, preview processing, local exports, mastering presets, session artifacts, and timeline alignment.
+See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, preview processing, local exports, mastering presets, project packages, session artifacts, and timeline alignment.
 
 ## Quality Commands
 

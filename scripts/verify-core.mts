@@ -2337,6 +2337,224 @@ describe("Mastering preset prototypes", async () => {
   });
 });
 
+describe("project package export", async () => {
+  const { parsePackageExportResponse } = await importSrc("src/lib/localEngine/package.ts");
+  const {
+    formatPackageManifestSummary,
+    isPackageableArtifact,
+    isPackageArtifact,
+    packageResultIsLocalOnly,
+    packageResultRequiresRightsNotice,
+    sanitizePackageLabel,
+    selectDefaultPackageArtifacts,
+    validatePackageExportRequest,
+    validateSelectedArtifactIds,
+    PACKAGE_RAW_UPLOADS_EXCLUDED_NOTICE,
+  } = await importSrc("src/domain/projectPackage.ts");
+  const { validateCleanupArtifactId } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { formatArtifactTypeLabel } = await importSrc("src/domain/masteringPresets.ts");
+
+  it("selects default package artifacts with latest exports and stems", () => {
+    const artifacts = [
+      {
+        artifactId: "stemA001",
+        artifactType: "stem" as const,
+        createdAt: "2026-01-01T00:00:00Z",
+        status: "ready",
+        durationSeconds: 30,
+        playbackUrls: { primary: null, vocals: null, noVocals: null },
+        playbackUrl: null,
+        previewOnly: true,
+        finalExport: false,
+        previewLabel: "preview",
+        primaryFileName: "vocals.wav",
+        sourceTrackLabel: "Track A",
+        targetTrackLabel: null,
+        registryLabel: null,
+        sourceCombinedPreviewArtifactId: null,
+        exportSubtype: null,
+        exportFormat: null,
+        sourceVocalStemArtifactId: null,
+        targetInstrumentalStemArtifactId: null,
+        sourceWavExportArtifactId: null,
+        masterPreset: null,
+        masteringPrototype: false,
+        packageOnly: false,
+        packageSubtype: null,
+        packageLabel: null,
+        includedFileCount: null,
+        selectedArtifactIds: null,
+        publicShare: false,
+      },
+      {
+        artifactId: "wavfull001",
+        artifactType: "export" as const,
+        createdAt: "2026-01-02T00:00:00Z",
+        status: "ready",
+        durationSeconds: 60,
+        playbackUrls: { primary: "/wav", vocals: null, noVocals: null },
+        playbackUrl: "/wav",
+        previewOnly: false,
+        finalExport: true,
+        previewLabel: "export",
+        primaryFileName: "export.wav",
+        sourceTrackLabel: null,
+        targetTrackLabel: null,
+        registryLabel: null,
+        sourceCombinedPreviewArtifactId: null,
+        exportSubtype: "full-wav",
+        exportFormat: "wav",
+        sourceVocalStemArtifactId: null,
+        targetInstrumentalStemArtifactId: null,
+        sourceWavExportArtifactId: null,
+        masterPreset: null,
+        masteringPrototype: false,
+        packageOnly: false,
+        packageSubtype: null,
+        packageLabel: null,
+        includedFileCount: null,
+        selectedArtifactIds: null,
+        publicShare: false,
+      },
+      {
+        artifactId: "mp3ref001",
+        artifactType: "export" as const,
+        createdAt: "2026-01-03T00:00:00Z",
+        status: "ready",
+        durationSeconds: 60,
+        playbackUrls: { primary: "/mp3", vocals: null, noVocals: null },
+        playbackUrl: "/mp3",
+        previewOnly: false,
+        finalExport: true,
+        previewLabel: "mp3",
+        primaryFileName: "export.mp3",
+        sourceTrackLabel: null,
+        targetTrackLabel: null,
+        registryLabel: null,
+        sourceCombinedPreviewArtifactId: null,
+        exportSubtype: "mp3",
+        exportFormat: "mp3",
+        sourceVocalStemArtifactId: null,
+        targetInstrumentalStemArtifactId: null,
+        sourceWavExportArtifactId: null,
+        masterPreset: null,
+        masteringPrototype: false,
+        packageOnly: false,
+        packageSubtype: null,
+        packageLabel: null,
+        includedFileCount: null,
+        selectedArtifactIds: null,
+        publicShare: false,
+      },
+    ];
+
+    const selected = selectDefaultPackageArtifacts(artifacts);
+    assert.ok(selected.includes("wavfull001"));
+    assert.ok(selected.includes("mp3ref001"));
+    assert.ok(selected.includes("stemA001"));
+  });
+
+  it("parses package response with packageOnly true and publicShare false", () => {
+    const parsed = parsePackageExportResponse({
+      ok: true,
+      status: "ready",
+      message: "Local project package created.",
+      package_artifact_id: "pack001",
+      package_label: "My Project",
+      package_type: "folder",
+      local_folder_path: "artifacts/packages/pack001/MashLab_Project_My_Project",
+      manifest_path: "artifacts/packages/pack001/MashLab_Project_My_Project/manifest.json",
+      rights_notice_path: "artifacts/packages/pack001/MashLab_Project_My_Project/RIGHTS_NOTICE.txt",
+      included_files: [
+        {
+          artifact_id: "stem001",
+          artifact_type: "stem",
+          artifact_subtype: null,
+          source_path: "vocals.wav",
+          package_path: "stems/track-a-vocals.wav",
+        },
+      ],
+      included_artifact_ids: ["stem001"],
+      public_share: false,
+      package_only: true,
+      rights_notice: "User responsible for rights.",
+      warnings: ["Local only."],
+      limitations: ["No distribution rights granted."],
+    });
+
+    assert.equal(parsed?.packageOnly, true);
+    assert.equal(parsed?.publicShare, false);
+    assert.ok(packageResultRequiresRightsNotice(parsed!));
+    assert.ok(packageResultIsLocalOnly(parsed!));
+    assert.match(formatPackageManifestSummary(parsed!), /manifest \+ rights notice included/i);
+  });
+
+  it("validates package export requires label and rejects raw uploads by eligibility", () => {
+    assert.ok(
+      validatePackageExportRequest({
+        packageLabel: "",
+        selectedArtifactIds: ["stem001"],
+        packageType: "folder",
+        includeTechnicalReport: false,
+      }).length > 0
+    );
+    assert.match(PACKAGE_RAW_UPLOADS_EXCLUDED_NOTICE, /raw uploads are excluded/i);
+    assert.equal(
+      validateSelectedArtifactIds(["pitch001"], []).length,
+      1
+    );
+  });
+
+  it("excludes package and pitch-time artifacts from packageable set", () => {
+    assert.equal(
+      isPackageableArtifact({
+        artifactId: "pack001",
+        artifactType: "package",
+      } as import("../src/domain/previewArtifacts.ts").PreviewArtifactSummary),
+      false
+    );
+    assert.equal(
+      isPackageableArtifact({
+        artifactId: "pitch001",
+        artifactType: "pitch-time-preview",
+      } as import("../src/domain/previewArtifacts.ts").PreviewArtifactSummary),
+      false
+    );
+  });
+
+  it("sanitizes package labels safely", () => {
+    assert.equal(sanitizePackageLabel("My Mash!"), "My_Mash");
+    assert.equal(sanitizePackageLabel("   "), "project");
+  });
+
+  it("parses package artifact summary subtype folder or zip", () => {
+    const folder = parseArtifactSummary({
+      artifact_id: "pack001",
+      artifact_type: "package",
+      status: "ready",
+      created_at: "2026-01-01T00:00:00Z",
+      playback_urls: { primary: null },
+      preview_only: false,
+      final_export: false,
+      primary_file_name: "manifest.json",
+      preview_label: "Local project package",
+      package_only: true,
+      package_subtype: "folder",
+      package_label: "Demo",
+      public_share: false,
+    });
+    assert.ok(isPackageArtifact(folder!));
+    assert.equal(folder?.packageSubtype, "folder");
+    assert.equal(formatArtifactTypeLabel(folder!), "package / folder");
+  });
+
+  it("cleanup validation accepts package artifact ids safely", () => {
+    assert.equal(validateCleanupArtifactId("package001").length, 0);
+    assert.ok(validateCleanupArtifactId("../escape").length > 0);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

@@ -100,7 +100,7 @@ export function formatTimelineSummaryLines(lanes: TimelineLaneData[]): string[] 
     const bpmLabel = lane.bpm !== null ? `${lane.bpm} BPM (${formatPlanningSource(lane.bpmSource)})` : "BPM unavailable";
     const beatLabel = lane.hasBeatData ? `${lane.beatMarkers.length} beat markers` : "No beat markers";
     const phraseLabel = lane.phraseRegions.length
-      ? `${lane.phraseRegions.length} heuristic phrase windows`
+      ? `${lane.phraseRegions.length} ${lane.phraseReadiness.toLowerCase().includes("verified") ? "verified" : "heuristic"} phrase windows`
       : "No phrase windows";
     return `${lane.label}: ${bpmLabel} · ${beatLabel} · ${phraseLabel}`;
   });
@@ -151,7 +151,14 @@ function buildPhraseRegions(
   }
 
   const source: PlanningValueSource =
-    grid.phraseStatus === "heuristic" ? "heuristic" : "detected";
+    grid.phraseEvidenceVerified || grid.phraseStatus === "implemented"
+      ? "detected"
+      : grid.phraseStatus === "heuristic"
+        ? "heuristic"
+        : "unavailable";
+
+  const regionLabelPrefix =
+    grid.phraseEvidenceVerified || grid.phraseStatus === "implemented" ? "Verified phrase" : "Heuristic phrase";
 
   return grid.phrasePlan.phraseStartTimes.slice(0, MAX_PHRASE_REGIONS).map((startTimeSeconds, barIndex) => {
     const startSeconds = Math.max(0, startTimeSeconds - offset);
@@ -164,7 +171,7 @@ function buildPhraseRegions(
       startSeconds,
       endSeconds,
       barIndex,
-      label: `Phrase ${barIndex + 1}`,
+      label: `${regionLabelPrefix} ${barIndex + 1}`,
       source,
     };
   });

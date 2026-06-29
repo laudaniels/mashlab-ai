@@ -8,14 +8,14 @@ export interface PhraseMarker {
   phraseLengthBars: number;
   phraseLengthBeats: number;
   barIndexFromStart: number;
-  kind: "heuristic";
+  kind: "heuristic" | "verified";
 }
 
 export interface HeuristicPhrasePlan {
   phraseLengthBars: number;
   phraseLengthBeats: number;
   phraseStartTimes: number[];
-  method: "heuristic_from_detected_beats";
+  method: string;
   status: "heuristic";
   limitations: string[];
   djReviewRequired: true;
@@ -35,6 +35,10 @@ export interface BeatGridModel {
   estimateStatus: BeatEstimateStatus;
   method: string | null;
   limitations: string[];
+  phraseEvidenceMethod: string | null;
+  phraseEvidenceBasis: string | null;
+  phraseEvidenceVerified: boolean;
+  phraseConfidence: number | null;
 }
 
 const HEURISTIC_PHRASE_LIMITATIONS = [
@@ -89,6 +93,10 @@ export function buildBeatGridFromAnalysis(
         : []),
       ...(phrasePlan ? phrasePlan.limitations : ["Phrase planning unavailable without enough detected beats."]),
     ],
+    phraseEvidenceMethod: null,
+    phraseEvidenceBasis: phrasePlan ? "heuristic_from_beats" : null,
+    phraseEvidenceVerified: false,
+    phraseConfidence: null,
   };
 }
 
@@ -131,6 +139,9 @@ export function buildEffectiveBeatGrid(
     phraseStatus: phrasePlan ? "heuristic" : grid.phraseStatus,
     estimateStatus: overrides.bpm !== null || overrides.alignmentOffsetSeconds !== null ? "heuristic" : grid.estimateStatus,
     limitations,
+    phraseEvidenceBasis: overrides.phraseLengthBars !== null || overrides.alignmentOffsetSeconds !== null
+      ? "dj_override"
+      : grid.phraseEvidenceBasis,
   };
 }
 
@@ -214,12 +225,28 @@ function emptyBeatGrid(limitations: string[]): BeatGridModel {
     estimateStatus: "unavailable",
     method: null,
     limitations,
+    phraseEvidenceMethod: null,
+    phraseEvidenceBasis: null,
+    phraseEvidenceVerified: false,
+    phraseConfidence: null,
   };
 }
 
 export function formatPhraseReadiness(grid: BeatGridModel): string {
+  if (grid.phraseStatus === "implemented" && grid.phraseEvidenceVerified) {
+    return `Verified phrase · ${grid.phrasePlan?.phraseStartTimes.length ?? 0} windows · DJ review required`;
+  }
+
+  if (grid.phraseStatus === "implemented") {
+    return `Verified phrase markers · ${grid.phrasePlan?.phraseStartTimes.length ?? 0} windows · DJ review required`;
+  }
+
+  if (grid.downbeatStatus === "implemented" && grid.downbeatTimes.length > 0) {
+    return `Verified downbeat · ${grid.downbeatTimes.length} markers · DJ review required`;
+  }
+
   if (grid.phraseStatus === "heuristic") {
-    return `Heuristic ${grid.phrasePlan?.phraseStartTimes.length ?? 0} phrase windows · DJ review required`;
+    return `Heuristic · ${grid.phrasePlan?.phraseStartTimes.length ?? 0} phrase windows · DJ review required`;
   }
 
   if (grid.phraseStatus === "not_implemented") {

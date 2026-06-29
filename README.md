@@ -48,6 +48,7 @@ Implemented:
 - **Arrangement section preview binding** — select advisory sections, bind preview duration/start/mix, deep-link missing requirements (Phase 21).
 - **Arrangement traceability + stale binding** — section context through preview/export/package metadata; stale warnings with re-apply (Phase 22).
 - **Section window export + context diff guard** — advisory planning-window WAV from stems; bound vs current diff before export (Phase 23).
+- **Phrase/downbeat analysis upgrade path** — optional `/v1/analyze/phrases`, heuristic fallback, verified engine hooks (Phase 24).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
@@ -85,7 +86,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/QA_WORKFLOW_CHECKLIST.md`, `docs/ARRANGEMENT_DRAFTS.md`, `docs/SECTION_EXPORTS.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/MIX_CONTROLS.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, `docs/LOCAL_ENGINE_SERVICE.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, PATH requirements, workflow QA, arrangement drafts, preview processing, mix controls, local exports, mastering presets, project packages, session artifacts, and timeline alignment.
+See `local-engine/service/README.md`, `docs/QA_WORKFLOW_CHECKLIST.md`, `docs/ARRANGEMENT_DRAFTS.md`, `docs/SECTION_EXPORTS.md`, `docs/PHRASE_DOWNBEAT_ANALYSIS.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/MIX_CONTROLS.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, `docs/LOCAL_ENGINE_SERVICE.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, PATH requirements, workflow QA, arrangement drafts, preview processing, mix controls, local exports, mastering presets, project packages, session artifacts, and timeline alignment.
 
 ## Quality Commands
 

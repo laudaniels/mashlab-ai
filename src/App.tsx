@@ -51,6 +51,7 @@ import { CombinedPreviewPanel } from "./components/CombinedPreviewPanel";
 import { PitchTimePlanPanel } from "./components/PitchTimePlanPanel";
 import { StemPreviewPanel } from "./components/StemPreviewPanel";
 import { TimelineAlignmentPanel } from "./components/TimelineAlignmentPanel";
+import { PhraseAnalysisPanel } from "./components/PhraseAnalysisPanel";
 import { TrackOverridePanel } from "./components/TrackOverridePanel";
 import type { MashTrackJob } from "./domain/jobs.ts";
 import type { MashIntent } from "./domain/pitchTimePlanning.ts";
@@ -62,6 +63,7 @@ import {
   resolvePlanningBpm,
   syncTrackArtifactFromJob,
   updateTrackArtifactOverrides,
+  updateTrackPhraseAnalysis,
   updateTrackStemPreviewArtifact,
   type SessionArtifactStore,
 } from "./domain/sessionArtifacts.ts";
@@ -237,6 +239,26 @@ function App() {
         tracks: {
           ...current.tracks,
           [slotId]: syncTrackArtifactFromJob(artifact, null),
+        },
+      };
+    });
+  }
+
+  function handlePhraseAnalysisComplete(
+    slotId: SlotId,
+    result: import("./domain/phraseAnalysis.ts").PhraseAnalysisResult | null
+  ) {
+    setArtifactStore((current) => {
+      const artifact = current.tracks[slotId];
+      if (!artifact) {
+        return current;
+      }
+
+      return {
+        ...current,
+        tracks: {
+          ...current.tracks,
+          [slotId]: updateTrackPhraseAnalysis(artifact, result),
         },
       };
     });
@@ -687,6 +709,13 @@ function App() {
               subtitle="Read-only beat and phrase planning with manual override controls. Intro/verse/drop structure and stem lanes remain future work."
             />
             <TimelineAlignmentPanel artifactStore={artifactStore} tracks={readyTracks} />
+            {readyTracks.length > 0 ? (
+              <PhraseAnalysisPanel
+                artifactStore={artifactStore}
+                onPhraseAnalysisComplete={handlePhraseAnalysisComplete}
+                tracks={readyTracks}
+              />
+            ) : null}
             {readyTracks.length > 0 ? (
               <div className="override-panel-grid">
                 {readyTracks.map((track) => (

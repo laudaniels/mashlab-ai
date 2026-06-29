@@ -86,6 +86,15 @@ If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for th
 - [ ] `finalExport: true`, `publicShare: false`, `sectionTrimmedExport: true`
 - [ ] Package manifest includes section export arrangement context when selected
 
+### 5e. Phrase / downbeat analysis (Phase 24)
+- [ ] Capabilities list heuristic + verified lanes and optional Essentia/BeatNet/madmom status
+- [ ] Phrase Analysis panel on Timeline — user-initiated only
+- [ ] Heuristic fallback when advanced deps missing
+- [ ] No fake verified labels when downbeats not detected
+- [ ] Arrangement drafts prefer verified phrase evidence over heuristic when present
+- [ ] Arrangement context includes phrase evidence fields when bound
+- [ ] DJ review notice visible; rights notice unchanged
+
 ### 6. Combined preview
 - [ ] Requires stem previews for both tracks (or documented neutral path)
 - [ ] Rubber Band + FFmpeg required

@@ -136,6 +136,55 @@ function isCapabilityStatus(value: unknown): value is CapabilityStatus {
     value === "available" ||
     value === "missing" ||
     value === "not_configured" ||
-    value === "planned"
+    value === "planned" ||
+    value === "experimental"
   );
+}
+
+export function isEssentiaAvailable(capabilities: ServiceCapability[]): boolean {
+  return findCapability(capabilities, "essentia")?.status === "available";
+}
+
+export function isBeatnetAvailable(capabilities: ServiceCapability[]): boolean {
+  return findCapability(capabilities, "beatnet")?.status === "available";
+}
+
+export function isMadmomAvailable(capabilities: ServiceCapability[]): boolean {
+  return findCapability(capabilities, "madmom")?.status === "available";
+}
+
+export function verifiedPhraseAnalysisAvailable(capabilities: ServiceCapability[]): boolean {
+  const cap = findCapability(capabilities, "verified_phrase_markers");
+  return cap?.status === "available" || cap?.status === "experimental";
+}
+
+export function heuristicPhrasePlanningAvailable(capabilities: ServiceCapability[]): boolean {
+  return findCapability(capabilities, "heuristic_phrase_planning")?.status === "available";
+}
+
+export function phraseAnalysisCapabilitySummary(capabilities: ServiceCapability[]): {
+  heuristicAvailable: boolean;
+  verifiedAvailable: boolean;
+  essentiaStatus: ServiceCapability["status"] | "unknown";
+  beatnetStatus: ServiceCapability["status"] | "unknown";
+  madmomStatus: ServiceCapability["status"] | "unknown";
+  message: string;
+} {
+  const heuristic = findCapability(capabilities, "heuristic_phrase_planning");
+  const verified = findCapability(capabilities, "verified_phrase_markers");
+  const essentia = findCapability(capabilities, "essentia");
+  const beatnet = findCapability(capabilities, "beatnet");
+  const madmom = findCapability(capabilities, "madmom");
+
+  return {
+    heuristicAvailable: heuristic?.status === "available",
+    verifiedAvailable: verified?.status === "available",
+    essentiaStatus: essentia?.status ?? "unknown",
+    beatnetStatus: beatnet?.status ?? "unknown",
+    madmomStatus: madmom?.status ?? "unknown",
+    message:
+      verified?.message ??
+      heuristic?.message ??
+      "Phrase analysis readiness unknown — start the local sidecar.",
+  };
 }

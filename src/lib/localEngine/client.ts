@@ -1,5 +1,5 @@
 import { createBrowserOnlyStatus, parseCapabilitiesResponse } from "./capabilities.ts";
-import { parseBeatAnalysisResponse, parseKeyAnalysisResponse } from "./analysis.ts";
+import { parseBeatAnalysisResponse, parseKeyAnalysisResponse, parsePhraseAnalysisResponse } from "./analysis.ts";
 import {
   buildPreviewFormData,
   parsePitchTimePreviewResponse,
@@ -56,8 +56,10 @@ import type { Mp3ExportRequestParams } from "../../domain/mp3Export.ts";
 import type { Mp3ExportResult } from "../../domain/mp3Export.ts";
 import type { SectionExportRequestParams } from "../../domain/sectionExport.ts";
 import type { SectionExportResult } from "../../domain/sectionExport.ts";
-import type { PackageExportRequestParams } from "../../domain/projectPackage.ts";
-import type { PackageExportResult } from "../../domain/projectPackage.ts";
+import type { PhraseAnalysisMethodPreference } from "../../domain/phraseAnalysis.ts";
+import { phraseAnalysisFromApiResult } from "../../domain/phraseAnalysis.ts";
+import type { PhraseAnalysisResult } from "../../domain/phraseAnalysis.ts";
+import type { PackageExportResult, PackageExportRequestParams } from "../../domain/projectPackage.ts";
 import { parsePackageExportResponse } from "./package.ts";
 
 export class LocalEngineClient {
@@ -175,6 +177,48 @@ export class LocalEngineClient {
 
     const request = this.requestKeyAnalysis(file);
     return setCachedKeyAnalysis(file, request, inspectionId);
+  }
+
+  async analyzePhrases(params: {
+    file?: File | null;
+    bpm?: number | null;
+    beatTimes?: number[];
+    phraseLengthBars?: 4 | 8 | 16;
+    method?: PhraseAnalysisMethodPreference;
+  }): Promise<{ response: import("./types.ts").PhraseAnalysisResponse | null; result: PhraseAnalysisResult | null }> {
+    const formData = new FormData();
+    if (params.file) {
+      formData.append("file", params.file);
+    }
+    if (params.bpm !== null && params.bpm !== undefined) {
+      formData.append("bpm", String(params.bpm));
+    }
+    if (params.beatTimes && params.beatTimes.length > 0) {
+      formData.append("beat_times", JSON.stringify(params.beatTimes));
+    }
+    formData.append("phrase_length_bars", String(params.phraseLengthBars ?? 8));
+    formData.append("method", params.method ?? "auto");
+
+    const response = await this.request("/v1/analyze/phrases", {
+      method: "POST",
+      body: formData,
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 2,
+    });
+
+    if (!response) {
+      return { response: null, result: null };
+    }
+
+    const payload = await response.json();
+    const parsed = parsePhraseAnalysisResponse(payload);
+    if (!parsed?.ok || !parsed.result) {
+      return { response: parsed, result: null };
+    }
+
+    return {
+      response: parsed,
+      result: phraseAnalysisFromApiResult(parsed.result),
+    };
   }
 
   async processPitchTimePreview(

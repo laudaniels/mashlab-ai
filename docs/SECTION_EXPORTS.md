@@ -61,6 +61,8 @@ Response flags:
 - `sectionTrimmedExport: true`
 - `rights_notice`, warnings, limitations
 
+Arrangement context may include `phrase_evidence_method`, `phrase_evidence_verified`, and `phrase_confidence` when phrase analysis has run. See `docs/PHRASE_DOWNBEAT_ANALYSIS.md`.
+
 Playback/download: `GET /v1/artifacts/exports/{id}/section-export`
 
 Storage:

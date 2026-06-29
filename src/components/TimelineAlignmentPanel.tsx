@@ -42,7 +42,7 @@ export function TimelineAlignmentPanel({ tracks, artifactStore }: TimelineAlignm
         <Clock3 aria-hidden="true" size={20} />
         <div>
           <h3>Timeline Alignment</h3>
-          <p>Read-only planning view. Beat markers and phrase windows are heuristic unless DJ override is applied.</p>
+          <p>Read-only planning view. Phrase windows may be heuristic or verified when phrase analysis has run — DJ review always required.</p>
         </div>
       </div>
 
@@ -69,14 +69,14 @@ export function TimelineAlignmentPanel({ tracks, artifactStore }: TimelineAlignm
         </span>
         <span className="timeline-legend-item">
           <span className="timeline-legend-swatch timeline-legend-phrase" />
-          Heuristic phrase window
+          Heuristic or verified phrase window
         </span>
       </div>
 
       <div className="timeline-note">
         <AlertTriangle aria-hidden="true" size={18} />
         <span>
-          Intro / verse / drop structure: not implemented. True downbeat detection: not implemented. DJ review required.
+          Intro / verse / drop structure: not implemented. Phrase/downbeat evidence is planning-only. DJ review required.
         </span>
       </div>
     </section>

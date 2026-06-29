@@ -3694,6 +3694,177 @@ describe("Section window export + context diff guard", async () => {
   });
 });
 
+describe("Phrase and downbeat analysis upgrade path", async () => {
+  const {
+    PHRASE_EVIDENCE_PRIORITY,
+    applyPhraseAnalysisToBeatGrid,
+    formatPhraseAnalysisSummary,
+    formatPhraseEvidenceLabel,
+    formatMissingPhraseDependency,
+    isVerifiedPhraseBasis,
+    phraseAnalysisClaimsVerifiedWithoutEvidence,
+    phraseBasisPriorityRank,
+    preferPhraseBasis,
+    validatePhraseAnalysisRequest,
+  } = await importSrc("src/domain/phraseAnalysis.ts");
+  const { buildBeatGridFromAnalysis, formatPhraseReadiness } = await importSrc("src/domain/beatGrid.ts");
+  const { parsePhraseAnalysisResponse } = await importSrc("src/lib/localEngine/analysis.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+  const { buildArrangementPlan, findArrangementSection } = await importSrc("src/domain/arrangementPlanning.ts");
+  const { createSessionArtifactStore, createTrackArtifact, rebuildTrackArtifact } = await importSrc("src/domain/sessionArtifacts.ts");
+  const { serializeArrangementContextForApi, buildSectionContextFromBinding } = await importSrc(
+    "src/domain/arrangementSectionContext.ts"
+  );
+  const { bindSectionToPreviewSettings } = await importSrc("src/domain/arrangementSectionBinding.ts");
+
+  it("ranks phrase basis priority dj override > verified > heuristic", () => {
+    assert.ok(phraseBasisPriorityRank("dj_override") < phraseBasisPriorityRank("verified_phrase"));
+    assert.ok(phraseBasisPriorityRank("verified_phrase") < phraseBasisPriorityRank("verified_downbeat"));
+    assert.ok(phraseBasisPriorityRank("verified_downbeat") < phraseBasisPriorityRank("heuristic_from_beats"));
+    assert.equal(preferPhraseBasis("heuristic_from_beats", "verified_phrase"), "verified_phrase");
+    assert.equal(PHRASE_EVIDENCE_PRIORITY[0], "dj_override");
+  });
+
+  it("applies heuristic phrase analysis without fake verified labels", () => {
+    const grid = buildBeatGridFromAnalysis(
+      {
+        bpm: 128,
+        bpmConfidence: 0.8,
+        beatTimes: Array.from({ length: 32 }, (_, i) => i * 0.46875),
+        beatCount: 32,
+        method: "librosa",
+        limitations: [],
+        downbeatOffsetMs: null,
+        phraseBarMarkers: [],
+      },
+      { jobComplete: true, phraseLengthBars: 8 }
+    );
+    const updated = applyPhraseAnalysisToBeatGrid(grid, {
+      fileName: "a.wav",
+      methodUsed: "heuristic_from_detected_beats",
+      phraseBasis: "heuristic_from_beats",
+      beatTimes: grid.beatTimes,
+      downbeatTimes: [],
+      phraseStartTimes: [0, 15],
+      phraseLengthBars: 8,
+      confidence: null,
+      bpm: 128,
+      limitations: ["Heuristic only"],
+      djReviewRequired: true,
+    });
+    assert.equal(updated.phraseEvidenceVerified, false);
+    assert.equal(updated.downbeatTimes.length, 0);
+    assert.match(formatPhraseReadiness(updated), /Heuristic/i);
+    assert.equal(isVerifiedPhraseBasis(updated.phraseEvidenceBasis ?? ""), false);
+  });
+
+  it("rejects fake verified claims without evidence", () => {
+    assert.equal(
+      phraseAnalysisClaimsVerifiedWithoutEvidence({
+        fileName: "a.wav",
+        methodUsed: "fake",
+        phraseBasis: "verified_phrase",
+        beatTimes: [],
+        downbeatTimes: [],
+        phraseStartTimes: [],
+        phraseLengthBars: 8,
+        confidence: null,
+        bpm: null,
+        limitations: [],
+        djReviewRequired: true,
+      }),
+      true
+    );
+  });
+
+  it("parses phrase analysis response and includes rights in UI copy", () => {
+    const parsed = parsePhraseAnalysisResponse({
+      ok: true,
+      status: "implemented",
+      message: "Heuristic phrase windows computed.",
+      result: {
+        file_name: "a.wav",
+        method_used: "heuristic_from_detected_beats",
+        phrase_basis: "heuristic_from_beats",
+        beat_times: [0, 0.5, 1],
+        downbeat_times: [],
+        phrase_start_times: [0],
+        phrase_length_bars: 8,
+        confidence: null,
+        bpm: 120,
+        limitations: ["Heuristic only"],
+        dj_review_required: true,
+      },
+    });
+    assert.ok(parsed?.result);
+    const summary = formatPhraseAnalysisSummary({
+      fileName: "a.wav",
+      methodUsed: parsed!.result!.method_used,
+      phraseBasis: parsed!.result!.phrase_basis,
+      beatTimes: parsed!.result!.beat_times,
+      downbeatTimes: [],
+      phraseStartTimes: parsed!.result!.phrase_start_times,
+      phraseLengthBars: 8,
+      confidence: null,
+      bpm: 120,
+      limitations: [],
+      djReviewRequired: true,
+    });
+    assert.ok(summary.some((line) => /DJ review/i.test(line)));
+    assert.equal(formatPhraseEvidenceLabel("heuristic_from_beats", "heuristic"), "Heuristic");
+    assert.equal(formatMissingPhraseDependency({ label: "Essentia", status: "not_configured", message: "Optional." }), "Essentia (not_configured): Optional.");
+  });
+
+  it("serializes phrase evidence in arrangement context", () => {
+    const store = createSessionArtifactStore("phrase-session");
+    store.tracks.trackA = createTrackArtifact({
+      sessionId: "phrase-session",
+      slotId: "trackA",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    store.tracks.trackB = rebuildTrackArtifact({
+      ...createTrackArtifact({
+        sessionId: "phrase-session",
+        slotId: "trackB",
+        file: new File(["b"], "b.wav", { type: "audio/wav" }),
+        inspection: null,
+      }),
+      beatAnalysis: {
+        bpm: 128,
+        bpmConfidence: 0.8,
+        beatTimes: Array.from({ length: 32 }, (_, index) => index * 0.46875),
+        beatCount: 32,
+        method: "librosa",
+        limitations: [],
+        downbeatOffsetMs: null,
+        phraseBarMarkers: [],
+      },
+    });
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const context = buildSectionContextFromBinding({
+      binding,
+      pitchTimePlanSnapshot: null,
+      artifactStore: store,
+    });
+    const serialized = serializeArrangementContextForApi(context);
+    assert.equal(serialized?.phrase_basis, binding.phraseBasis);
+    assert.equal(serialized?.planning_only, true);
+    assert.equal(context.rightsNotice, requiredRightsNotice);
+  });
+
+  it("validates phrase length and method", () => {
+    assert.ok(validatePhraseAnalysisRequest({ phraseLengthBars: 8, method: "auto" }).length === 0);
+    assert.ok(validatePhraseAnalysisRequest({ phraseLengthBars: 5, method: "auto" }).length > 0);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

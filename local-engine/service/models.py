@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-CapabilityStatus = Literal["available", "missing", "not_configured", "planned"]
+CapabilityStatus = Literal["available", "missing", "not_configured", "planned", "experimental"]
 JobState = Literal["queued", "running", "complete", "failed", "cancelled"]
 JobPhase = Literal[
     "metadata",
@@ -120,6 +120,37 @@ class KeyAnalysisResponse(BaseModel):
     message: str
     result: KeyAnalysisResult | None = None
     setup_guidance: str | None = None
+
+
+PhraseAnalysisBasis = Literal[
+    "verified_downbeat",
+    "verified_phrase",
+    "heuristic_from_beats",
+    "unavailable",
+]
+
+
+class PhraseAnalysisResult(BaseModel):
+    file_name: str
+    method_used: str
+    phrase_basis: PhraseAnalysisBasis
+    beat_times: list[float] = Field(default_factory=list)
+    downbeat_times: list[float] = Field(default_factory=list)
+    phrase_start_times: list[float] = Field(default_factory=list)
+    phrase_length_bars: int | None = None
+    confidence: float | None = None
+    bpm: float | None = None
+    limitations: list[str] = Field(default_factory=list)
+    dj_review_required: bool = True
+
+
+class PhraseAnalysisResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    result: PhraseAnalysisResult | None = None
+    setup_guidance: str | None = None
+    validation_errors: list[str] | None = None
 
 
 class PitchTimePreviewInputSummary(BaseModel):

@@ -1,4 +1,4 @@
-export type CapabilityStatus = "available" | "missing" | "not_configured" | "planned";
+export type CapabilityStatus = "available" | "missing" | "not_configured" | "planned" | "experimental";
 
 export type LocalServiceJobState = "queued" | "running" | "complete" | "failed" | "cancelled";
 
@@ -112,6 +112,35 @@ export interface KeyAnalysisResponse {
   message: string;
   result: KeyAnalysisResultPayload | null;
   setup_guidance: string | null;
+}
+
+export type PhraseAnalysisBasisPayload =
+  | "verified_downbeat"
+  | "verified_phrase"
+  | "heuristic_from_beats"
+  | "unavailable";
+
+export interface PhraseAnalysisResultPayload {
+  file_name: string;
+  method_used: string;
+  phrase_basis: PhraseAnalysisBasisPayload;
+  beat_times: number[];
+  downbeat_times: number[];
+  phrase_start_times: number[];
+  phrase_length_bars: number | null;
+  confidence: number | null;
+  bpm: number | null;
+  limitations: string[];
+  dj_review_required: boolean;
+}
+
+export interface PhraseAnalysisResponse {
+  ok: boolean;
+  status: string;
+  message: string;
+  result: PhraseAnalysisResultPayload | null;
+  setup_guidance: string | null;
+  validation_errors: string[] | null;
 }
 
 export interface LocalEngineConnectionStatus {

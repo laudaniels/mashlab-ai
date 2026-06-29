@@ -11,6 +11,7 @@ from beat_analysis import analyze_beat_file
 from capabilities import detect_capabilities, python_version_label
 from jobs import complete_metadata_job, create_job, fail_job, get_job, update_job
 from key_analysis import analyze_key_file
+from phrase_analysis import analyze_phrase_file
 from metadata import analyze_metadata_file
 from pitch_time_planning import PitchTimePlanRequest, PitchTimePlanResponse, build_pitch_time_plan
 from artifact_management import (
@@ -90,6 +91,7 @@ from models import (
     HealthResponse,
     JobResponse,
     KeyAnalysisResponse,
+    PhraseAnalysisResponse,
     MetadataAnalysisResponse,
     PitchTimePreviewInputSummary,
     PitchTimePreviewOutputSummary,
@@ -227,6 +229,32 @@ async def analyze_key(file: UploadFile = File(...)) -> KeyAnalysisResponse:
         return analyze_key_file(temp_path, filename)
     finally:
         cleanup_path(temp_path)
+
+
+@app.post("/v1/analyze/phrases", response_model=PhraseAnalysisResponse)
+async def analyze_phrases(
+    file: UploadFile | None = File(default=None),
+    bpm: float | None = Form(default=None),
+    beat_times: str | None = Form(default=None),
+    phrase_length_bars: int | None = Form(default=8),
+    method: str = Form(default="auto"),
+) -> PhraseAnalysisResponse:
+    temp_path = None
+    filename = "phrase-analysis.wav"
+    try:
+        if file is not None and file.filename:
+            temp_path, filename = await save_upload(file, "phrases")
+        return analyze_phrase_file(
+            temp_path,
+            filename,
+            bpm=bpm,
+            beat_times_raw=beat_times,
+            phrase_length_bars=phrase_length_bars,
+            method=method,
+        )
+    finally:
+        if temp_path is not None:
+            cleanup_path(temp_path)
 
 
 @app.post("/v1/plan/pitch-time", response_model=PitchTimePlanResponse)

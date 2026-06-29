@@ -24,9 +24,12 @@ import {
 export type DraftType = "clean_blend" | "club_edit" | "creative_blend";
 
 export type PhraseBasis =
-  | "detected_beats"
-  | "heuristic_phrase_markers"
   | "dj_override"
+  | "verified_phrase"
+  | "verified_downbeat"
+  | "heuristic_phrase_markers"
+  | "heuristic_from_beats"
+  | "detected_beats"
   | "unavailable";
 
 export type ArrangementExportMode = "preview_copy" | "full_length" | "either";
@@ -332,7 +335,9 @@ function buildRequiredArtifacts(store: SessionArtifactStore): ArrangementRequire
     ),
     phraseDataAvailable: Boolean(
       store.tracks.trackA?.effectiveBeatGrid?.phraseStatus === "heuristic" ||
-        store.tracks.trackB?.effectiveBeatGrid?.phraseStatus === "heuristic"
+        store.tracks.trackA?.effectiveBeatGrid?.phraseStatus === "implemented" ||
+        store.tracks.trackB?.effectiveBeatGrid?.phraseStatus === "heuristic" ||
+        store.tracks.trackB?.effectiveBeatGrid?.phraseStatus === "implemented"
     ),
   };
 }
@@ -388,6 +393,22 @@ function resolvePhraseBasis(
     return "unavailable";
   }
 
+  if (grid.phraseEvidenceBasis === "verified_phrase" || (grid.phraseStatus === "implemented" && grid.phraseEvidenceVerified)) {
+    return "verified_phrase";
+  }
+
+  if (grid.phraseEvidenceBasis === "verified_downbeat" || (grid.downbeatStatus === "implemented" && grid.downbeatTimes.length > 0)) {
+    return "verified_downbeat";
+  }
+
+  if (
+    grid.phraseStatus === "heuristic" &&
+    grid.phraseMarkers.length > 0 &&
+    grid.phraseEvidenceBasis === "heuristic_from_beats"
+  ) {
+    return "heuristic_from_beats";
+  }
+
   if (grid.phraseStatus === "heuristic" && grid.phraseMarkers.length > 0) {
     return "heuristic_phrase_markers";
   }
@@ -403,6 +424,15 @@ function formatPhraseBasisDetail(basis: PhraseBasis, grid: BeatGridModel | null)
   switch (basis) {
     case "dj_override":
       return "Phrase windows influenced by DJ override (phrase length or alignment).";
+    case "verified_phrase":
+      return grid
+        ? `Verified phrase markers · ${formatPhraseReadiness(grid)}`
+        : "Verified phrase markers from phrase analysis.";
+    case "verified_downbeat":
+      return grid
+        ? `Verified downbeat evidence · ${formatPhraseReadiness(grid)}`
+        : "Verified downbeat times from phrase analysis.";
+    case "heuristic_from_beats":
     case "heuristic_phrase_markers":
       return grid ? formatPhraseReadiness(grid) : "Heuristic phrase markers from detected beats.";
     case "detected_beats":

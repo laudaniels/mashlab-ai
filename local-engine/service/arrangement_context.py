@@ -6,7 +6,15 @@ from typing import Any
 
 ALLOWED_DRAFT_TYPES = frozenset({"clean_blend", "club_edit", "creative_blend"})
 ALLOWED_PHRASE_BASIS = frozenset(
-    {"detected_beats", "heuristic_phrase_markers", "dj_override", "unavailable"}
+    {
+        "detected_beats",
+        "heuristic_phrase_markers",
+        "heuristic_from_beats",
+        "verified_downbeat",
+        "verified_phrase",
+        "dj_override",
+        "unavailable",
+    }
 )
 ALLOWED_EXPORT_CONTEXT_MODES = frozenset(
     {"preview_section", "full_length_context_only", "section_export"}

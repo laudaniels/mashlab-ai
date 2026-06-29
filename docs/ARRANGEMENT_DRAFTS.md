@@ -202,6 +202,18 @@ After binding a section (Phase 21) and traceability (Phase 22), users can export
 - Stale context requires explicit confirmation
 - Not detected song structure — see `docs/SECTION_EXPORTS.md`
 
+## Phase 24: Phrase Evidence Upgrade
+
+Arrangement drafts now prefer stronger phrase evidence when available:
+
+1. DJ override
+2. Verified phrase markers
+3. Verified downbeats
+4. Heuristic phrase markers / heuristic from beats
+5. Unavailable
+
+Run **Phrase Analysis** on the Timeline screen to populate evidence. See `docs/PHRASE_DOWNBEAT_ANALYSIS.md`.
+
 ## Tests
 
 `scripts/verify-core.mts` — `Arrangement draft intelligence` describe block:

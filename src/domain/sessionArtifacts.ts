@@ -5,6 +5,7 @@ import {
   buildEffectiveBeatGrid,
   type BeatGridModel,
 } from "./beatGrid.ts";
+import { applyPhraseAnalysisToBeatGrid, type PhraseAnalysisResult } from "./phraseAnalysis.ts";
 import { buildEffectiveKeyProfile, type EffectiveKeyProfile } from "./harmonicPlanning.ts";
 import type { AudioInspection, SlotId } from "./types.ts";
 import {
@@ -39,6 +40,7 @@ export interface TrackSessionArtifact {
   serviceMetadata: unknown | null;
   beatAnalysis: BeatAnalysisResult | null;
   keyAnalysis: KeyAnalysisResult | null;
+  phraseAnalysis: PhraseAnalysisResult | null;
   beatGrid: BeatGridModel | null;
   effectiveBeatGrid: BeatGridModel | null;
   effectiveKeyProfile: EffectiveKeyProfile | null;
@@ -91,6 +93,7 @@ export function createTrackArtifact(params: {
     serviceMetadata: null,
     beatAnalysis: null,
     keyAnalysis: null,
+    phraseAnalysis: null,
     beatGrid: null,
     effectiveBeatGrid: null,
     effectiveKeyProfile: null,
@@ -159,12 +162,33 @@ export function updateTrackStemPreviewArtifact(
   });
 }
 
+export function updateTrackPhraseAnalysis(
+  artifact: TrackSessionArtifact,
+  phraseAnalysis: PhraseAnalysisResult | null
+): TrackSessionArtifact {
+  return rebuildTrackArtifact({
+    ...artifact,
+    phraseAnalysis,
+  });
+}
+
 export function rebuildTrackArtifact(artifact: TrackSessionArtifact): TrackSessionArtifact {
-  const beatGrid = buildBeatGridFromAnalysis(artifact.beatAnalysis, {
+  let beatGrid = buildBeatGridFromAnalysis(artifact.beatAnalysis, {
     jobComplete: Boolean(artifact.beatAnalysis),
     phraseLengthBars: artifact.overrides.phraseLengthBars ?? undefined,
     alignmentOffsetSeconds: artifact.overrides.alignmentOffsetSeconds,
   });
+
+  if (artifact.phraseAnalysis) {
+    beatGrid = applyPhraseAnalysisToBeatGrid(
+      beatGrid,
+      artifact.phraseAnalysis,
+      (artifact.overrides.phraseLengthBars ??
+        artifact.phraseAnalysis.phraseLengthBars ??
+        8) as PhraseLengthBars
+    );
+  }
+
   const effectiveBeatGrid = buildEffectiveBeatGrid(beatGrid, artifact.overrides);
   const effectiveKeyProfile = buildEffectiveKeyProfile(artifact.keyAnalysis, artifact.overrides);
 

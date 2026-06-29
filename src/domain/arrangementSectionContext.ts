@@ -68,6 +68,9 @@ export interface ArrangementSectionContext {
   limitations: string[];
   rightsNotice: string;
   traceabilityNotice: string;
+  phraseEvidenceMethod: string | null;
+  phraseEvidenceVerified: boolean;
+  phraseConfidence: number | null;
 }
 
 export interface BindingFreshnessResult {
@@ -115,6 +118,8 @@ export function buildSectionContextFromBinding(params: {
   exportContextMode?: ArrangementExportContextMode | null;
 }): ArrangementSectionContext {
   const { binding, pitchTimePlanSnapshot, artifactStore } = params;
+  const targetSlot = binding.mashIntent === "vocal_a_over_beat_b" ? "trackB" : "trackA";
+  const targetGrid = artifactStore.tracks[targetSlot]?.effectiveBeatGrid ?? null;
 
   const bindingSnapshot: ArrangementBindingSnapshot = {
     mashIntent: binding.mashIntent,
@@ -157,6 +162,9 @@ export function buildSectionContextFromBinding(params: {
     ],
     rightsNotice: requiredRightsNotice,
     traceabilityNotice: ARRANGEMENT_TRACEABILITY_NOTICE,
+    phraseEvidenceMethod: targetGrid?.phraseEvidenceMethod ?? null,
+    phraseEvidenceVerified: targetGrid?.phraseEvidenceVerified ?? false,
+    phraseConfidence: targetGrid?.phraseConfidence ?? null,
   };
 }
 
@@ -185,6 +193,9 @@ export function serializeArrangementContextForApi(
     dj_review_required: true,
     limitations: context.limitations,
     traceability_notice: context.traceabilityNotice,
+    phrase_evidence_method: context.phraseEvidenceMethod,
+    phrase_evidence_verified: context.phraseEvidenceVerified,
+    phrase_confidence: context.phraseConfidence,
     created_at: context.createdAt,
   };
 }
@@ -252,6 +263,10 @@ export function parseArrangementContextFromMeta(raw: unknown): ArrangementSectio
       typeof record.traceability_notice === "string"
         ? record.traceability_notice
         : ARRANGEMENT_TRACEABILITY_NOTICE,
+    phraseEvidenceMethod:
+      typeof record.phrase_evidence_method === "string" ? record.phrase_evidence_method : null,
+    phraseEvidenceVerified: record.phrase_evidence_verified === true,
+    phraseConfidence: parseNullableNumber(record.phrase_confidence),
   };
 }
 
@@ -443,6 +458,9 @@ function parsePhraseBasis(value: unknown): PhraseBasis {
   if (
     value === "detected_beats" ||
     value === "heuristic_phrase_markers" ||
+    value === "heuristic_from_beats" ||
+    value === "verified_downbeat" ||
+    value === "verified_phrase" ||
     value === "dj_override" ||
     value === "unavailable"
   ) {

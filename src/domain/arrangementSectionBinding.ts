@@ -72,6 +72,12 @@ export const PREVIEW_START_OFFSET_PENDING_NOTICE =
 
 export function formatPhraseBasisSourceLabel(basis: PhraseBasis): string {
   switch (basis) {
+    case "verified_phrase":
+      return "verified phrase markers";
+    case "verified_downbeat":
+      return "verified downbeat";
+    case "heuristic_from_beats":
+      return "heuristic phrase markers (from beats)";
     case "detected_beats":
       return "detected beats (no verified downbeats)";
     case "heuristic_phrase_markers":

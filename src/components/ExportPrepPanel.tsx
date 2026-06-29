@@ -675,6 +675,7 @@ export function ExportPrepPanel({
           <p className="export-prep-target-note">{formatLoudnessTargetSummary()}</p>
           <p className="export-prep-club-note">{EXPORT_CLUB_VERSION_NOTE}</p>
           <p className="export-prep-extended-note">{EXPORT_MP3_STEMS_NOTICE}</p>
+          <p className="export-prep-rights-note">{requiredRightsNotice}</p>
         </div>
         <span className={`planning-badge ${locked ? "planning-badge-risky" : "planning-badge-ready"}`}>
           {locked ? "Locked" : "WAV export available"}

@@ -143,6 +143,16 @@ def _resolve_under(base: Path, *parts: str) -> Path | None:
     return None
 
 
+def _path_is_under_artifacts_root(path: Path) -> bool:
+    try:
+        resolved = path.resolve()
+        root = ARTIFACTS_ROOT.resolve()
+    except OSError:
+        return False
+
+    return resolved == root or root in resolved.parents
+
+
 def find_artifact_primary_path(artifact_id: str) -> tuple[Path | None, str | None]:
     if not is_valid_artifact_id(artifact_id):
         return None, None
@@ -508,6 +518,9 @@ def delete_preview_artifact(artifact_id: str) -> ArtifactDeleteResult:
     root = find_artifact_root(artifact_id)
     if root is None:
         return False, "missing_artifact", "Preview artifact not found."
+
+    if not _path_is_under_artifacts_root(root):
+        return False, "validation_error", "Artifact path is outside the local artifacts workspace."
 
     try:
         if root.is_file():

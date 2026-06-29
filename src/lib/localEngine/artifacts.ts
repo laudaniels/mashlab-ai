@@ -5,6 +5,7 @@ import type {
   PreviewArtifactSummary,
 } from "../../domain/previewArtifacts.ts";
 import { EXPORT_ARTIFACT_LABEL, MASTER_ARTIFACT_LABEL, PACKAGE_ARTIFACT_LABEL, PREVIEW_ARTIFACT_LABEL, formatTrackSlotLabel, isPreviewArtifactType } from "../../domain/previewArtifacts.ts";
+import { validateArtifactIdForCleanup } from "../../domain/artifactLifecycle.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 import { findRegistryEntry } from "../previewArtifactRegistry.ts";
 import { DEFAULT_LOCAL_ENGINE_URL } from "./types.ts";
@@ -157,11 +158,7 @@ export function parseArtifactDeleteResponse(payload: unknown): ArtifactDeleteRes
 }
 
 export function validateCleanupArtifactId(artifactId: string): string[] {
-  const errors: string[] = [];
-  if (!/^[a-zA-Z0-9]+$/.test(artifactId)) {
-    errors.push("artifact_id must be alphanumeric.");
-  }
-  return errors;
+  return validateArtifactIdForCleanup(artifactId);
 }
 
 function parsePlaybackUrls(value: unknown, baseUrl: string) {

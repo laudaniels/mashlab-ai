@@ -43,6 +43,7 @@ Implemented:
 - **Local project package export** — bundle selected artifacts into folder or ZIP (not public sharing).
 - **Export session UX** — local preferences for mode, bitrate, loudness, and explicit re-export.
 - **Locked future targets** for club version certification and public sharing (not implemented).
+- **End-to-end workflow QA** — session checklist panel, dependency health display, actionable errors, artifact lifecycle safety (Phase 19).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
@@ -79,7 +80,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/MIX_CONTROLS.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, preview processing, mix controls, local exports, mastering presets, project packages, session artifacts, and timeline alignment.
+See `local-engine/service/README.md`, `docs/QA_WORKFLOW_CHECKLIST.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/MIX_CONTROLS.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, `docs/LOCAL_ENGINE_SERVICE.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, PATH requirements, workflow QA, preview processing, mix controls, local exports, mastering presets, project packages, session artifacts, and timeline alignment.
 
 ## Quality Commands
 
@@ -92,3 +93,5 @@ npm run check:local-engine
 npm run check:python-service
 npm run check:python-service:test
 ```
+
+**Environment note:** Python and FFmpeg may not be on the default Windows PATH. See `docs/QA_WORKFLOW_CHECKLIST.md` and `docs/LOCAL_ENGINE_SERVICE.md`. If `check:local-engine` fails only because FFmpeg/ffprobe are missing from PATH, add FFmpeg and rerun.

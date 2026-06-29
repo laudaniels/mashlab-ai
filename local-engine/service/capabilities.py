@@ -180,7 +180,7 @@ def _rubberband_capability() -> ServiceCapability:
                 id="rubberband",
                 label="Rubber Band CLI",
                 status="available",
-                message=f"Rubber Band CLI found at {path}. Ready for future pitch/time processing.",
+                message=f"Rubber Band CLI found at {path}. Ready for pitch/time and combined preview processing.",
                 version=path,
             )
 
@@ -189,8 +189,8 @@ def _rubberband_capability() -> ServiceCapability:
         label="Rubber Band CLI",
         status="missing",
         message=(
-            "Rubber Band CLI was not found on PATH. Install rubberband-cli to enable future "
-            "pitch/time processing. MashLab remains usable in browser-only planning mode."
+            "Rubber Band CLI was not found on PATH. Install rubberband-cli to enable "
+            "pitch/time and combined preview processing."
         ),
     )
 

@@ -1,6 +1,6 @@
-# Preview Session Management — Phase 12–17
+# Preview Session Management — Phase 12–19
 
-Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV export artifacts**. Phase 15 adds **MP3 reference exports**. Phase 16 adds **mastering preset prototypes**. Phase 17 adds **local project package export**.
+Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV export artifacts**. Phase 15 adds **MP3 reference exports**. Phase 16 adds **mastering preset prototypes**. Phase 17 adds **local project package export**. Phase 18 adds **mix controls**. Phase 19 adds **workflow QA hardening** (session checklist, dependency health, delete error surfacing).
 
 ## What This Phase Adds
 
@@ -12,6 +12,8 @@ Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV e
 - MP3 reference export section (unlocks when WAV export exists — Phase 15)
 - Mastering preset section (unlocks when WAV export exists — Phase 16)
 - Project package section (unlocks when packageable artifacts exist — Phase 17)
+- Session workflow checklist in sidebar (Phase 19 — informational, no auto-process)
+- Delete/clear failures surfaced in artifact browser (Phase 19)
 - Auto-refresh after stem/combined/export create and delete/clear (`src/lib/artifactRefresh.ts`)
 
 ## Preview Artifacts Are Local
@@ -97,9 +99,16 @@ The combined preview panel exposes 15s / 30s (default) / 60s presets and custom 
 
 ## Export Panel Status (Phase 13–17)
 
-WAV export unlocks when at least one combined-preview artifact exists. MP3 and mastering unlock when WAV exports exist. Project package export unlocks when packageable artifacts exist (stems, combined preview, exports, masters with audio). Club versions and public sharing remain unavailable.
+WAV export unlocks when at least one combined-preview artifact exists **or** stem artifacts exist for full-length re-render. MP3 and mastering unlock when WAV exports exist. Project package export unlocks when packageable artifacts exist (stems, combined preview, exports, masters with audio). Club versions and public sharing remain unavailable.
 
-See `docs/LOCAL_EXPORTS.md` and `docs/EXPORT_AND_MASTERING_PLAN.md`.
+See `docs/LOCAL_EXPORTS.md`, `docs/QA_WORKFLOW_CHECKLIST.md`, and `docs/EXPORT_AND_MASTERING_PLAN.md`.
+
+## Cleanup Safety (Phase 19)
+
+- Delete/clear only removes paths under `.work/artifacts/`
+- Artifact ids must be alphanumeric — traversal ids rejected
+- Clear session deletes stems, combined previews, exports, masters, and packages listed by the sidecar
+- Raw uploads and browser session files are not deleted by artifact cleanup
 
 ## Privacy and Rights
 

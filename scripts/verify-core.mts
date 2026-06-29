@@ -2668,6 +2668,122 @@ describe("Mix quality controls", async () => {
   });
 });
 
+describe("End-to-end workflow QA hardening", async () => {
+  const {
+    buildWorkflowReadiness,
+    countWorkflowArtifacts,
+    formatWorkflowStepStatus,
+    WORKFLOW_READINESS_NOTICE,
+  } = await importSrc("src/domain/workflowReadiness.ts");
+  const {
+    buildDependencyHealth,
+    collectMissingSetupGuidance,
+    formatDependencyHealthSummary,
+  } = await importSrc("src/domain/dependencyHealth.ts");
+  const {
+    formatUserFacingError,
+    artifactDeleteFailureMessage,
+    loudnessUnavailableMessage,
+  } = await importSrc("src/domain/userFacingErrors.ts");
+  const {
+    isSafeArtifactId,
+    validateArtifactIdForCleanup,
+    artifactDeletionScopeNotice,
+  } = await importSrc("src/domain/artifactLifecycle.ts");
+  const {
+    RIGHTS_DOCTRINE_EXACT,
+    RIGHTS_SURFACE_EXPECTATIONS,
+    allCriticalSurfacesIncludeRightsDoctrine,
+    auditRightsNotice,
+  } = await importSrc("src/domain/rightsNoticeAudit.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+  const { selectDefaultPackageArtifacts } = await importSrc("src/domain/projectPackage.ts");
+  const { createSessionArtifactStore } = await importSrc("src/domain/sessionArtifacts.ts");
+
+  it("builds workflow readiness checklist without auto-processing claims", () => {
+    const steps = buildWorkflowReadiness({
+      tracks: { trackA: { status: "ready" } as never, trackB: null },
+      trackJobs: { trackA: null, trackB: null },
+      artifactStore: createSessionArtifactStore("qa-session"),
+      sidecarOnline: false,
+      capabilities: [],
+      artifactCounts: countWorkflowArtifacts([]),
+    });
+    assert.match(WORKFLOW_READINESS_NOTICE, /informational only/i);
+    assert.ok(steps.some((step) => step.id === "tracks_loaded"));
+    assert.ok(steps.some((step) => step.id === "missing_dependencies"));
+    assert.equal(formatWorkflowStepStatus("complete"), "Complete");
+  });
+
+  it("formats dependency health and setup guidance when offline", () => {
+    const items = buildDependencyHealth(false, []);
+    assert.match(formatDependencyHealthSummary(items), /dependency checks/i);
+    assert.ok(collectMissingSetupGuidance(items).length > 0);
+    assert.match(items[0]!.message, /offline/i);
+  });
+
+  it("formats actionable user-facing errors", () => {
+    const message = formatUserFacingError({
+      status: "missing_artifact",
+      message: "Preview artifact not found.",
+    });
+    assert.match(message, /Create the required preview/i);
+    assert.match(
+      artifactDeleteFailureMessage("processing_failed", "Permission denied."),
+      /Processing failed locally/i
+    );
+    assert.match(loudnessUnavailableMessage(), /not_available/i);
+  });
+
+  it("validates artifact lifecycle safety for cleanup ids", () => {
+    assert.equal(isSafeArtifactId("abc123"), true);
+    assert.equal(isSafeArtifactId("../escape"), false);
+    assert.ok(validateArtifactIdForCleanup("../escape").length > 0);
+    assert.match(artifactDeletionScopeNotice(), /\.work\/artifacts/);
+  });
+
+  it("audits rights doctrine across critical surfaces", () => {
+    assert.equal(requiredRightsNotice, RIGHTS_DOCTRINE_EXACT);
+    assert.equal(allCriticalSurfacesIncludeRightsDoctrine(), true);
+    assert.equal(auditRightsNotice(requiredRightsNotice).length, 0);
+    for (const surface of RIGHTS_SURFACE_EXPECTATIONS) {
+      for (const forbidden of surface.mustNotInclude) {
+        assert.ok(
+          !surface.notice.toLowerCase().includes(forbidden) ||
+            surface.notice.toLowerCase().includes("not ") ||
+            surface.notice.toLowerCase().includes("no "),
+          `${surface.surface} should not claim ${forbidden}`
+        );
+      }
+    }
+  });
+
+  it("selects package artifacts after exports and masters exist", () => {
+    const artifacts = [
+      {
+        artifactId: "stem001",
+        artifactType: "stem" as const,
+        createdAt: "2026-01-01T00:00:00Z",
+      },
+      {
+        artifactId: "wavfull001",
+        artifactType: "export" as const,
+        exportSubtype: "full-wav",
+        createdAt: "2026-01-02T00:00:00Z",
+      },
+      {
+        artifactId: "master001",
+        artifactType: "master" as const,
+        createdAt: "2026-01-03T00:00:00Z",
+        playbackUrl: "/v1/artifacts/masters/master001/master",
+      },
+    ];
+    const selected = selectDefaultPackageArtifacts(artifacts as never);
+    assert.ok(selected.includes("wavfull001"));
+    assert.ok(selected.includes("master001"));
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

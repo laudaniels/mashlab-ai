@@ -43,6 +43,7 @@ import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
+import { WorkflowReadinessPanel } from "./components/WorkflowReadinessPanel";
 import { MashupPlanningPanel } from "./components/MashupPlanningPanel";
 import { ExportPrepPanel } from "./components/ExportPrepPanel";
 import { PreviewArtifactBrowser } from "./components/PreviewArtifactBrowser";
@@ -462,6 +463,12 @@ function App() {
             })}
           </nav>
           <LocalEngineStatus />
+          <WorkflowReadinessPanel
+            artifactStore={artifactStore}
+            mashIntent={mashIntent}
+            trackJobs={trackJobs}
+            tracks={tracks}
+          />
           <div className="legal-mini">
             <ShieldCheck aria-hidden="true" size={18} />
             <p>{requiredRightsNotice}</p>

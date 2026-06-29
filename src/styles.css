@@ -245,6 +245,127 @@ audio {
   line-height: 1.45;
 }
 
+.local-engine-guidance-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+.local-engine-setup-guidance {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.06);
+  color: #fde68a;
+  font-size: 11px;
+}
+
+.local-engine-setup-guidance ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.workflow-readiness-panel {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(132, 146, 176, 0.16);
+  background: rgba(12, 16, 24, 0.82);
+}
+
+.workflow-readiness-header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: #94a3b8;
+}
+
+.workflow-readiness-header strong {
+  display: block;
+  color: #eef3ff;
+  font-size: 13px;
+}
+
+.workflow-readiness-header span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.workflow-readiness-notice {
+  margin: 10px 0 0;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.workflow-readiness-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.workflow-readiness-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.45);
+  color: #cbd5e1;
+  font-size: 11px;
+}
+
+.workflow-readiness-item strong {
+  display: block;
+  color: #e2e8f0;
+  font-size: 12px;
+}
+
+.workflow-readiness-status {
+  margin-left: 6px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.workflow-readiness-item p {
+  margin: 4px 0 0;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.workflow-readiness-complete svg {
+  color: #34d399;
+}
+
+.workflow-readiness-blocked svg {
+  color: #f87171;
+}
+
+.preview-artifact-scope-note {
+  margin: 0 0 8px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.preview-artifact-error {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  color: #fca5a5;
+  font-size: 12px;
+}
+
 .legal-mini {
   display: grid;
   gap: 10px;

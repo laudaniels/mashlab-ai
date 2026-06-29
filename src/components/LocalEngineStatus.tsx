@@ -1,14 +1,20 @@
-import { LoaderCircle, Server, ServerOff } from "lucide-react";
-import { findCapability, summarizeCapabilities } from "../lib/localEngine/capabilities.ts";
+import { AlertTriangle, LoaderCircle, Server, ServerOff } from "lucide-react";
+import {
+  buildDependencyHealth,
+  collectMissingSetupGuidance,
+  formatDependencyHealthSummary,
+} from "../domain/dependencyHealth.ts";
+import { findCapability } from "../lib/localEngine/capabilities.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 
 export function LocalEngineStatus() {
   const { status, isChecking } = useLocalEngineStatus();
 
-  const ffprobe = findCapability(status.capabilities, "ffprobe");
-  const detail = status.online
-    ? summarizeCapabilities(status.capabilities)
+  const healthItems = buildDependencyHealth(status.online, status.capabilities);
+  const summary = status.online
+    ? formatDependencyHealthSummary(healthItems)
     : "Browser-only mode. Local helper service offline.";
+  const setupGuidance = collectMissingSetupGuidance(healthItems);
 
   return (
     <section
@@ -25,17 +31,17 @@ export function LocalEngineStatus() {
         )}
         <div>
           <strong>{status.online ? "Local service online" : "Browser-only mode"}</strong>
-          <span>{detail}</span>
+          <span>{summary}</span>
         </div>
       </div>
 
       {status.online ? (
         <ul className="local-engine-capability-list">
-          {status.capabilities.map((capability) => (
-            <li key={capability.id}>
-              <span>{capability.label}</span>
-              <span className={`status-pill status-${capabilityStatusClass(capability.status)}`}>
-                {capability.status.replace(/_/g, " ")}
+          {healthItems.map((item) => (
+            <li key={item.id}>
+              <span>{item.label}</span>
+              <span className={`status-pill status-${dependencyStatusClass(item.status)}`}>
+                {item.status.replace(/_/g, " ")}
               </span>
             </li>
           ))}
@@ -43,32 +49,46 @@ export function LocalEngineStatus() {
       ) : (
         <p className="local-engine-offline-note">
           Upload and browser metadata still work without the sidecar. Start the Python helper on
-          `127.0.0.1:47831` to enable ffprobe-backed metadata when FFmpeg is installed.
+          `127.0.0.1:47831` to enable ffprobe-backed metadata, stem preview, and export lanes.
         </p>
       )}
 
-      {status.online && ffprobe?.status === "missing" ? (
-        <p className="local-engine-offline-note">
-          ffprobe is missing. Install FFmpeg to unlock richer local metadata analysis.
-        </p>
+      {status.online ? (
+        <ul className="local-engine-guidance-list">
+          {healthItems
+            .filter((item) => item.status === "missing" || item.status === "offline")
+            .map((item) => (
+              <li key={`${item.id}-message`}>{item.message}</li>
+            ))}
+        </ul>
       ) : null}
 
-      {status.online && findCapability(status.capabilities, "rubberband")?.status === "missing" ? (
+      {setupGuidance.length > 0 ? (
+        <div className="local-engine-setup-guidance">
+          <AlertTriangle aria-hidden="true" size={14} />
+          <ul>
+            {setupGuidance.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {status.online && findCapability(status.capabilities, "rubberband")?.status === "available" ? (
         <p className="local-engine-offline-note">
-          Rubber Band CLI is not installed. Pitch/time planning works in the browser; processing
-          requires rubberband-cli on PATH when that lane is implemented.
+          Rubber Band, FFmpeg, and Demucs lanes are user-initiated only — nothing auto-processes.
         </p>
       ) : null}
     </section>
   );
 }
 
-function capabilityStatusClass(status: string): string {
-  if (status === "available") {
+function dependencyStatusClass(status: string): string {
+  if (status === "online" || status === "available") {
     return "implemented";
   }
 
-  if (status === "planned") {
+  if (status === "planned" || status === "optional") {
     return "engine-pending";
   }
 

@@ -2,6 +2,11 @@ import { AlertTriangle, FolderOpen, LoaderCircle, RefreshCw, Trash2 } from "luci
 import { useCallback, useEffect, useState } from "react";
 import type { ArtifactMetadataResult, PreviewArtifactSummary } from "../domain/previewArtifacts.ts";
 import { PREVIEW_ARTIFACT_LABEL } from "../domain/previewArtifacts.ts";
+import { artifactDeletionScopeNotice, formatArtifactLifecycleSummary } from "../domain/artifactLifecycle.ts";
+import {
+  artifactClearFailureMessage,
+  artifactDeleteFailureMessage,
+} from "../domain/userFacingErrors.ts";
 import { formatArtifactTypeLabel, isMasterArtifact } from "../domain/masteringPresets.ts";
 import { formatPackageArtifactLabel, isPackageArtifact } from "../domain/projectPackage.ts";
 import { isMp3ExportArtifact } from "../domain/mp3Export.ts";
@@ -25,11 +30,13 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!localStatus.online) {
       setArtifacts([]);
       setMessage("Local sidecar offline. Preview artifacts remain on disk but cannot be listed.");
+      setErrorMessage(null);
       return;
     }
 
@@ -56,10 +63,23 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
 
   async function handleDelete(artifactId: string) {
     setBusyId(artifactId);
+    setErrorMessage(null);
+    const artifact = artifacts.find((item) => item.artifactId === artifactId);
     const result = await localEngineClient.deleteArtifact(artifactId);
     if (result?.ok) {
       removePreviewArtifactRegistryEntry(artifactId);
       onRegistryChange?.();
+      setMessage(
+        formatArtifactLifecycleSummary({
+          artifactType: artifact?.artifactType ?? "artifact",
+          artifactId,
+          action: "delete",
+        })
+      );
+    } else {
+      setErrorMessage(
+        artifactDeleteFailureMessage(result?.status ?? "processing_failed", result?.message)
+      );
     }
     setBusyId(null);
     notifyArtifactRefresh();
@@ -68,10 +88,16 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
 
   async function handleClearAll() {
     setBusyId("clear-all");
+    setErrorMessage(null);
     const result = await localEngineClient.clearPreviewArtifacts();
     if (result?.ok) {
       clearPreviewArtifactRegistry();
       onRegistryChange?.();
+      setMessage(artifactClearFailureMessage(result.deletedCount ?? 0, []));
+    } else {
+      setErrorMessage(
+        artifactDeleteFailureMessage(result?.status ?? "processing_failed", result?.message)
+      );
     }
     setMetadataById({});
     setBusyId(null);
@@ -105,7 +131,15 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
         </button>
       </div>
 
+      <p className="preview-artifact-scope-note">{artifactDeletionScopeNotice()}</p>
+
       {message ? <p className="preview-artifact-message">{message}</p> : null}
+      {errorMessage ? (
+        <p className="preview-artifact-error" role="alert">
+          <AlertTriangle aria-hidden="true" size={16} />
+          {errorMessage}
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="preview-artifact-loading">

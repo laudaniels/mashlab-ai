@@ -83,6 +83,7 @@ export function parseArtifactSummary(
         ? record.source_combined_preview_artifact_id
         : null,
     exportSubtype: typeof record.export_subtype === "string" ? record.export_subtype : null,
+    exportFormat: typeof record.export_format === "string" ? record.export_format : null,
     sourceVocalStemArtifactId:
       typeof record.source_vocal_stem_artifact_id === "string"
         ? record.source_vocal_stem_artifact_id
@@ -90,6 +91,10 @@ export function parseArtifactSummary(
     targetInstrumentalStemArtifactId:
       typeof record.target_instrumental_stem_artifact_id === "string"
         ? record.target_instrumental_stem_artifact_id
+        : null,
+    sourceWavExportArtifactId:
+      typeof record.source_wav_export_artifact_id === "string"
+        ? record.source_wav_export_artifact_id
         : null,
   };
 }

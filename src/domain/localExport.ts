@@ -4,13 +4,14 @@ import type { LoudnessReadout } from "./previewArtifacts.ts";
 export const LOCAL_EXPORT_ARTIFACT_LABEL =
   "Local export — user responsible for rights. No public distribution rights granted.";
 
-export const EXPORT_WAV_ONLY_NOTICE = "WAV export only in this phase. MP3 is not implemented.";
+export const EXPORT_WAV_ONLY_NOTICE =
+  "MP3 reference export requires an existing local WAV export artifact.";
 
 export const EXPORT_NOT_MASTERED_NOTICE =
   "Local WAV export is copied from a combined preview — not full mastering or club-ready output.";
 
 export const EXPORT_EXTENDED_LIMITATIONS = [
-  "MP3, stem package, mastering presets, and public sharing are not implemented.",
+  "Stem package export, mastering presets, and public sharing are not implemented.",
   "Export does not grant distribution or publishing rights.",
 ] as const;
 

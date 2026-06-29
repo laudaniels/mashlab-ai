@@ -8,6 +8,9 @@ export const PREVIEW_ARTIFACT_LABEL =
 export const EXPORT_ARTIFACT_LABEL =
   "Local export — user responsible for rights. No public distribution rights granted.";
 
+export const MP3_EXPORT_ARTIFACT_LABEL =
+  "Local MP3 reference export — user responsible for rights. No public distribution rights granted.";
+
 export interface PreviewArtifactRegistryEntry {
   artifactId: string;
   artifactType: PreviewArtifactType;
@@ -43,8 +46,10 @@ export interface PreviewArtifactSummary {
   registryLabel: string | null;
   sourceCombinedPreviewArtifactId: string | null;
   exportSubtype: string | null;
+  exportFormat: string | null;
   sourceVocalStemArtifactId: string | null;
   targetInstrumentalStemArtifactId: string | null;
+  sourceWavExportArtifactId: string | null;
 }
 
 export interface LoudnessReadout {

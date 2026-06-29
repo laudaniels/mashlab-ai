@@ -23,6 +23,10 @@ PREVIEW_ONLY_LABEL = "Preview only — not a final export or master."
 EXPORT_ARTIFACT_LABEL = (
     "Local export — user responsible for rights. No public distribution rights granted."
 )
+MP3_EXPORT_ARTIFACT_LABEL = (
+    "Local MP3 reference export — user responsible for rights. "
+    "No public distribution rights granted."
+)
 
 
 @dataclass
@@ -46,8 +50,10 @@ class PreviewArtifactEntry:
     preview_label: str = PREVIEW_ONLY_LABEL
     source_combined_preview_artifact_id: str | None = None
     export_subtype: str | None = None
+    export_format: str | None = None
     source_vocal_stem_artifact_id: str | None = None
     target_instrumental_stem_artifact_id: str | None = None
+    source_wav_export_artifact_id: str | None = None
 
 
 @dataclass
@@ -137,6 +143,9 @@ def find_artifact_primary_path(artifact_id: str) -> tuple[Path | None, str | Non
 
     export_dir = _resolve_under(EXPORTS_DIR, artifact_id)
     if export_dir and export_dir.is_dir():
+        mp3_file = export_dir / "export.mp3"
+        if mp3_file.exists():
+            return mp3_file, "export"
         export_file = export_dir / "export.wav"
         if export_file.exists():
             return export_file, "export"
@@ -161,8 +170,9 @@ def find_artifact_root(artifact_id: str) -> Path | None:
         return pitch_file
 
     export_dir = _resolve_under(EXPORTS_DIR, artifact_id)
-    if export_dir and export_dir.is_dir() and (export_dir / "export.wav").exists():
-        return export_dir
+    if export_dir and export_dir.is_dir():
+        if (export_dir / "export.wav").exists() or (export_dir / "export.mp3").exists():
+            return export_dir
 
     return None
 
@@ -247,47 +257,66 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
         for child in sorted(EXPORTS_DIR.iterdir()):
             if not child.is_dir() or not is_valid_artifact_id(child.name):
                 continue
-            export_file = child / "export.wav"
-            if not export_file.exists():
+            export_wav = child / "export.wav"
+            export_mp3 = child / "export.mp3"
+            primary_file = export_wav if export_wav.exists() else export_mp3 if export_mp3.exists() else None
+            if primary_file is None:
                 continue
             meta = _read_export_meta(child)
             source_id = None
             export_subtype = None
+            export_format = None
             source_vocal_id = None
             target_instrumental_id = None
+            source_wav_id = None
             if meta:
                 if isinstance(meta.get("source_combined_preview_artifact_id"), str):
                     source_id = meta["source_combined_preview_artifact_id"]
                 if isinstance(meta.get("export_subtype"), str):
                     export_subtype = meta["export_subtype"]
+                if isinstance(meta.get("export_format"), str):
+                    export_format = meta["export_format"]
                 if isinstance(meta.get("source_vocal_stem_artifact_id"), str):
                     source_vocal_id = meta["source_vocal_stem_artifact_id"]
                 if isinstance(meta.get("target_instrumental_stem_artifact_id"), str):
                     target_instrumental_id = meta["target_instrumental_stem_artifact_id"]
-            label = EXPORT_ARTIFACT_LABEL
-            if export_subtype == "full-wav":
-                label = (
-                    "Full-length local export — user responsible for rights. "
-                    "No public distribution rights granted."
-                )
+                if isinstance(meta.get("source_wav_export_artifact_id"), str):
+                    source_wav_id = meta["source_wav_export_artifact_id"]
+            if export_mp3.exists():
+                label = MP3_EXPORT_ARTIFACT_LABEL
+                playback = f"/v1/artifacts/exports/{child.name}/export.mp3"
+                if export_subtype is None:
+                    export_subtype = "mp3"
+                if export_format is None:
+                    export_format = "mp3"
+            else:
+                label = EXPORT_ARTIFACT_LABEL
+                playback = f"/v1/artifacts/exports/{child.name}/export"
+                if export_subtype == "full-wav":
+                    label = (
+                        "Full-length local export — user responsible for rights. "
+                        "No public distribution rights granted."
+                    )
+                if export_format is None:
+                    export_format = "wav"
             entries.append(
                 PreviewArtifactEntry(
                     artifact_id=child.name,
                     artifact_type="export",
                     status="ready",
-                    created_at=_iso_from_mtime(export_file),
-                    duration_seconds=_probe_duration(export_file),
-                    playback_urls=ArtifactPlaybackUrls(
-                        primary=f"/v1/artifacts/exports/{child.name}/export"
-                    ),
+                    created_at=_iso_from_mtime(primary_file),
+                    duration_seconds=_probe_duration(primary_file),
+                    playback_urls=ArtifactPlaybackUrls(primary=playback),
                     preview_only=False,
                     final_export=True,
-                    primary_file_name=export_file.name,
+                    primary_file_name=primary_file.name,
                     preview_label=label,
                     source_combined_preview_artifact_id=source_id,
                     export_subtype=export_subtype,
+                    export_format=export_format,
                     source_vocal_stem_artifact_id=source_vocal_id,
                     target_instrumental_stem_artifact_id=target_instrumental_id,
+                    source_wav_export_artifact_id=source_wav_id,
                 )
             )
 
@@ -304,7 +333,7 @@ def get_artifact_metadata(artifact_id: str) -> ArtifactMetadataResult:
         )
 
     technical = analyze_technical_readout(primary_path)
-    playback_url = _playback_url_for(artifact_id, artifact_type)
+    playback_url = _playback_url_for(artifact_id, artifact_type, primary_path)
     is_export = artifact_type == "export"
 
     return ArtifactMetadataSuccess(
@@ -537,7 +566,7 @@ def _read_export_meta(export_dir: Path) -> dict | None:
     return payload if isinstance(payload, dict) else None
 
 
-def _playback_url_for(artifact_id: str, artifact_type: str) -> str | None:
+def _playback_url_for(artifact_id: str, artifact_type: str, primary_path: Path | None = None) -> str | None:
     if artifact_type == "stem":
         return f"/v1/artifacts/stems/{artifact_id}/vocals"
     if artifact_type == "combined-preview":
@@ -545,6 +574,8 @@ def _playback_url_for(artifact_id: str, artifact_type: str) -> str | None:
     if artifact_type == "pitch-time-preview":
         return f"/v1/artifacts/pitch-time-preview/{artifact_id}"
     if artifact_type == "export":
+        if primary_path is not None and primary_path.name == "export.mp3":
+            return f"/v1/artifacts/exports/{artifact_id}/export.mp3"
         return f"/v1/artifacts/exports/{artifact_id}/export"
     return None
 

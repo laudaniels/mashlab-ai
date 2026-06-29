@@ -1781,7 +1781,7 @@ describe("Local WAV export prototype", async () => {
     assert.equal(exportPanelIsLocked(false), true);
     assert.equal(exportPanelIsLocked(true), false);
     assert.match(EXPORT_MP3_STEMS_NOTICE, /not implemented/i);
-    assert.match(EXPORT_WAV_ONLY_NOTICE, /WAV export only/i);
+    assert.match(EXPORT_WAV_ONLY_NOTICE, /WAV export artifact/i);
   });
 });
 
@@ -1947,6 +1947,193 @@ describe("Full-length WAV export", async () => {
     );
     assert.equal(hasFullLengthExportSource(store), true);
     assert.equal(exportPanelHasAnySource(false, true), true);
+  });
+});
+
+describe("MP3 reference export and export session UX", async () => {
+  const { parseMp3ExportResponse } = await importSrc("src/lib/localEngine/export.ts");
+  const {
+    ALLOWED_MP3_BITRATES,
+    MP3_EXPORT_ARTIFACT_LABEL,
+    MP3_REFERENCE_NOTICE,
+    formatExportSubtypeLabel,
+    formatMp3Bitrate,
+    formatMp3ExportWarnings,
+    isMp3ExportArtifact,
+    isWavExportArtifact,
+    mp3ExportPanelIsLocked,
+    mp3ExportResultClaimsFinalExport,
+    mp3ExportResultGrantsPublicShare,
+    validateMp3ExportRequest,
+  } = await importSrc("src/domain/mp3Export.ts");
+  const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { isMp3ExportAvailable } = await importSrc("src/domain/exportPrep.ts");
+  const {
+    canReExportWithCurrentSettings,
+    recordSuccessfulExport,
+  } = await importSrc("src/lib/exportSession.ts");
+  const { validateCleanupArtifactId } = await importSrc("src/lib/localEngine/artifacts.ts");
+
+  it("parses successful MP3 export response with finalExport true and publicShare false", () => {
+    const parsed = parseMp3ExportResponse({
+      ok: true,
+      status: "ready",
+      message: "Local MP3 reference export created.",
+      export_artifact_id: "mp3export001",
+      source_wav_export_artifact_id: "wavexport001",
+      artifact_url: "/v1/artifacts/exports/mp3export001/export.mp3",
+      download_url: "/v1/artifacts/exports/mp3export001/export.mp3",
+      export_format: "mp3",
+      bitrate_kbps: 320,
+      final_export: true,
+      public_share: false,
+      rights_notice: "Upload audio you own or are authorized to use.",
+      warnings: ["MP3 is a reference/export format, not proof of distribution rights."],
+      limitations: ["No public sharing."],
+    });
+
+    assert.equal(parsed?.ok, true);
+    assert.equal(parsed?.exportFormat, "mp3");
+    assert.equal(parsed?.bitrateKbps, 320);
+    assert.equal(parsed?.finalExport, true);
+    assert.equal(parsed?.publicShare, false);
+    assert.equal(mp3ExportResultClaimsFinalExport(parsed!), true);
+    assert.equal(mp3ExportResultGrantsPublicShare(parsed!), false);
+    assert.ok(parsed?.playbackUrl?.includes("/export.mp3"));
+    assert.match(parsed?.rightsNotice ?? "", /authorized/i);
+  });
+
+  it("validates WAV-export-only source and bitrate options", () => {
+    assert.equal(validateMp3ExportRequest({
+      sourceWavExportArtifactId: "validwav001",
+      bitrateKbps: 320,
+    }).length, 0);
+    assert.ok(validateMp3ExportRequest({
+      sourceWavExportArtifactId: "../bad",
+      bitrateKbps: 320,
+    }).length > 0);
+    assert.ok(validateMp3ExportRequest({
+      sourceWavExportArtifactId: "validwav001",
+      bitrateKbps: 128 as never,
+    }).length > 0);
+    assert.deepEqual([...ALLOWED_MP3_BITRATES], [320, 256, 192]);
+    assert.equal(formatMp3Bitrate(256), "256 kbps");
+  });
+
+  it("locks MP3 panel until WAV exports exist", () => {
+    assert.equal(mp3ExportPanelIsLocked([]), true);
+    assert.equal(mp3ExportPanelIsLocked([
+      {
+        artifactId: "wavex001",
+        artifactType: "export",
+        status: "ready",
+        createdAt: "",
+        durationSeconds: 30,
+        playbackUrls: { primary: null, vocals: null, noVocals: null },
+        playbackUrl: null,
+        previewOnly: false,
+        finalExport: true,
+        previewLabel: "Local export",
+        primaryFileName: "export.wav",
+        sourceTrackLabel: null,
+        targetTrackLabel: null,
+        registryLabel: null,
+        sourceCombinedPreviewArtifactId: null,
+        exportSubtype: "preview-copy",
+        exportFormat: "wav",
+        sourceVocalStemArtifactId: null,
+        targetInstrumentalStemArtifactId: null,
+        sourceWavExportArtifactId: null,
+      },
+    ]), false);
+    assert.equal(isMp3ExportAvailable(0), false);
+    assert.equal(isMp3ExportAvailable(1), true);
+  });
+
+  it("distinguishes export format and subtype labels", () => {
+    const wavArtifact = {
+      artifactId: "wavex001",
+      artifactType: "export" as const,
+      status: "ready",
+      createdAt: "",
+      durationSeconds: 30,
+      playbackUrls: { primary: null, vocals: null, noVocals: null },
+      playbackUrl: null,
+      previewOnly: false,
+      finalExport: true,
+      previewLabel: "Local export",
+      primaryFileName: "export.wav",
+      sourceTrackLabel: null,
+      targetTrackLabel: null,
+      registryLabel: null,
+      sourceCombinedPreviewArtifactId: null,
+      exportSubtype: "full-wav",
+      exportFormat: "wav",
+      sourceVocalStemArtifactId: null,
+      targetInstrumentalStemArtifactId: null,
+      sourceWavExportArtifactId: null,
+    };
+    const mp3Artifact = { ...wavArtifact, exportSubtype: "mp3", exportFormat: "mp3", primaryFileName: "export.mp3" };
+
+    assert.equal(isWavExportArtifact(wavArtifact), true);
+    assert.equal(isMp3ExportArtifact(mp3Artifact), true);
+    assert.equal(formatExportSubtypeLabel("full-wav", "wav"), "export / full-wav");
+    assert.equal(formatExportSubtypeLabel("mp3", "mp3"), "export / mp3");
+    assert.match(MP3_EXPORT_ARTIFACT_LABEL, /No public distribution rights granted/i);
+    assert.match(MP3_REFERENCE_NOTICE, /not proof of distribution rights/i);
+  });
+
+  it("parses MP3 export artifact in browser list", () => {
+    const parsed = parseArtifactSummary({
+      artifact_id: "mp3export001",
+      artifact_type: "export",
+      export_subtype: "mp3",
+      export_format: "mp3",
+      source_wav_export_artifact_id: "wavexport001",
+      status: "ready",
+      created_at: "2026-06-23T12:00:00Z",
+      playback_urls: { primary: "/v1/artifacts/exports/mp3export001/export.mp3" },
+      preview_only: false,
+      final_export: true,
+      primary_file_name: "export.mp3",
+      preview_label: MP3_EXPORT_ARTIFACT_LABEL,
+    });
+    assert.equal(parsed?.exportFormat, "mp3");
+    assert.equal(parsed?.sourceWavExportArtifactId, "wavexport001");
+    assert.equal(parsed?.finalExport, true);
+  });
+
+  it("export session preferences track last export without raw audio", () => {
+    const prefs = recordSuccessfulExport({
+      mode: "mp3-reference",
+      exportArtifactId: "mp3export001",
+      sourceArtifactId: "wavexport001",
+      exportFormat: "mp3",
+      bitrateKbps: 256,
+      createdAt: "2026-06-23T12:00:00Z",
+    });
+    assert.equal(prefs.lastMp3Bitrate, 256);
+    assert.equal(prefs.lastSuccessfulExport?.exportArtifactId, "mp3export001");
+    assert.equal(canReExportWithCurrentSettings(prefs, true, false, false), true);
+    assert.equal(canReExportWithCurrentSettings(prefs, false, false, false), false);
+  });
+
+  it("cleanup validation accepts MP3 export artifact ids safely", () => {
+    assert.equal(validateCleanupArtifactId("mp3export001").length, 0);
+    assert.ok(validateCleanupArtifactId("../escape").length > 0);
+  });
+
+  it("formats MP3 export warnings including rights limitations", () => {
+    const parsed = parseMp3ExportResponse({
+      ok: true,
+      status: "ready",
+      message: "ok",
+      final_export: true,
+      public_share: false,
+      warnings: ["Local MP3 reference export."],
+      limitations: ["No distribution rights granted."],
+    });
+    assert.ok(formatMp3ExportWarnings(parsed!).some((line) => /distribution rights/i.test(line)));
   });
 });
 

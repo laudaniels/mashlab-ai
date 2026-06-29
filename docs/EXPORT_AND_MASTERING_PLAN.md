@@ -1,14 +1,27 @@
 # Export and Mastering Plan
 
-## Current State (Phase 14)
+## Current State (Phase 15)
 
 - **Full-length WAV export** re-renders from stem artifacts + session plan (Rubber Band + FFmpeg full mix)
 - **Preview-length WAV export** copies existing combined preview artifact (Phase 13)
+- **MP3 reference export** encodes from existing WAV export artifact only (Phase 15)
 - Export panel unlocks when both stem previews exist **or** a combined preview exists
+- MP3 section unlocks when at least one WAV export exists
 - Loudness gate displays pass/warn/not_available against planned general targets (informational only)
-- MP3, stem package export, club mastering, and public sharing remain **not implemented**
+- Stem package export, club mastering, and public sharing remain **not implemented**
 
 Preview artifacts (stem, combined, pitch/time) remain `finalExport: false`.
+
+## Phase 15 MP3 Reference Export (Implemented)
+
+| Item | Status |
+|------|--------|
+| MP3 from WAV export artifact only | Available (user-initiated) |
+| Bitrate 320 / 256 / 192 kbps | Available |
+| Technical + loudness readout after encode | Available when FFmpeg measures |
+| Export session UX (local preferences + re-export) | Available |
+
+MP3 is **not** full mastering and does **not** grant distribution rights.
 
 ## Phase 14 Full-Length Export (Implemented)
 
@@ -20,6 +33,10 @@ Preview artifacts (stem, combined, pitch/time) remain `finalExport: false`.
 | Preview-length copy from combined preview | Available (Phase 13) |
 
 See `docs/LOCAL_EXPORTS.md` for API and storage details.
+
+## Recommended Next Phase
+
+**Mastering presets** — measurement-only, general-safe normalization, and DJ loudness prototype — still local and rights-neutral. Not public sharing or streaming integration.
 
 ## Planned Loudness Targets (Future Full Mastering)
 

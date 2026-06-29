@@ -37,14 +37,16 @@ Implemented:
 - **Combined vocal-over-instrumental preview** (Rubber Band vocal + FFmpeg mix; requires stem previews first).
 - **Preview artifact browser** with local cleanup and technical/loudness readout.
 - **Local WAV export** from combined preview copy or **full-length re-render from stem artifacts + plan state**.
-- **Locked future targets** for MP3, stems package, full mastering, and public sharing (not implemented).
+- **Local MP3 reference export** from existing WAV export artifacts (320/256/192 kbps).
+- **Export session UX** — local preferences for mode, bitrate, loudness, and explicit re-export.
+- **Locked future targets** for stem package, full mastering, and public sharing (not implemented).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
 - True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
-- Full MP3/stem package export, mastering passes, club versions, or public sharing.
+- Full stem package export, mastering passes, club versions, or public sharing.
 
 ## Legal Notice
 

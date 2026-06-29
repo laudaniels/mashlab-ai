@@ -260,8 +260,10 @@ class PreviewArtifactSummary(BaseModel):
     preview_label: str = "Preview only — not a final export or master."
     source_combined_preview_artifact_id: str | None = None
     export_subtype: str | None = None
+    export_format: str | None = None
     source_vocal_stem_artifact_id: str | None = None
     target_instrumental_stem_artifact_id: str | None = None
+    source_wav_export_artifact_id: str | None = None
 
 
 class ArtifactListResponse(BaseModel):
@@ -337,6 +339,38 @@ class ExportWavResponse(BaseModel):
     limitations: list[str] = Field(default_factory=list)
     export_label: str | None = None
     validation_errors: list[str] | None = None
+
+
+class ExportMp3Request(BaseModel):
+    source_wav_export_artifact_id: str
+    bitrate_kbps: int = 320
+    export_label: str | None = None
+
+
+class ExportMp3Response(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    export_artifact_id: str | None = None
+    source_wav_export_artifact_id: str | None = None
+    artifact_url: str | None = None
+    download_url: str | None = None
+    export_format: str | None = None
+    bitrate_kbps: int | None = None
+    file_size_bytes: int | None = None
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    codec: str | None = None
+    loudness: LoudnessReadoutModel | None = None
+    final_export: bool = False
+    public_share: bool = False
+    rights_notice: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    export_label: str | None = None
+    validation_errors: list[str] | None = None
+    setup_guidance: str | None = None
 
 
 class FullExportInputSummaryModel(BaseModel):

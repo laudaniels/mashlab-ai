@@ -1,5 +1,7 @@
 import type { ExportWavResult, LoudnessTargetMode } from "../../domain/localExport.ts";
 import { DEFAULT_EXPORT_RIGHTS_NOTICE } from "../../domain/localExport.ts";
+import type { Mp3ExportResult } from "../../domain/mp3Export.ts";
+import { DEFAULT_MP3_EXPORT_RIGHTS_NOTICE } from "../../domain/mp3Export.ts";
 import type {
   FullLengthExportResult,
   LoudnessGateDisplay,
@@ -195,5 +197,56 @@ function parseLoudnessGate(value: unknown): LoudnessGateDisplay | null {
     truePeakDbtp: parseNullableNumber(record.true_peak_dbtp),
     targetIntegratedLufs: parseNullableNumber(record.target_integrated_lufs) ?? -14,
     targetTruePeakDbtp: parseNullableNumber(record.target_true_peak_dbtp) ?? -1,
+  };
+}
+
+export function parseMp3ExportResponse(
+  payload: unknown,
+  baseUrl: string = DEFAULT_LOCAL_ENGINE_URL
+): Mp3ExportResult | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const downloadPath =
+    typeof record.download_url === "string"
+      ? record.download_url
+      : typeof record.artifact_url === "string"
+        ? record.artifact_url
+        : null;
+
+  return {
+    ok: Boolean(record.ok),
+    status: typeof record.status === "string" ? record.status : "unknown",
+    message: typeof record.message === "string" ? record.message : "Unknown MP3 export response.",
+    exportArtifactId:
+      typeof record.export_artifact_id === "string" ? record.export_artifact_id : null,
+    sourceWavExportArtifactId:
+      typeof record.source_wav_export_artifact_id === "string"
+        ? record.source_wav_export_artifact_id
+        : null,
+    artifactUrl: typeof record.artifact_url === "string" ? record.artifact_url : null,
+    downloadUrl: downloadPath,
+    playbackUrl: downloadPath ? `${baseUrl}${downloadPath}` : null,
+    exportFormat: typeof record.export_format === "string" ? record.export_format : null,
+    bitrateKbps: parseNullableNumber(record.bitrate_kbps),
+    fileSizeBytes: parseNullableNumber(record.file_size_bytes),
+    durationSeconds: parseNullableNumber(record.duration_seconds),
+    sampleRate: parseNullableNumber(record.sample_rate),
+    channelCount: parseNullableNumber(record.channel_count),
+    codec: typeof record.codec === "string" ? record.codec : null,
+    loudness: parseLoudnessReadout(record.loudness),
+    finalExport: record.final_export === true,
+    publicShare: record.public_share === true,
+    rightsNotice:
+      typeof record.rights_notice === "string"
+        ? record.rights_notice
+        : DEFAULT_MP3_EXPORT_RIGHTS_NOTICE,
+    warnings: parseStringArray(record.warnings),
+    limitations: parseStringArray(record.limitations),
+    exportLabel: typeof record.export_label === "string" ? record.export_label : null,
+    validationErrors: parseStringArrayOrNull(record.validation_errors),
+    setupGuidance: typeof record.setup_guidance === "string" ? record.setup_guidance : null,
   };
 }

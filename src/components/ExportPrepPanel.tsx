@@ -27,6 +27,7 @@ import {
   exportTargetPlans,
   formatLoudnessTargetSummary,
   hasFullLengthExportSource,
+  isMp3ExportAvailable,
   isWavExportAvailable,
 } from "../domain/exportPrep.ts";
 import type { ExportWavResult, LoudnessTargetMode } from "../domain/localExport.ts";
@@ -37,12 +38,31 @@ import {
   normalizePreviewModeLabel,
   validateExportWavRequest,
 } from "../domain/localExport.ts";
+import {
+  ALLOWED_MP3_BITRATES,
+  formatMp3Bitrate,
+  formatMp3ExportWarnings,
+  isWavExportArtifact,
+  MP3_NOT_MASTERED_NOTICE,
+  MP3_REFERENCE_NOTICE,
+  mp3ExportPanelIsLocked,
+  validateMp3ExportRequest,
+  type Mp3BitrateKbps,
+  type Mp3ExportResult,
+} from "../domain/mp3Export.ts";
 import { rubberBandReadinessFromCapabilityStatus } from "../domain/pitchTimePlanning.ts";
 import type { MashIntent } from "../domain/pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
 import { isCombinedPreviewArtifact } from "../domain/previewArtifacts.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import { notifyArtifactRefresh, subscribeArtifactRefresh } from "../lib/artifactRefresh.ts";
+import {
+  canReExportWithCurrentSettings,
+  loadExportSessionPreferences,
+  recordSuccessfulExport,
+  updateExportSessionPreferences,
+  type ExportSessionPreferences,
+} from "../lib/exportSession.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
 import {
   isFfmpegAvailable,
@@ -71,9 +91,18 @@ export function ExportPrepPanel({
   const [combinedPreviews, setCombinedPreviews] = useState<
     import("../domain/previewArtifacts.ts").PreviewArtifactSummary[]
   >([]);
+  const [wavExports, setWavExports] = useState<
+    import("../domain/previewArtifacts.ts").PreviewArtifactSummary[]
+  >([]);
   const [selectedSourceId, setSelectedSourceId] = useState("");
+  const [selectedWavExportId, setSelectedWavExportId] = useState("");
   const [exportLabel, setExportLabel] = useState("");
   const [fullExportLabel, setFullExportLabel] = useState("");
+  const [mp3ExportLabel, setMp3ExportLabel] = useState("");
+  const [mp3Bitrate, setMp3Bitrate] = useState<Mp3BitrateKbps>(320);
+  const [sessionPrefs, setSessionPrefs] = useState<ExportSessionPreferences>(() =>
+    loadExportSessionPreferences()
+  );
   const [loudnessMode, setLoudnessMode] = useState<LoudnessTargetMode>("measurement_only");
   const [fullLoudnessMode, setFullLoudnessMode] =
     useState<FullLengthLoudnessMode>("measurement_only");
@@ -84,8 +113,12 @@ export function ExportPrepPanel({
   const [fullBusy, setFullBusy] = useState(false);
   const [exportResult, setExportResult] = useState<ExportWavResult | null>(null);
   const [fullExportResult, setFullExportResult] = useState<FullLengthExportResult | null>(null);
+  const [mp3ExportResult, setMp3ExportResult] = useState<Mp3ExportResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fullErrorMessage, setFullErrorMessage] = useState<string | null>(null);
+  const [mp3ErrorMessage, setMp3ErrorMessage] = useState<string | null>(null);
+  const [mp3Busy, setMp3Busy] = useState(false);
+  const [reExportBusy, setReExportBusy] = useState(false);
 
   const pitchTimePlan = buildPitchTimePlanForExport(
     artifactStore,
@@ -122,6 +155,8 @@ export function ExportPrepPanel({
     const registry = loadPreviewArtifactRegistry();
     const listed = await localEngineClient.listArtifacts(registry);
     setCombinedPreviews(listed.filter(isCombinedPreviewArtifact));
+    const wavOnly = listed.filter(isWavExportArtifact);
+    setWavExports(wavOnly);
 
     const combined = listed.filter(isCombinedPreviewArtifact);
     if (combined.length > 0) {
@@ -133,7 +168,25 @@ export function ExportPrepPanel({
     } else {
       setSelectedSourceId("");
     }
+
+    if (wavOnly.length > 0) {
+      setSelectedWavExportId((current) =>
+        current && wavOnly.some((item) => item.artifactId === current)
+          ? current
+          : wavOnly[wavOnly.length - 1]!.artifactId
+      );
+    } else {
+      setSelectedWavExportId("");
+    }
   }, [localStatus.online]);
+
+  useEffect(() => {
+    const prefs = loadExportSessionPreferences();
+    setSessionPrefs(prefs);
+    setLoudnessMode(prefs.lastPreviewLoudnessMode);
+    setFullLoudnessMode(prefs.lastFullLoudnessMode);
+    setMp3Bitrate(prefs.lastMp3Bitrate);
+  }, []);
 
   useEffect(() => {
     void refreshSources();
@@ -146,6 +199,14 @@ export function ExportPrepPanel({
   const hasAnySource = exportPanelHasAnySource(hasCombined, hasStemSource);
   const locked = exportPanelIsLocked(hasAnySource);
   const wavAvailable = isWavExportAvailable(hasAnySource);
+  const mp3Available = isMp3ExportAvailable(wavExports.length);
+  const mp3Locked = mp3ExportPanelIsLocked(wavExports);
+  const canReExport = canReExportWithCurrentSettings(
+    sessionPrefs,
+    wavExports.length > 0,
+    hasCombined,
+    hasStemSource
+  );
 
   async function handleCreatePreviewExport() {
     if (!selectedSourceId) {
@@ -187,8 +248,176 @@ export function ExportPrepPanel({
     }
 
     setExportResult(result);
+    updateExportSessionPreferences({
+      lastExportMode: "preview-wav",
+      lastPreviewLoudnessMode: loudnessMode,
+    });
+    if (result.exportArtifactId) {
+      setSessionPrefs(
+        recordSuccessfulExport({
+          mode: "preview-wav",
+          exportArtifactId: result.exportArtifactId,
+          sourceArtifactId: selectedSourceId,
+          exportFormat: "wav",
+          bitrateKbps: null,
+          createdAt: new Date().toISOString(),
+        })
+      );
+    }
     notifyArtifactRefresh();
     onExportComplete?.();
+  }
+
+  async function handleCreateMp3Export() {
+    if (!selectedWavExportId) {
+      setMp3ErrorMessage("Select a WAV export artifact first.");
+      return;
+    }
+
+    const validationErrors = validateMp3ExportRequest({
+      sourceWavExportArtifactId: selectedWavExportId,
+      bitrateKbps: mp3Bitrate,
+      exportLabel: mp3ExportLabel.trim() || null,
+    });
+
+    if (validationErrors.length > 0) {
+      setMp3ErrorMessage(validationErrors.join(" "));
+      return;
+    }
+
+    setMp3Busy(true);
+    setMp3ErrorMessage(null);
+    setMp3ExportResult(null);
+
+    const result = await localEngineClient.createMp3Export({
+      sourceWavExportArtifactId: selectedWavExportId,
+      bitrateKbps: mp3Bitrate,
+      exportLabel: mp3ExportLabel.trim() || null,
+    });
+
+    setMp3Busy(false);
+
+    if (!result) {
+      setMp3ErrorMessage("Local sidecar did not respond to MP3 export request.");
+      return;
+    }
+
+    if (!result.ok) {
+      setMp3ErrorMessage(
+        result.validationErrors?.join(" ") ??
+          result.setupGuidance ??
+          result.message ??
+          "MP3 export failed."
+      );
+      return;
+    }
+
+    setMp3ExportResult(result);
+    updateExportSessionPreferences({
+      lastExportMode: "mp3-reference",
+      lastMp3Bitrate: mp3Bitrate,
+    });
+    if (result.exportArtifactId) {
+      setSessionPrefs(
+        recordSuccessfulExport({
+          mode: "mp3-reference",
+          exportArtifactId: result.exportArtifactId,
+          sourceArtifactId: selectedWavExportId,
+          exportFormat: "mp3",
+          bitrateKbps: mp3Bitrate,
+          createdAt: new Date().toISOString(),
+        })
+      );
+    }
+    notifyArtifactRefresh();
+    onExportComplete?.();
+  }
+
+  async function handleReExportWithCurrentSettings() {
+    const last = sessionPrefs.lastSuccessfulExport;
+    if (!last || !canReExport) {
+      return;
+    }
+
+    setReExportBusy(true);
+
+    if (last.mode === "preview-wav" && last.sourceArtifactId) {
+      setSelectedSourceId(last.sourceArtifactId);
+      setLoudnessMode(sessionPrefs.lastPreviewLoudnessMode);
+      setExportResult(null);
+      setErrorMessage(null);
+      setBusy(true);
+
+      const result = await localEngineClient.createWavExport({
+        sourceCombinedPreviewArtifactId: last.sourceArtifactId,
+        exportLabel: exportLabel.trim() || null,
+        loudnessTargetMode: sessionPrefs.lastPreviewLoudnessMode,
+      });
+
+      setBusy(false);
+      setReExportBusy(false);
+
+      if (result?.ok) {
+        setExportResult(result);
+        if (result.exportArtifactId) {
+          setSessionPrefs(
+            recordSuccessfulExport({
+              mode: "preview-wav",
+              exportArtifactId: result.exportArtifactId,
+              sourceArtifactId: last.sourceArtifactId,
+              exportFormat: "wav",
+              bitrateKbps: null,
+              createdAt: new Date().toISOString(),
+            })
+          );
+        }
+        notifyArtifactRefresh();
+        onExportComplete?.();
+      } else {
+        setErrorMessage(result?.message ?? "Re-export failed.");
+      }
+      return;
+    }
+
+    if (last.mode === "mp3-reference" && last.sourceArtifactId) {
+      setSelectedWavExportId(last.sourceArtifactId);
+      setMp3Bitrate(sessionPrefs.lastMp3Bitrate);
+      setMp3ExportResult(null);
+      setMp3ErrorMessage(null);
+      setMp3Busy(true);
+
+      const result = await localEngineClient.createMp3Export({
+        sourceWavExportArtifactId: last.sourceArtifactId,
+        bitrateKbps: sessionPrefs.lastMp3Bitrate,
+        exportLabel: mp3ExportLabel.trim() || null,
+      });
+
+      setMp3Busy(false);
+      setReExportBusy(false);
+
+      if (result?.ok) {
+        setMp3ExportResult(result);
+        if (result.exportArtifactId) {
+          setSessionPrefs(
+            recordSuccessfulExport({
+              mode: "mp3-reference",
+              exportArtifactId: result.exportArtifactId,
+              sourceArtifactId: last.sourceArtifactId,
+              exportFormat: "mp3",
+              bitrateKbps: sessionPrefs.lastMp3Bitrate,
+              createdAt: new Date().toISOString(),
+            })
+          );
+        }
+        notifyArtifactRefresh();
+        onExportComplete?.();
+      } else {
+        setMp3ErrorMessage(result?.message ?? "Re-export failed.");
+      }
+      return;
+    }
+
+    setReExportBusy(false);
   }
 
   async function handleCreateFullLengthExport() {
@@ -240,6 +469,22 @@ export function ExportPrepPanel({
     }
 
     setFullExportResult(result);
+    updateExportSessionPreferences({
+      lastExportMode: "full-wav",
+      lastFullLoudnessMode: fullLoudnessMode,
+    });
+    if (result.exportArtifactId) {
+      setSessionPrefs(
+        recordSuccessfulExport({
+          mode: "full-wav",
+          exportArtifactId: result.exportArtifactId,
+          sourceArtifactId: fullContext?.sourceVocalArtifactId ?? null,
+          exportFormat: "wav",
+          bitrateKbps: null,
+          createdAt: new Date().toISOString(),
+        })
+      );
+    }
     notifyArtifactRefresh();
     onExportComplete?.();
   }
@@ -299,7 +544,10 @@ export function ExportPrepPanel({
                       checked={loudnessMode === "measurement_only"}
                       disabled={busy}
                       name="preview-loudness-mode"
-                      onChange={() => setLoudnessMode("measurement_only")}
+                      onChange={() => {
+                        setLoudnessMode("measurement_only");
+                        updateExportSessionPreferences({ lastPreviewLoudnessMode: "measurement_only" });
+                      }}
                       type="radio"
                     />
                     {normalizePreviewModeLabel("measurement_only")}
@@ -309,7 +557,10 @@ export function ExportPrepPanel({
                       checked={loudnessMode === "normalize_preview"}
                       disabled={busy}
                       name="preview-loudness-mode"
-                      onChange={() => setLoudnessMode("normalize_preview")}
+                      onChange={() => {
+                        setLoudnessMode("normalize_preview");
+                        updateExportSessionPreferences({ lastPreviewLoudnessMode: "normalize_preview" });
+                      }}
                       type="radio"
                     />
                     {normalizePreviewModeLabel("normalize_preview")}
@@ -405,7 +656,10 @@ export function ExportPrepPanel({
                   checked={fullLoudnessMode === "measurement_only"}
                   disabled={fullBusy}
                   name="full-loudness-mode"
-                  onChange={() => setFullLoudnessMode("measurement_only")}
+                  onChange={() => {
+                    setFullLoudnessMode("measurement_only");
+                    updateExportSessionPreferences({ lastFullLoudnessMode: "measurement_only" });
+                  }}
                   type="radio"
                 />
                 {fullLengthExportModeLabel("measurement_only")}
@@ -415,7 +669,10 @@ export function ExportPrepPanel({
                   checked={fullLoudnessMode === "normalize_export"}
                   disabled={fullBusy}
                   name="full-loudness-mode"
-                  onChange={() => setFullLoudnessMode("normalize_export")}
+                  onChange={() => {
+                    setFullLoudnessMode("normalize_export");
+                    updateExportSessionPreferences({ lastFullLoudnessMode: "normalize_export" });
+                  }}
                   type="radio"
                 />
                 {fullLengthExportModeLabel("normalize_export")}
@@ -454,6 +711,111 @@ export function ExportPrepPanel({
               <FullExportResultBlock result={fullExportResult} />
             ) : null}
           </div>
+
+          <div className="export-prep-form export-prep-form-section export-prep-mp3">
+            <h4>MP3 reference export (from WAV export)</h4>
+            <p className="export-prep-wav-only">{EXPORT_WAV_ONLY_NOTICE}</p>
+            <p className="export-prep-not-mastered">{MP3_REFERENCE_NOTICE}</p>
+            <p className="export-prep-not-mastered">{MP3_NOT_MASTERED_NOTICE}</p>
+
+            {mp3Locked ? (
+              <p className="export-prep-wav-only">
+                Create a local WAV export first to unlock MP3 reference export.
+              </p>
+            ) : (
+              <>
+                <label className="export-prep-field">
+                  <span>WAV export source</span>
+                  <select
+                    disabled={mp3Busy || wavExports.length === 0}
+                    onChange={(event) => setSelectedWavExportId(event.target.value)}
+                    value={selectedWavExportId}
+                  >
+                    {wavExports.map((item) => (
+                      <option key={item.artifactId} value={item.artifactId}>
+                        {item.exportSubtype ?? "wav"} — {item.artifactId} (
+                        {item.durationSeconds?.toFixed(1) ?? "?"}s)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="export-prep-field">
+                  <span>MP3 bitrate</span>
+                  <select
+                    disabled={mp3Busy}
+                    onChange={(event) => {
+                      const next = Number(event.target.value) as Mp3BitrateKbps;
+                      setMp3Bitrate(next);
+                      updateExportSessionPreferences({ lastMp3Bitrate: next });
+                    }}
+                    value={mp3Bitrate}
+                  >
+                    {ALLOWED_MP3_BITRATES.map((bitrate) => (
+                      <option key={bitrate} value={bitrate}>
+                        {formatMp3Bitrate(bitrate)}
+                        {bitrate === 320 ? " (default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="export-prep-field">
+                  <span>Optional export label</span>
+                  <input
+                    disabled={mp3Busy}
+                    maxLength={120}
+                    onChange={(event) => setMp3ExportLabel(event.target.value)}
+                    placeholder="MP3 reference export"
+                    type="text"
+                    value={mp3ExportLabel}
+                  />
+                </label>
+                <button
+                  className="export-prep-create-button export-prep-create-button-mp3"
+                  disabled={!mp3Available || !localStatus.online || mp3Busy || !selectedWavExportId}
+                  onClick={() => void handleCreateMp3Export()}
+                  type="button"
+                >
+                  {mp3Busy ? (
+                    <>
+                      <LoaderCircle aria-hidden="true" className="spin-icon" size={16} />
+                      Creating local MP3 reference…
+                    </>
+                  ) : (
+                    <>
+                      <Download aria-hidden="true" size={16} />
+                      Create local MP3 reference
+                    </>
+                  )}
+                </button>
+                {mp3ErrorMessage ? <p className="export-prep-error">{mp3ErrorMessage}</p> : null}
+                {mp3ExportResult?.ok ? <Mp3ExportResultBlock result={mp3ExportResult} /> : null}
+              </>
+            )}
+          </div>
+
+          {sessionPrefs.lastSuccessfulExport ? (
+            <div className="export-prep-session-summary">
+              <h4>Last successful export</h4>
+              <p>
+                {sessionPrefs.lastSuccessfulExport.mode} ·{" "}
+                {sessionPrefs.lastSuccessfulExport.exportArtifactId} ·{" "}
+                {sessionPrefs.lastSuccessfulExport.exportFormat.toUpperCase()}
+                {sessionPrefs.lastSuccessfulExport.bitrateKbps
+                  ? ` · ${formatMp3Bitrate(sessionPrefs.lastSuccessfulExport.bitrateKbps)}`
+                  : ""}
+              </p>
+              {canReExport ? (
+                <button
+                  className="export-prep-reexport-button"
+                  disabled={reExportBusy || busy || fullBusy || mp3Busy || !localStatus.online}
+                  onClick={() => void handleReExportWithCurrentSettings()}
+                  type="button"
+                >
+                  {reExportBusy ? "Re-exporting…" : "Re-export with current settings"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </>
       ) : null}
 
@@ -469,6 +831,8 @@ export function ExportPrepPanel({
             </div>
             <p>{target.description}</p>
             {target.id === "wav" && wavAvailable ? (
+              <span className="export-prep-card-status">Available above</span>
+            ) : target.id === "mp3" && mp3Available ? (
               <span className="export-prep-card-status">Available above</span>
             ) : (
               <button className="disabled-action" disabled type="button">
@@ -494,6 +858,7 @@ export function ExportPrepPanel({
 
       <NoticeStrip
         text={
+          mp3ExportResult?.rightsNotice ??
           fullExportResult?.rightsNotice ??
           exportResult?.rightsNotice ??
           requiredRightsNotice
@@ -531,6 +896,41 @@ function ExportResultBlock({ result }: { result: ExportWavResult }) {
           <li key={warning}>{warning}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function Mp3ExportResultBlock({ result }: { result: Mp3ExportResult }) {
+  return (
+    <div className="export-prep-result export-prep-result-mp3">
+      <p>
+        MP3 reference export <strong>{result.exportArtifactId}</strong> from WAV export{" "}
+        {result.sourceWavExportArtifactId} · {formatMp3Bitrate(result.bitrateKbps)}
+      </p>
+      <TechnicalSummary
+        codec={result.codec ?? "mp3"}
+        sampleRate={result.sampleRate}
+        channelCount={result.channelCount}
+        durationSeconds={result.durationSeconds}
+        fileSizeBytes={result.fileSizeBytes}
+        loudness={result.loudness}
+      />
+      {result.playbackUrl ? (
+        <>
+          <audio controls preload="none" src={result.playbackUrl} />
+          <a className="export-prep-download-link" download href={result.playbackUrl}>
+            Download local MP3 reference
+          </a>
+        </>
+      ) : null}
+      <ul className="export-prep-warnings">
+        {formatMp3ExportWarnings(result).map((warning) => (
+          <li key={warning}>{warning}</li>
+        ))}
+      </ul>
+      <p className="export-prep-final-export">
+        finalExport: {String(result.finalExport)} · publicShare: {String(result.publicShare)}
+      </p>
     </div>
   );
 }

@@ -20,6 +20,7 @@ from artifact_management import (
 
 EXPORTS_DIR = config.WORK_DIR / "artifacts" / "exports"
 EXPORT_FILE_NAME = "export.wav"
+EXPORT_MP3_FILE_NAME = "export.mp3"
 META_FILE_NAME = "export.meta.json"
 
 RIGHTS_NOTICE = (
@@ -124,7 +125,7 @@ def create_wav_export(
         "Source material is the combined preview WAV; full-length arrangement rendering is not implemented.",
     ]
     limitations: list[str] = [
-        "No MP3, stem package, club mastering, or public sharing in this phase.",
+        "Stem package, club mastering, or public sharing not implemented.",
         "Export does not grant distribution or publishing rights.",
     ]
 
@@ -196,6 +197,21 @@ def read_export_meta(export_dir: Path) -> dict | None:
     except (OSError, json.JSONDecodeError):
         return None
     return payload if isinstance(payload, dict) else None
+
+
+def find_wav_export_path(artifact_id: str) -> Path | None:
+    if not is_valid_artifact_id(artifact_id):
+        return None
+    export_dir = _resolve_under(EXPORTS_DIR, artifact_id)
+    if export_dir is None or not export_dir.is_dir():
+        return None
+    wav_path = export_dir / EXPORT_FILE_NAME
+    if not wav_path.is_file():
+        return None
+    meta = read_export_meta(export_dir)
+    if meta and meta.get("export_format") == "mp3":
+        return None
+    return wav_path
 
 
 def _combined_preview_path(artifact_id: str) -> Path | None:

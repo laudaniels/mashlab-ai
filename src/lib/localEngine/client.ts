@@ -9,7 +9,7 @@ import {
   parseStemPreviewResponse,
 } from "./stemPreview.ts";
 import { parseCombinedPreviewResponse } from "./combinedPreview.ts";
-import { parseExportWavResponse, parseFullWavExportResponse } from "./export.ts";
+import { parseExportWavResponse, parseFullWavExportResponse, parseMp3ExportResponse } from "./export.ts";
 import {
   parseArtifactDeleteResponse,
   parseArtifactListResponse,
@@ -46,6 +46,8 @@ import type { ExportWavRequestParams } from "../../domain/localExport.ts";
 import type { ExportWavResult } from "../../domain/localExport.ts";
 import type { FullLengthExportRequestParams } from "../../domain/fullLengthExport.ts";
 import type { FullLengthExportResult } from "../../domain/fullLengthExport.ts";
+import type { Mp3ExportRequestParams } from "../../domain/mp3Export.ts";
+import type { Mp3ExportResult } from "../../domain/mp3Export.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -290,6 +292,28 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseFullWavExportResponse(payload, this.baseUrl);
+  }
+
+  async createMp3Export(params: Mp3ExportRequestParams): Promise<Mp3ExportResult | null> {
+    const response = await this.request("/v1/export/mp3", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        source_wav_export_artifact_id: params.sourceWavExportArtifactId,
+        bitrate_kbps: params.bitrateKbps,
+        export_label: params.exportLabel ?? null,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseMp3ExportResponse(payload, this.baseUrl);
   }
 
   async listArtifacts(registry: PreviewArtifactRegistryEntry[] = []) {

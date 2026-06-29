@@ -38,6 +38,7 @@ from rubber_band_processing import (
     PitchTimePreviewSuccess,
     process_pitch_time_preview,
 )
+from mp3_export_processing import ExportMp3Failure, ExportMp3Success, create_mp3_export
 from export_processing import ExportWavFailure, ExportWavSuccess, create_wav_export
 from full_length_export_processing import (
     FullWavExportFailure,
@@ -56,6 +57,8 @@ from models import (
     FullExportInputSummaryModel,
     FullExportProcessingSummaryModel,
     LoudnessGateModel,
+    ExportMp3Request,
+    ExportMp3Response,
     ExportWavRequest,
     ExportWavResponse,
     ArtifactDeleteResponse,
@@ -487,6 +490,22 @@ def get_export_artifact(artifact_id: str) -> FileResponse:
     )
 
 
+@app.get("/v1/artifacts/exports/{artifact_id}/export.mp3")
+def get_export_mp3_artifact(artifact_id: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    artifact_path = config.WORK_DIR / "artifacts" / "exports" / artifact_id / "export.mp3"
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail="MP3 export artifact not found.")
+
+    return FileResponse(
+        path=artifact_path,
+        media_type="audio/mpeg",
+        filename=f"mashlab-export-{artifact_id}.mp3",
+    )
+
+
 @app.post("/v1/export/wav", response_model=ExportWavResponse)
 def export_wav(request: ExportWavRequest) -> ExportWavResponse:
     result = create_wav_export(
@@ -522,6 +541,58 @@ def export_wav(request: ExportWavRequest) -> ExportWavResponse:
         source_combined_preview_artifact_id=result.source_combined_preview_artifact_id,
         artifact_url=result.artifact_url,
         download_url=result.download_url,
+        file_size_bytes=result.file_size_bytes,
+        duration_seconds=result.duration_seconds,
+        sample_rate=result.sample_rate,
+        channel_count=result.channel_count,
+        codec=result.codec,
+        loudness=loudness_model,
+        final_export=result.final_export,
+        public_share=result.public_share,
+        rights_notice=result.rights_notice,
+        warnings=result.warnings,
+        limitations=result.limitations,
+        export_label=result.export_label,
+    )
+
+
+@app.post("/v1/export/mp3", response_model=ExportMp3Response)
+def export_mp3(request: ExportMp3Request) -> ExportMp3Response:
+    result = create_mp3_export(
+        source_wav_export_artifact_id=request.source_wav_export_artifact_id,
+        bitrate_kbps=request.bitrate_kbps,
+        export_label=request.export_label,
+    )
+
+    if isinstance(result, ExportMp3Failure):
+        return ExportMp3Response(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            validation_errors=result.validation_errors,
+            setup_guidance=result.setup_guidance,
+            final_export=False,
+            public_share=False,
+        )
+
+    loudness_model = LoudnessReadoutModel(
+        integrated_lufs=result.loudness.integrated_lufs,
+        true_peak_dbtp=result.loudness.true_peak_dbtp,
+        peak_level_db=result.loudness.peak_level_db,
+        status=result.loudness.status,
+        message=result.loudness.message,
+    )
+
+    return ExportMp3Response(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        export_artifact_id=result.export_artifact_id,
+        source_wav_export_artifact_id=result.source_wav_export_artifact_id,
+        artifact_url=result.artifact_url,
+        download_url=result.download_url,
+        export_format=result.export_format,
+        bitrate_kbps=result.bitrate_kbps,
         file_size_bytes=result.file_size_bytes,
         duration_seconds=result.duration_seconds,
         sample_rate=result.sample_rate,
@@ -647,8 +718,10 @@ def list_artifacts() -> ArtifactListResponse:
                 preview_label=item.preview_label,
                 source_combined_preview_artifact_id=item.source_combined_preview_artifact_id,
                 export_subtype=item.export_subtype,
+                export_format=item.export_format,
                 source_vocal_stem_artifact_id=item.source_vocal_stem_artifact_id,
                 target_instrumental_stem_artifact_id=item.target_instrumental_stem_artifact_id,
+                source_wav_export_artifact_id=item.source_wav_export_artifact_id,
             )
             for item in artifacts
         ],

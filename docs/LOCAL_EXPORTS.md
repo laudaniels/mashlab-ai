@@ -1,6 +1,6 @@
-# Local WAV Exports (Phase 13–14)
+# Local WAV and MP3 Exports (Phase 13–15)
 
-MashLab AI / CyphaBlend AI supports **local WAV export** lanes. All exports are explicit, user-initiated, and rights-neutral.
+MashLab AI / CyphaBlend AI supports **local WAV export** lanes and **MP3 reference export** from existing WAV exports. All exports are explicit, user-initiated, and rights-neutral.
 
 ## Export Lanes
 
@@ -8,8 +8,50 @@ MashLab AI / CyphaBlend AI supports **local WAV export** lanes. All exports are 
 |------|----------|--------|---------|
 | Preview-length copy | `POST /v1/export/wav` | Combined preview `preview.wav` | `preview-copy` |
 | Full-length re-render | `POST /v1/export/full-wav` | Stem artifacts + plan state | `full-wav` |
+| MP3 reference | `POST /v1/export/mp3` | Existing WAV export `export.wav` | `mp3` |
 
-Output for both: `.work/artifacts/exports/{uuid}/export.wav` + `export.meta.json`
+Output:
+
+- WAV: `.work/artifacts/exports/{uuid}/export.wav` + `export.meta.json`
+- MP3: `.work/artifacts/exports/{uuid}/export.mp3` + `export.meta.json`
+
+## Phase 15: MP3 Reference Export
+
+### Input (WAV export artifact only)
+
+MP3 export **must** use an existing local WAV export artifact. It does **not** encode from raw uploads, stem artifacts, or combined preview directly.
+
+Request body:
+
+```json
+{
+  "source_wav_export_artifact_id": "abc123",
+  "bitrate_kbps": 320,
+  "export_label": "Optional label"
+}
+```
+
+| Bitrate | Status |
+|---------|--------|
+| 320 kbps | Default |
+| 256 kbps | Optional |
+| 192 kbps | Optional |
+
+### `POST /v1/export/mp3`
+
+- Validates artifact id and ensures source is a WAV export (not MP3)
+- Encodes with FFmpeg `libmp3lame`
+- Runs ffprobe/technical + loudness readout after encode (honest `not_available` when unavailable)
+- Returns `finalExport: true`, `publicShare: false`, rights notice, warnings/limitations
+- **No public share links**
+
+Playback/download: `GET /v1/artifacts/exports/{id}/export.mp3`
+
+MP3 artifacts are labeled:
+
+> Local MP3 reference export — user responsible for rights. No public distribution rights granted.
+
+Warnings include: *MP3 is a reference/export format, not proof of distribution rights.* and *MP3 is not a mastered club version.*
 
 ## Phase 14: Full-Length Export
 
@@ -46,7 +88,8 @@ Missing Rubber Band, FFmpeg, or stem artifacts → structured `missing_dependenc
 ## What This Is Not
 
 - Not full arrangement rendering or full-length mastering
-- Not MP3, stem package export, club mastering, or public sharing
+- Not stem package export, club mastering, or public sharing
+- MP3 is a lossy reference format — not proof of distribution rights
 - Not a claim that the user may publish or distribute the output
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
@@ -105,10 +148,11 @@ Export artifacts appear with type `export` and label:
 
 Export artifacts in the browser show `export_subtype`:
 
-- `preview-copy` — copied from combined preview
-- `full-wav` — re-rendered from stem artifacts
+- `preview-copy` — copied from combined preview (`export / wav`)
+- `full-wav` — re-rendered from stem artifacts (`export / full-wav`)
+- `mp3` — encoded from WAV export (`export / mp3`)
 
-Full-length exports include source vocal and instrumental stem artifact ids.
+Full-length exports include source vocal and instrumental stem artifact ids. MP3 exports include `source_wav_export_artifact_id`.
 
 ## Export Panel
 
@@ -118,22 +162,36 @@ Sections:
 
 1. **Export from combined preview** — preview-length WAV copy (Phase 13)
 2. **Full-length render from stem artifacts** — re-run Rubber Band + FFmpeg mix without trim (Phase 14)
+3. **MP3 reference export** — unlocks when a WAV export exists; user selects WAV source + bitrate (Phase 15)
 
 Full-length export requires readiness checklist: both stem artifacts, Rubber Band, FFmpeg, plan or confirmed neutral mode, rights acknowledgment.
 
-MP3, stem package, mastering presets, and public sharing remain unavailable.
+MP3 section requires an existing WAV export artifact. Stem package, mastering presets, and public sharing remain unavailable.
+
+### Export session UX (Phase 15)
+
+Local-only preferences in `localStorage` (`src/lib/exportSession.ts`):
+
+- Last export mode (preview WAV / full WAV / MP3 reference)
+- Last MP3 bitrate
+- Last loudness mode (preview + full-length)
+- Last successful export summary
+- **Re-export with current settings** when safe (explicit user action)
+
+No raw audio is persisted. No accounts or cloud storage.
 
 ## Storage Layout
 
 ```text
 .work/artifacts/combined-preview/{id}/preview.wav   # source (Phase 11)
-.work/artifacts/exports/{uuid}/export.wav           # output (Phase 13)
-.work/artifacts/exports/{uuid}/export.meta.json     # source id, label, mode
+.work/artifacts/exports/{uuid}/export.wav           # WAV output (Phase 13–14)
+.work/artifacts/exports/{uuid}/export.mp3           # MP3 output (Phase 15)
+.work/artifacts/exports/{uuid}/export.meta.json     # source ids, label, mode, bitrate
 ```
 
 ## Cleanup
 
-- `DELETE /v1/artifacts/{export_id}` removes export folder under `.work/artifacts/exports/`
+- `DELETE /v1/artifacts/{export_id}` removes export folder under `.work/artifacts/exports/` (WAV or MP3)
 - `DELETE /v1/artifacts?scope=session` clears previews **and** exports
 - Source uploads outside `.work` are never deleted
 

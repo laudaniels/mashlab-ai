@@ -5,7 +5,7 @@ export const EXPORT_PREP_ACTIVE_NOTICE =
   "Local WAV export from combined preview — user-initiated only. Not a published release.";
 
 export const EXPORT_MP3_STEMS_NOTICE =
-  "MP3, stem package, mastering presets, and public sharing are not implemented.";
+  "Stem package export, mastering presets, and public sharing are not implemented.";
 
 export const EXPORT_GENERAL_LUFS_TARGET = "-14 LUFS";
 export const EXPORT_GENERAL_TRUE_PEAK_TARGET = "-1 dBTP";
@@ -27,9 +27,9 @@ export const exportTargetPlans: ExportTargetPlan[] = [
   },
   {
     id: "mp3",
-    label: "MP3 export",
-    description: "Optional compressed reference render.",
-    status: "locked",
+    label: "MP3 reference export",
+    description: "Local MP3 from an existing WAV export artifact.",
+    status: "available",
   },
   {
     id: "stems",
@@ -71,6 +71,10 @@ export function exportPanelHasAnySource(
   hasStemArtifacts: boolean
 ): boolean {
   return hasCombinedPreview || hasStemArtifacts;
+}
+
+export function isMp3ExportAvailable(wavExportCount: number): boolean {
+  return wavExportCount > 0;
 }
 
 export function formatLoudnessTargetSummary(): string {

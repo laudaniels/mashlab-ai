@@ -2,6 +2,7 @@ import { AlertTriangle, FolderOpen, LoaderCircle, RefreshCw, Trash2 } from "luci
 import { useCallback, useEffect, useState } from "react";
 import type { ArtifactMetadataResult, PreviewArtifactSummary } from "../domain/previewArtifacts.ts";
 import { PREVIEW_ARTIFACT_LABEL } from "../domain/previewArtifacts.ts";
+import { formatExportSubtypeLabel, isMp3ExportArtifact } from "../domain/mp3Export.ts";
 import { localEngineClient } from "../lib/localEngine/client.ts";
 import {
   clearPreviewArtifactRegistry,
@@ -121,9 +122,11 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
               <div className="preview-artifact-card-header">
                 <strong>{artifact.registryLabel ?? artifact.artifactType}</strong>
                 <span className="preview-artifact-type">
-                  {artifact.exportSubtype
-                    ? `${artifact.artifactType} / ${artifact.exportSubtype}`
-                    : artifact.artifactType}
+                  {artifact.artifactType === "export"
+                    ? formatExportSubtypeLabel(artifact.exportSubtype, artifact.exportFormat)
+                    : artifact.exportSubtype
+                      ? `${artifact.artifactType} / ${artifact.exportSubtype}`
+                      : artifact.artifactType}
                 </span>
               </div>
 
@@ -170,6 +173,12 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                     <dd>{artifact.targetInstrumentalStemArtifactId}</dd>
                   </div>
                 ) : null}
+                {artifact.sourceWavExportArtifactId ? (
+                  <div>
+                    <dt>Source WAV export</dt>
+                    <dd>{artifact.sourceWavExportArtifactId}</dd>
+                  </div>
+                ) : null}
               </dl>
 
               <p
@@ -185,7 +194,9 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                   <audio controls preload="none" src={artifact.playbackUrl} />
                   {artifact.artifactType === "export" ? (
                     <a className="preview-artifact-download" download href={artifact.playbackUrl}>
-                      Download local export WAV
+                      {isMp3ExportArtifact(artifact)
+                        ? "Download local MP3 reference"
+                        : "Download local export WAV"}
                     </a>
                   ) : null}
                 </>

@@ -1,6 +1,6 @@
-# Preview Session Management — Phase 12–13
+# Preview Session Management — Phase 12–15
 
-Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV export artifacts** and auto-refresh hooks.
+Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV export artifacts**. Phase 15 adds **MP3 reference exports** and **export session UX**.
 
 ## What This Phase Adds
 
@@ -8,7 +8,9 @@ Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV e
 - Safe local cleanup (single artifact or clear all session artifacts)
 - Combined preview duration controls (15 / 30 / 60 seconds, custom up to 60)
 - FFmpeg/ffprobe technical readout and loudness analysis where practical
-- Export panel (unlocks when combined preview exists — Phase 13)
+- Export panel (unlocks when combined preview or stem artifacts exist — Phase 13–14)
+- MP3 reference export section (unlocks when WAV export exists — Phase 15)
+- Export session preferences in localStorage (bitrate, loudness mode, last export, re-export — Phase 15)
 - Auto-refresh after stem/combined/export create and delete/clear (`src/lib/artifactRefresh.ts`)
 
 ## Preview Artifacts Are Local
@@ -20,11 +22,12 @@ All preview artifacts live under the sidecar workspace:
 .work/artifacts/combined-preview/{id}/preview.wav
 .work/artifacts/pitch-time-preview/{id}.wav
 .work/artifacts/exports/{id}/export.wav
+.work/artifacts/exports/{id}/export.mp3
 ```
 
-Preview artifacts are **not** final exports (except export-type artifacts which are local user-generated WAV files — still not published releases). Nothing is cloud-hosted or shared publicly.
+Preview artifacts are **not** final exports (except export-type artifacts which are local user-generated WAV/MP3 files — still not published releases). Nothing is cloud-hosted or shared publicly.
 
-The browser UI stores optional session metadata (source/target track labels) in **sessionStorage** only. Raw upload paths are not shown in the artifact browser.
+The browser UI stores optional session metadata (source/target track labels) in **sessionStorage** only. Export preferences (mode, bitrate, loudness) use **localStorage** only — no raw audio. Raw upload paths are not shown in the artifact browser.
 
 ## Sidecar Endpoints
 
@@ -35,13 +38,19 @@ The browser UI stores optional session metadata (source/target track labels) in 
 | `DELETE /v1/artifacts/{id}` | Delete one artifact safely |
 | `DELETE /v1/artifacts?scope=session` | Clear all session artifacts under `.work/artifacts/` |
 | `POST /v1/export/wav` | Create local WAV export from combined preview (Phase 13) |
+| `POST /v1/export/mp3` | Create local MP3 reference from WAV export (Phase 15) |
 | `GET /v1/artifacts/exports/{id}/export` | Playback/download export WAV |
+| `GET /v1/artifacts/exports/{id}/export.mp3` | Playback/download export MP3 |
 
 Preview entries include `preview_only: true` and `final_export: false`.
 
-Export entries include `preview_only: false`, `final_export: true`, and the label:
+Export entries include `preview_only: false`, `final_export: true`, and labels such as:
 
 > Local export — user responsible for rights. No public distribution rights granted.
+
+MP3 export entries use:
+
+> Local MP3 reference export — user responsible for rights. No public distribution rights granted.
 
 ## Cleanup Behavior
 

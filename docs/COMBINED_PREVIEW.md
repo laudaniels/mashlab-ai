@@ -29,7 +29,7 @@ If stem previews are missing for either track, the API returns:
 - Not studio-quality stem separation (Demucs preview only)
 - Not automatic — user clicks **Create combined preview**
 - No public sharing, downloader, or distribution rights granted
-- No mastering or final arrangement intelligence
+- No mastering or final arrangement rendering (Phase 20 adds **planning-only** draft templates — see `docs/ARRANGEMENT_DRAFTS.md`)
 
 ## Prerequisites
 
@@ -114,8 +114,19 @@ Full-length WAV export (Phase 14) re-renders from the same stem artifacts withou
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 
+## Arrangement Draft Handoff (Phase 20)
+
+When the user clicks **Apply draft settings** on the Arrangement Plan panel:
+
+1. Preview duration and mix settings from the selected template are saved to session storage.
+2. Combined Preview loads those values on mount — **no audio is processed**.
+3. User must still click **Create combined preview** explicitly.
+
+See `docs/ARRANGEMENT_DRAFTS.md`.
+
 ## Related Docs
 
+- `docs/ARRANGEMENT_DRAFTS.md`
 - `docs/PREVIEW_SESSION_MANAGEMENT.md`
 - `docs/STEM_SEPARATION.md`
 - `docs/RUBBER_BAND_PROCESSING.md`

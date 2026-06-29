@@ -28,7 +28,6 @@ import {
   type ChangeEvent,
 } from "react";
 import {
-  draftTemplates,
   engineCapabilities,
   workflowScreens,
 } from "./domain/enginePlan";
@@ -43,6 +42,7 @@ import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
+import { ArrangementPlanPanel } from "./components/ArrangementPlanPanel.tsx";
 import { WorkflowReadinessPanel } from "./components/WorkflowReadinessPanel";
 import { MashupPlanningPanel } from "./components/MashupPlanningPanel";
 import { ExportPrepPanel } from "./components/ExportPrepPanel";
@@ -656,26 +656,23 @@ function App() {
         return (
           <section className="screen">
             <ScreenTitle
-              eyebrow="Mashup generation"
+              eyebrow="Arrangement drafts"
               icon={Sparkles}
-              title="Draft Slots for Future Arrangement Intelligence"
-              subtitle="Draft cards describe target behaviors only. No AI mashup has been generated in this MVP."
+              title="Arrangement Draft Intelligence (Prototype)"
+              subtitle="Planning templates for Clean Blend, Club Edit, and Creative Blend. No audio is generated until you create preview or export."
             />
-            <div className="draft-grid">
-              {draftTemplates.map((draft) => (
-                <div className="draft-card" key={draft.name}>
-                  <div className="draft-header">
-                    <Sparkles aria-hidden="true" size={18} />
-                    <StatusText>Engine pending</StatusText>
-                  </div>
-                  <h3>{draft.name}</h3>
-                  <p>{draft.description}</p>
-                  <button className="disabled-action" disabled type="button">
-                    Generate draft after engine integration
-                  </button>
-                </div>
-              ))}
-            </div>
+            {readyTracks.length === 2 ? (
+              <ArrangementPlanPanel
+                artifactStore={artifactStore}
+                mashIntent={mashIntent}
+                onIntentChange={setMashIntent}
+              />
+            ) : (
+              <NoticeStrip
+                icon={AlertTriangle}
+                text="Upload and inspect both tracks to open arrangement draft planning."
+              />
+            )}
             <CapabilityCard capability={engineCapabilities[5]} />
           </section>
         );
@@ -705,6 +702,11 @@ function App() {
             ) : null}
             {readyTracks.length === 2 ? (
               <>
+                <ArrangementPlanPanel
+                  artifactStore={artifactStore}
+                  mashIntent={mashIntent}
+                  onIntentChange={setMashIntent}
+                />
                 <CombinedPreviewPanel
                   artifactStore={artifactStore}
                   intent={mashIntent}
@@ -731,6 +733,13 @@ function App() {
               subtitle="Manage local preview and export artifacts. WAV export unlocks after stem previews or a combined preview exists."
             />
             <PreviewArtifactBrowser />
+            {readyTracks.length === 2 ? (
+              <ArrangementPlanPanel
+                artifactStore={artifactStore}
+                mashIntent={mashIntent}
+                onIntentChange={setMashIntent}
+              />
+            ) : null}
             <ExportPrepPanel artifactStore={artifactStore} mashIntent={mashIntent} />
           </section>
         );

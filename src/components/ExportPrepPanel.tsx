@@ -109,6 +109,7 @@ import {
 } from "../lib/localEngine/capabilities.ts";
 import { localEngineClient } from "../lib/localEngine/client.ts";
 import { loadPreviewArtifactRegistry } from "../lib/previewArtifactRegistry.ts";
+import { loadAppliedDraftSettings } from "../lib/arrangementDraftSession.ts";
 
 interface ExportPrepPanelProps {
   artifactStore: SessionArtifactStore;
@@ -174,6 +175,27 @@ export function ExportPrepPanel({
   const [packageBusy, setPackageBusy] = useState(false);
   const [packageResult, setPackageResult] = useState<PackageExportResult | null>(null);
   const [packageErrorMessage, setPackageErrorMessage] = useState<string | null>(null);
+  const [appliedDraftExportNotice, setAppliedDraftExportNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const applied = loadAppliedDraftSettings();
+    if (!applied) {
+      return;
+    }
+
+    if (applied.exportMode === "full_length") {
+      setAppliedDraftExportNotice(
+        `Arrangement draft "${applied.draftType.replace(/_/g, " ")}" suggests full-length export — use Full-length WAV when ready (no auto-export).`
+      );
+      return;
+    }
+
+    if (applied.exportMode === "preview_copy") {
+      setAppliedDraftExportNotice(
+        `Arrangement draft "${applied.draftType.replace(/_/g, " ")}" suggests preview-length export — create combined preview first, then export when ready.`
+      );
+    }
+  }, []);
 
   const pitchTimePlan = buildPitchTimePlanForExport(
     artifactStore,
@@ -676,6 +698,9 @@ export function ExportPrepPanel({
           <p className="export-prep-club-note">{EXPORT_CLUB_VERSION_NOTE}</p>
           <p className="export-prep-extended-note">{EXPORT_MP3_STEMS_NOTICE}</p>
           <p className="export-prep-rights-note">{requiredRightsNotice}</p>
+          {appliedDraftExportNotice ? (
+            <p className="arrangement-plan-applied-note">{appliedDraftExportNotice}</p>
+          ) : null}
         </div>
         <span className={`planning-badge ${locked ? "planning-badge-risky" : "planning-badge-ready"}`}>
           {locked ? "Locked" : "WAV export available"}

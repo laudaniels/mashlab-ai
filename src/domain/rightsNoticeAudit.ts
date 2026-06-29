@@ -1,4 +1,5 @@
 import { requiredRightsNotice } from "../lib/legal.ts";
+import { ARRANGEMENT_PLANNING_ONLY_NOTICE } from "./arrangementPlanning.ts";
 import { COMBINED_PREVIEW_ONLY_NOTICE } from "./combinedPreview.ts";
 import { DEFAULT_EXPORT_RIGHTS_NOTICE } from "./localExport.ts";
 import { DEFAULT_FULL_EXPORT_RIGHTS_NOTICE } from "./fullLengthExport.ts";
@@ -18,6 +19,7 @@ export const CRITICAL_RIGHTS_SURFACES = [
   "mastering",
   "project_package",
   "artifact_browser",
+  "arrangement_drafts",
   "sidebar",
   "rights_screen",
 ] as const;
@@ -42,6 +44,7 @@ const FORBIDDEN_RIGHTS_PHRASES = [
 export const RIGHTS_SURFACE_EXPECTATIONS: RightsSurfaceExpectation[] = [
   { surface: "upload", notice: requiredRightsNotice, mustNotInclude: FORBIDDEN_RIGHTS_PHRASES },
   { surface: "combined_preview", notice: COMBINED_PREVIEW_ONLY_NOTICE, mustNotInclude: FORBIDDEN_RIGHTS_PHRASES },
+  { surface: "arrangement_drafts", notice: ARRANGEMENT_PLANNING_ONLY_NOTICE, mustNotInclude: FORBIDDEN_RIGHTS_PHRASES },
   { surface: "export_wav", notice: DEFAULT_EXPORT_RIGHTS_NOTICE, mustNotInclude: FORBIDDEN_RIGHTS_PHRASES },
   { surface: "export_full_wav", notice: DEFAULT_FULL_EXPORT_RIGHTS_NOTICE, mustNotInclude: FORBIDDEN_RIGHTS_PHRASES },
   { surface: "export_mp3", notice: DEFAULT_MP3_EXPORT_RIGHTS_NOTICE, mustNotInclude: FORBIDDEN_RIGHTS_PHRASES },

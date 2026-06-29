@@ -1,5 +1,5 @@
 import { AlertTriangle, Headphones, LoaderCircle, PlayCircle, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   buildCombinedPreviewRequestParams,
   COMBINED_PREVIEW_DEFAULT_SECONDS,
@@ -26,7 +26,8 @@ import {
   rubberBandCapabilitySummary,
 } from "../lib/localEngine/capabilities.ts";
 import { validateCombinedPreviewRequestParams } from "../lib/localEngine/combinedPreview.ts";
-import { loadMixSettings } from "../lib/mixSession.ts";
+import { loadMixSettings, saveMixSettings } from "../lib/mixSession.ts";
+import { loadAppliedDraftSettings } from "../lib/arrangementDraftSession.ts";
 import { MixControlsPanel } from "./MixControlsPanel.tsx";
 import type { MixSettings } from "../domain/mixControls.ts";
 import { validateMixSettings } from "../domain/mixControls.ts";
@@ -67,6 +68,22 @@ export function CombinedPreviewPanel({
   const [processingKey, setProcessingKey] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, CombinedPreviewResult | null>>({});
   const [mixSettings, setMixSettings] = useState<MixSettings>(() => loadMixSettings());
+  const [appliedDraftNotice, setAppliedDraftNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const applied = loadAppliedDraftSettings();
+    if (!applied) {
+      return;
+    }
+
+    setPreviewDurationSeconds(applied.previewDurationSeconds);
+    setCustomDurationSeconds(String(applied.previewDurationSeconds));
+    setMixSettings(applied.mixSettings);
+    saveMixSettings(applied.mixSettings);
+    setAppliedDraftNotice(
+      `Arrangement draft "${applied.draftType.replace(/_/g, " ")}" settings loaded — click Create combined preview when ready.`
+    );
+  }, []);
 
   if (!plan) {
     return (
@@ -208,6 +225,7 @@ export function CombinedPreviewPanel({
             First vocal-over-instrumental preview using stem artifacts, Rubber Band vocal adjustment,
             and FFmpeg mixing. Not a finished mashup.
           </p>
+          {appliedDraftNotice ? <p className="combined-preview-applied-draft">{appliedDraftNotice}</p> : null}
         </div>
         <span className={`planning-badge planning-badge-${rubberBandBadgeClass(rubberBand.status)}`}>
           Rubber Band: {rubberBand.status}

@@ -193,6 +193,10 @@ describe("MashLab core verification", async () => {
       draftTemplates.map((draft: { name: string }) => draft.name),
       ["Clean Blend", "Club Edit", "Creative Blend"]
     );
+    assert.deepEqual(
+      draftTemplates.map((draft: { id: string }) => draft.id),
+      ["clean_blend", "club_edit", "creative_blend"]
+    );
   });
 
   it("isolates adapter failures to the failing lane", async () => {
@@ -2781,6 +2785,145 @@ describe("End-to-end workflow QA hardening", async () => {
     const selected = selectDefaultPackageArtifacts(artifacts as never);
     assert.ok(selected.includes("wavfull001"));
     assert.ok(selected.includes("master001"));
+  });
+});
+
+describe("Arrangement draft intelligence", async () => {
+  const {
+    ARRANGEMENT_PLANNING_ONLY_NOTICE,
+    applyDraftSettingsFromPlan,
+    arrangementAutoProcessingEnabled,
+    arrangementPlanClaimsAudioProcessed,
+    arrangementSectionsAvoidFakeLabels,
+    buildArrangementPlan,
+    getDraftTemplateDefinition,
+  } = await importSrc("src/domain/arrangementPlanning.ts");
+  const { createSessionArtifactStore, createTrackArtifact } = await importSrc(
+    "src/domain/sessionArtifacts.ts"
+  );
+  const { buildBeatGridFromAnalysis } = await importSrc("src/domain/beatGrid.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+
+  function buildStoreWithBeats() {
+    const store = createSessionArtifactStore("arrangement-session");
+    const beat = {
+      bpm: 128,
+      beatCount: 32,
+      beatTimes: Array.from({ length: 32 }, (_, index) => index * 0.46875),
+      bpmConfidence: 0.8,
+      downbeatStatus: "not_implemented" as const,
+      limitations: [],
+      method: "librosa",
+    };
+    const grid = buildBeatGridFromAnalysis(beat, { jobComplete: true, phraseLengthBars: 16 });
+    const trackA = createTrackArtifact({
+      sessionId: "arrangement-session",
+      slotId: "trackA",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    const trackB = createTrackArtifact({
+      sessionId: "arrangement-session",
+      slotId: "trackB",
+      file: new File(["b"], "b.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    store.tracks.trackA = {
+      ...trackA,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemA001", updatedAt: new Date().toISOString() },
+    };
+    store.tracks.trackB = {
+      ...trackB,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemB001", updatedAt: new Date().toISOString() },
+    };
+    return store;
+  }
+
+  it("builds clean blend plan with planningOnly true", () => {
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "clean_blend",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    assert.ok(plan);
+    assert.equal(plan?.planningOnly, true);
+    assert.equal(plan?.draftType, "clean_blend");
+    assert.match(plan?.limitations.join(" "), /Plan only/i);
+  });
+
+  it("club edit suggests longer preview and intro/outro sections", () => {
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    assert.equal(plan?.suggestedPreviewSeconds, 60);
+    assert.ok(plan?.arrangementSections.some((section) => section.label.includes("Intro")));
+    assert.ok(plan?.arrangementSections.some((section) => section.label.includes("Outro")));
+  });
+
+  it("creative blend includes advisory hook language without fake section detection", () => {
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "creative_blend",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    assert.ok(plan?.warnings.some((line) => /hook-over-drop/i.test(line)));
+    assert.ok(arrangementSectionsAvoidFakeLabels(plan!.arrangementSections));
+    assert.ok(!plan?.arrangementSections.some((section) => /verse detected|chorus detected/i.test(section.label)));
+  });
+
+  it("reports unavailable phrase basis without fabricating downbeats", () => {
+    const store = createSessionArtifactStore("empty-grid");
+    store.tracks.trackA = createTrackArtifact({
+      sessionId: "empty-grid",
+      slotId: "trackA",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    store.tracks.trackB = createTrackArtifact({
+      sessionId: "empty-grid",
+      slotId: "trackB",
+      file: new File(["b"], "b.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "clean_blend",
+      mashIntent: "compare_both",
+    });
+    assert.ok(plan);
+    assert.equal(plan?.phraseBasis, "unavailable");
+    assert.match(plan?.missingRequirements.join(" "), /stem previews/i);
+  });
+
+  it("apply draft settings does not enable auto processing", () => {
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    assert.ok(plan);
+    const applied = applyDraftSettingsFromPlan(plan!);
+    assert.equal(applied.mashIntent, "vocal_a_over_beat_b");
+    assert.equal(applied.previewDurationSeconds, 60);
+    assert.equal(arrangementAutoProcessingEnabled(), false);
+    assert.equal(arrangementPlanClaimsAudioProcessed(plan!), false);
+  });
+
+  it("includes rights doctrine in arrangement planning notices", () => {
+    assert.match(ARRANGEMENT_PLANNING_ONLY_NOTICE, /Plan only/i);
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "clean_blend",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    assert.equal(plan?.rightsNotice, requiredRightsNotice);
+    assert.match(getDraftTemplateDefinition("clean_blend").limitations.join(" "), /not detected/i);
   });
 });
 

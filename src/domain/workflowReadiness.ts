@@ -212,6 +212,15 @@ export function buildWorkflowReadiness(input: WorkflowReadinessInput): WorkflowS
           : "Optional — set BPM, key, alignment, or phrase overrides when needed.",
     },
     {
+      id: "arrangement_draft",
+      label: "Arrangement draft plan",
+      status: loaded === 2 ? "pending" : "blocked",
+      detail:
+        loaded === 2
+          ? "Choose Clean Blend, Club Edit, or Creative Blend on Drafts/Timeline/Export — planning only until preview/export."
+          : "Load both tracks to open arrangement draft templates.",
+    },
+    {
       id: "stems_available",
       label: "Stem previews",
       status: stems === 2 ? "complete" : stems === 1 ? "partial" : stemReadyA || stemReadyB ? "pending" : "blocked",

@@ -94,7 +94,7 @@ Missing Rubber Band, FFmpeg, or stem artifacts → structured `missing_dependenc
 
 ## What This Is Not
 
-- Not full arrangement rendering or full-length mastering
+- Not full arrangement rendering (Phase 20 provides **planning-only** draft templates — see `docs/ARRANGEMENT_DRAFTS.md`)
 - Not club mastering certification or public sharing
 - MP3 is a lossy reference format — not proof of distribution rights
 - Not a claim that the user may publish or distribute the output
@@ -217,8 +217,21 @@ The artifact browser and export panel subscribe to a lightweight in-app refresh 
 
 See `src/lib/artifactRefresh.ts`.
 
+## Arrangement Draft Export Hints (Phase 20)
+
+When **Apply draft settings** is used on the Arrangement Plan panel:
+
+- **Clean Blend** suggests preview-length WAV export (after combined preview exists).
+- **Club Edit** suggests full-length WAV export when stem artifacts and plan state are ready.
+- **Creative Blend** leaves export mode open (`either`).
+
+The Export panel shows a notice when applied draft settings suggest an export lane. **No export runs automatically.** User must click the export button explicitly.
+
+See `docs/ARRANGEMENT_DRAFTS.md`.
+
 ## Related Docs
 
+- `docs/ARRANGEMENT_DRAFTS.md`
 - `docs/EXPORT_AND_MASTERING_PLAN.md`
 - `docs/PREVIEW_SESSION_MANAGEMENT.md`
 - `docs/PROJECT_PACKAGE_EXPORT.md`

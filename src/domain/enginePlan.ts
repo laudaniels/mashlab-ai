@@ -89,9 +89,9 @@ export const engineCapabilities: EngineCapability[] = [
   {
     id: "arrangement",
     name: "Arrangement intelligence",
-    status: "engine-pending",
-    target: "Clean blend, club blend, hook-over-drop, creative blend",
-    adapterPlan: "Phrase-aware draft generator with explicit user-editable decisions.",
+    status: "analysis-coming-next",
+    target: "Clean blend, club edit, creative blend planning templates",
+    adapterPlan: "Phrase-aware draft planning prototype with explicit user-editable decisions.",
   },
   {
     id: "export-mastering",
@@ -104,15 +104,18 @@ export const engineCapabilities: EngineCapability[] = [
 
 export const draftTemplates = [
   {
+    id: "clean_blend",
     name: "Clean Blend",
     description: "Phrase-safe intro/outro transition with conservative vocal handling.",
   },
   {
+    id: "club_edit",
     name: "Club Edit",
     description: "Longer 16/32-bar DJ mix shape with controllable energy and exit.",
   },
   {
+    id: "creative_blend",
     name: "Creative Blend",
     description: "More experimental phrasing and vocal/instrument layering when the user wants options.",
   },
-];
+] as const;

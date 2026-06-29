@@ -1,4 +1,4 @@
-# QA Workflow Checklist (Phase 19)
+# QA Workflow Checklist (Phase 19–20)
 
 Manual and automated verification for the full local DJ workflow in MashLab AI / CyphaBlend AI. **Nothing auto-processes** — each step requires explicit user action.
 
@@ -52,6 +52,16 @@ If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for th
 - [ ] Demucs lane reports available when torch+demucs installed
 - [ ] User clicks to create stem preview per track
 - [ ] Artifacts stored under `.work/artifacts/stems/{id}/`
+
+### 5b. Arrangement draft plan (Phase 20)
+- [ ] Drafts / Timeline / Export show Arrangement Plan panel
+- [ ] Three templates: Clean Blend, Club Edit, Creative Blend
+- [ ] Plan shows phrase basis honestly (beats / heuristic / DJ override / unavailable)
+- [ ] Section labels are advisory — no fake verse/chorus/drop detection
+- [ ] "Plan only — no audio is processed until you click preview or export" visible
+- [ ] **Apply draft settings** updates mash intent / mix / preview duration hints only
+- [ ] User must still click Create combined preview or Export manually
+- [ ] Rights notice visible on arrangement panel
 
 ### 6. Combined preview
 - [ ] Requires stem previews for both tracks (or documented neutral path)
@@ -108,6 +118,7 @@ Verify presence in:
 - Upload screen
 - Combined preview panel
 - Export prep panel
+- Arrangement draft panel (Phase 20)
 - Mastering section
 - Package export section
 - Artifact browser labels
@@ -126,7 +137,7 @@ Verify presence in:
 
 ## Automated Coverage
 
-- `scripts/verify-core.mts` — workflow readiness, dependency health, error formatting, artifact lifecycle, rights audit, package defaults
+- `scripts/verify-core.mts` — workflow readiness, dependency health, error formatting, artifact lifecycle, rights audit, package defaults, **arrangement draft intelligence**
 - `local-engine/service/tests/test_artifact_deletion_safety.py`
 - `local-engine/service/tests/test_error_responses.py`
 - `local-engine/service/tests/test_dependency_status.py`

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-
-from artifact_management import LoudnessReadout
+from typing import Protocol
 
 GAIN_MIN_DB = -24.0
 GAIN_MAX_DB = 12.0
@@ -15,6 +14,13 @@ NEAR_CEILING_DBTP = -1.0
 STEREO_MONO_SAFETY_NOTE = (
     "Stereo/mono safety check is display-only in this phase — verify phase/mono compatibility manually."
 )
+
+
+class LoudnessLike(Protocol):
+    integrated_lufs: float | None
+    true_peak_dbtp: float | None
+    peak_level_db: float | None
+    status: str
 
 
 @dataclass
@@ -224,7 +230,7 @@ def format_mix_summary(settings: MixSettings) -> str:
     return " · ".join(parts)
 
 
-def build_loudness_clipping_warnings(loudness: LoudnessReadout) -> list[str]:
+def build_loudness_clipping_warnings(loudness: LoudnessLike) -> list[str]:
     warnings: list[str] = []
     true_peak = loudness.true_peak_dbtp
     peak = loudness.peak_level_db

@@ -259,6 +259,9 @@ class PreviewArtifactSummary(BaseModel):
     primary_file_name: str
     preview_label: str = "Preview only — not a final export or master."
     source_combined_preview_artifact_id: str | None = None
+    export_subtype: str | None = None
+    source_vocal_stem_artifact_id: str | None = None
+    target_instrumental_stem_artifact_id: str | None = None
 
 
 class ArtifactListResponse(BaseModel):
@@ -334,3 +337,73 @@ class ExportWavResponse(BaseModel):
     limitations: list[str] = Field(default_factory=list)
     export_label: str | None = None
     validation_errors: list[str] | None = None
+
+
+class FullExportInputSummaryModel(BaseModel):
+    mash_intent: str
+    source_vocal_stem_artifact_id: str
+    target_instrumental_stem_artifact_id: str
+    tempo_ratio: float | None = None
+    pitch_shift_semitones: float
+    alignment_offset_ms: float
+    neutral_processing: bool
+
+
+class FullExportProcessingSummaryModel(BaseModel):
+    method: str
+    vocal_rubberband_ratio: float | None = None
+    pitch_shift_semitones: float
+    alignment_offset_ms: float
+    full_length: bool
+    max_test_seconds: int | None = None
+
+
+class LoudnessGateModel(BaseModel):
+    status: str
+    message: str
+    integrated_lufs: float | None = None
+    true_peak_dbtp: float | None = None
+    target_integrated_lufs: float
+    target_true_peak_dbtp: float
+
+
+class FullWavExportRequest(BaseModel):
+    source_vocal_stem_artifact_id: str
+    target_instrumental_stem_artifact_id: str
+    mash_intent: str
+    tempo_ratio: float | None = None
+    source_bpm: float | None = None
+    target_bpm: float | None = None
+    pitch_shift_semitones: float = 0.0
+    alignment_offset_ms: float = 0.0
+    export_label: str | None = None
+    loudness_target_mode: str = "measurement_only"
+    neutral_processing: bool = False
+    confirm_neutral_settings: bool = False
+    max_test_seconds: int | None = None
+
+
+class FullWavExportResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    export_artifact_id: str | None = None
+    artifact_url: str | None = None
+    download_url: str | None = None
+    input_summary: FullExportInputSummaryModel | None = None
+    processing_summary: FullExportProcessingSummaryModel | None = None
+    file_size_bytes: int | None = None
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    codec: str | None = None
+    loudness: LoudnessReadoutModel | None = None
+    loudness_gate: LoudnessGateModel | None = None
+    final_export: bool = False
+    public_share: bool = False
+    rights_notice: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    export_label: str | None = None
+    validation_errors: list[str] | None = None
+    setup_guidance: str | None = None

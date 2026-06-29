@@ -82,6 +82,15 @@ export function parseArtifactSummary(
       typeof record.source_combined_preview_artifact_id === "string"
         ? record.source_combined_preview_artifact_id
         : null,
+    exportSubtype: typeof record.export_subtype === "string" ? record.export_subtype : null,
+    sourceVocalStemArtifactId:
+      typeof record.source_vocal_stem_artifact_id === "string"
+        ? record.source_vocal_stem_artifact_id
+        : null,
+    targetInstrumentalStemArtifactId:
+      typeof record.target_instrumental_stem_artifact_id === "string"
+        ? record.target_instrumental_stem_artifact_id
+        : null,
   };
 }
 

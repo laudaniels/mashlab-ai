@@ -1,26 +1,23 @@
 # Export and Mastering Plan
 
-## Current State (Phase 13)
+## Current State (Phase 14)
 
-- **Local WAV export prototype** is available from existing combined-preview artifacts only
-- Export panel unlocks when at least one combined-preview exists
-- Export artifacts live at `.work/artifacts/exports/{uuid}/export.wav`
-- Export responses set `finalExport: true` and `publicShare: false`
-- MP3, stem package export, full mastering, club versions, and public sharing remain **not implemented**
+- **Full-length WAV export** re-renders from stem artifacts + session plan (Rubber Band + FFmpeg full mix)
+- **Preview-length WAV export** copies existing combined preview artifact (Phase 13)
+- Export panel unlocks when both stem previews exist **or** a combined preview exists
+- Loudness gate displays pass/warn/not_available against planned general targets (informational only)
+- MP3, stem package export, club mastering, and public sharing remain **not implemented**
 
 Preview artifacts (stem, combined, pitch/time) remain `finalExport: false`.
 
-## Phase 13 WAV Export (Implemented)
+## Phase 14 Full-Length Export (Implemented)
 
 | Item | Status |
 |------|--------|
-| WAV from combined preview | Available (user-initiated) |
-| Measurement-only loudness readout | Default |
-| Optional normalize preview copy | Prototype only — not full mastering |
-| MP3 export | Not implemented |
-| Stems export package | Not implemented |
-| DJ-safe preview master | Not implemented |
-| Public sharing | Not implemented |
+| Full-length WAV from stem artifacts + plan | Available (user-initiated) |
+| Rubber Band vocal + FFmpeg full mix | Available when dependencies present |
+| Loudness gate readout (informational) | Available when FFmpeg measures |
+| Preview-length copy from combined preview | Available (Phase 13) |
 
 See `docs/LOCAL_EXPORTS.md` for API and storage details.
 

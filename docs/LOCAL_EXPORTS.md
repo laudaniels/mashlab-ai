@@ -1,15 +1,47 @@
-# Local WAV Exports (Phase 13)
+# Local WAV Exports (Phase 13–14)
 
-Phase 13 adds the first **local WAV export prototype** for MashLab AI / CyphaBlend AI. Exports are explicit, user-initiated, and rights-neutral.
+MashLab AI / CyphaBlend AI supports **local WAV export** lanes. All exports are explicit, user-initiated, and rights-neutral.
 
-## Scope
+## Export Lanes
 
-- **Input:** existing combined-preview artifact only (`combined-preview/{id}/preview.wav`)
-- **Output:** local WAV export artifact at `.work/artifacts/exports/{uuid}/export.wav`
-- **Format:** WAV only (no MP3 in this phase)
-- **No auto-export:** user must click **Create local WAV export**
-- **No public sharing:** `publicShare: false` on all export responses
-- **No distribution rights granted**
+| Lane | Endpoint | Source | Subtype |
+|------|----------|--------|---------|
+| Preview-length copy | `POST /v1/export/wav` | Combined preview `preview.wav` | `preview-copy` |
+| Full-length re-render | `POST /v1/export/full-wav` | Stem artifacts + plan state | `full-wav` |
+
+Output for both: `.work/artifacts/exports/{uuid}/export.wav` + `export.meta.json`
+
+## Phase 14: Full-Length Export
+
+### Input (stem artifacts only — not raw uploads, not preview.wav)
+
+- Source vocal stem artifact id → `stems/{id}/vocals.wav`
+- Target instrumental stem artifact id → `stems/{id}/no_vocals.wav`
+- Mash intent (`vocal_a_over_beat_b` / `vocal_b_over_beat_a`)
+- Tempo ratio, pitch shift semitones, alignment offset ms
+- Optional BPM values from session plan
+- `neutral_processing` + `confirm_neutral_settings` when plan data missing
+- Optional `max_test_seconds` for automated testing only (not default production)
+
+### Pipeline
+
+1. Rubber Band on full vocal stem (pitch/time)
+2. FFmpeg align + mix with target `no_vocals` stem (no preview duration trim by default)
+3. Optional FFmpeg `loudnorm` when normalize mode selected
+4. ffprobe/FFmpeg technical + loudness readout
+5. Non-blocking loudness gate vs display targets (~ -14 LUFS / -1 dBTP)
+
+### `POST /v1/export/full-wav`
+
+Returns `processing_summary`, `input_summary`, `loudness_gate`, `finalExport: true`, `publicShare: false`, rights notice, warnings.
+
+Missing Rubber Band, FFmpeg, or stem artifacts → structured `missing_dependency` / `missing_artifact` — no crash.
+
+## Phase 13: Preview-Length Copy
+
+### Input
+
+- Existing combined-preview artifact only (`combined-preview/{id}/preview.wav`)
 
 ## What This Is Not
 
@@ -71,18 +103,23 @@ Export artifacts appear with type `export` and label:
 
 > Local export — user responsible for rights. No public distribution rights granted.
 
-They include `source_combined_preview_artifact_id` when metadata is available.
+Export artifacts in the browser show `export_subtype`:
+
+- `preview-copy` — copied from combined preview
+- `full-wav` — re-rendered from stem artifacts
+
+Full-length exports include source vocal and instrumental stem artifact ids.
 
 ## Export Panel
 
-The export panel unlocks when at least one combined-preview artifact exists. It provides:
+The export panel unlocks when stem previews exist on both tracks **or** a combined-preview artifact exists.
 
-- Combined preview source selector
-- Optional export label
-- Loudness mode selector (measurement vs normalize preview copy)
-- **Create local WAV export** button
-- Playback + download link for the result
-- Rights notice and limitation warnings
+Sections:
+
+1. **Export from combined preview** — preview-length WAV copy (Phase 13)
+2. **Full-length render from stem artifacts** — re-run Rubber Band + FFmpeg mix without trim (Phase 14)
+
+Full-length export requires readiness checklist: both stem artifacts, Rubber Band, FFmpeg, plan or confirmed neutral mode, rights acknowledgment.
 
 MP3, stem package, mastering presets, and public sharing remain unavailable.
 

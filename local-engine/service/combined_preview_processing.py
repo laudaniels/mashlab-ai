@@ -188,6 +188,52 @@ def build_ffmpeg_mix_command(
     ]
 
 
+def build_ffmpeg_full_mix_command(
+    ffmpeg_binary: str,
+    bed_path: Path,
+    vocal_path: Path,
+    output_path: Path,
+    *,
+    alignment_offset_ms: float,
+    max_seconds: int | None = None,
+) -> list[str]:
+    """Full-length mix without preview trim. Optional max_seconds for testing only."""
+    vocal_delay = max(0, int(round(alignment_offset_ms)))
+    bed_delay = max(0, int(round(-alignment_offset_ms)))
+
+    bed_chain = "[0:a]asetpts=PTS-STARTPTS"
+    if max_seconds is not None:
+        bed_chain = f"[0:a]atrim=0:{max_seconds},asetpts=PTS-STARTPTS"
+    if bed_delay > 0:
+        bed_chain += f",adelay={bed_delay}|{bed_delay}"
+    bed_chain += "[bed]"
+
+    vocal_chain = "[1:a]asetpts=PTS-STARTPTS"
+    if max_seconds is not None:
+        vocal_chain = f"[1:a]atrim=0:{max_seconds},asetpts=PTS-STARTPTS"
+    if vocal_delay > 0:
+        vocal_chain += f",adelay={vocal_delay}|{vocal_delay}"
+    vocal_chain += "[voc]"
+
+    filter_complex = f"{bed_chain};{vocal_chain};[bed][voc]amix=inputs=2:duration=shortest:normalize=0[out]"
+
+    return [
+        ffmpeg_binary,
+        "-y",
+        "-i",
+        str(bed_path),
+        "-i",
+        str(vocal_path),
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[out]",
+        "-acodec",
+        "pcm_s16le",
+        str(output_path),
+    ]
+
+
 def process_combined_preview(
     *,
     mash_intent: str,

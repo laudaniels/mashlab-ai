@@ -721,10 +721,10 @@ function App() {
               eyebrow="Export panel"
               icon={Download}
               title="Preview Session and Local Export"
-              subtitle="Manage local preview and export artifacts. WAV export unlocks after a combined preview exists."
+              subtitle="Manage local preview and export artifacts. WAV export unlocks after stem previews or a combined preview exists."
             />
             <PreviewArtifactBrowser />
-            <ExportPrepPanel />
+            <ExportPrepPanel artifactStore={artifactStore} mashIntent={mashIntent} />
           </section>
         );
       case "rights":

@@ -42,6 +42,9 @@ export interface PreviewArtifactSummary {
   targetTrackLabel: string | null;
   registryLabel: string | null;
   sourceCombinedPreviewArtifactId: string | null;
+  exportSubtype: string | null;
+  sourceVocalStemArtifactId: string | null;
+  targetInstrumentalStemArtifactId: string | null;
 }
 
 export interface LoudnessReadout {

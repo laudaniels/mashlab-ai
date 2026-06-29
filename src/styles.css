@@ -1894,6 +1894,59 @@ audio {
   gap: 12px;
 }
 
+.export-prep-form-section {
+  padding: 14px;
+  border: 1px solid rgba(132, 146, 176, 0.18);
+  border-radius: 8px;
+  background: rgba(8, 12, 18, 0.35);
+}
+
+.export-prep-form-section h4 {
+  margin: 0 0 8px;
+  color: #eef3ff;
+  font-size: 14px;
+}
+
+.export-prep-full-length {
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.export-prep-readiness-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.export-prep-neutral-toggle {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: #dbeafe;
+  font-size: 12px;
+}
+
+.export-prep-loudness-gate {
+  margin: 0;
+  font-size: 12px;
+}
+
+.export-prep-loudness-gate-pass {
+  color: #86efac;
+}
+
+.export-prep-loudness-gate-warn {
+  color: #fde68a;
+}
+
+.export-prep-loudness-gate-not_available {
+  color: #9eb0cb;
+}
+
+.export-prep-create-button-full {
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
 .export-prep-field {
   display: grid;
   gap: 6px;

@@ -1,5 +1,5 @@
 export const EXPORT_PREP_LOCKED_NOTICE =
-  "Create a combined preview first to unlock local WAV export.";
+  "Create stem previews for both tracks (or a combined preview) to unlock local WAV export.";
 
 export const EXPORT_PREP_ACTIVE_NOTICE =
   "Local WAV export from combined preview — user-initiated only. Not a published release.";
@@ -22,7 +22,7 @@ export const exportTargetPlans: ExportTargetPlan[] = [
   {
     id: "wav",
     label: "WAV export",
-    description: "Local WAV from an existing combined preview artifact.",
+    description: "Local WAV from combined preview copy or full-length stem re-render.",
     status: "available",
   },
   {
@@ -49,12 +49,28 @@ export function exportPanelClaimsFinalMaster(): boolean {
   return false;
 }
 
-export function exportPanelIsLocked(hasCombinedPreviewArtifact: boolean): boolean {
-  return !hasCombinedPreviewArtifact;
+export function exportPanelIsLocked(hasExportSource: boolean): boolean {
+  return !hasExportSource;
 }
 
-export function isWavExportAvailable(hasCombinedPreviewArtifact: boolean): boolean {
-  return hasCombinedPreviewArtifact;
+export function isWavExportAvailable(hasExportSource: boolean): boolean {
+  return hasExportSource;
+}
+
+export function hasFullLengthExportSource(artifactStore: {
+  tracks: Record<string, { stemPreview?: { artifactId: string } | null } | null>;
+}): boolean {
+  return Boolean(
+    artifactStore.tracks.trackA?.stemPreview?.artifactId &&
+      artifactStore.tracks.trackB?.stemPreview?.artifactId
+  );
+}
+
+export function exportPanelHasAnySource(
+  hasCombinedPreview: boolean,
+  hasStemArtifacts: boolean
+): boolean {
+  return hasCombinedPreview || hasStemArtifacts;
 }
 
 export function formatLoudnessTargetSummary(): string {

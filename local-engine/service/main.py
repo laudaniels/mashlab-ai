@@ -39,6 +39,11 @@ from rubber_band_processing import (
     process_pitch_time_preview,
 )
 from export_processing import ExportWavFailure, ExportWavSuccess, create_wav_export
+from full_length_export_processing import (
+    FullWavExportFailure,
+    FullWavExportSuccess,
+    create_full_wav_export,
+)
 from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
@@ -46,6 +51,11 @@ from models import (
     CombinedPreviewProcessingSummaryModel,
     CombinedPreviewRequest,
     CombinedPreviewResponse,
+    FullWavExportRequest,
+    FullWavExportResponse,
+    FullExportInputSummaryModel,
+    FullExportProcessingSummaryModel,
+    LoudnessGateModel,
     ExportWavRequest,
     ExportWavResponse,
     ArtifactDeleteResponse,
@@ -527,6 +537,91 @@ def export_wav(request: ExportWavRequest) -> ExportWavResponse:
     )
 
 
+@app.post("/v1/export/full-wav", response_model=FullWavExportResponse)
+def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
+    result = create_full_wav_export(
+        source_vocal_stem_artifact_id=request.source_vocal_stem_artifact_id,
+        target_instrumental_stem_artifact_id=request.target_instrumental_stem_artifact_id,
+        mash_intent=request.mash_intent,
+        tempo_ratio=request.tempo_ratio,
+        source_bpm=request.source_bpm,
+        target_bpm=request.target_bpm,
+        pitch_shift_semitones=request.pitch_shift_semitones,
+        alignment_offset_ms=request.alignment_offset_ms,
+        export_label=request.export_label,
+        loudness_target_mode=request.loudness_target_mode,
+        neutral_processing=request.neutral_processing,
+        confirm_neutral_settings=request.confirm_neutral_settings,
+        max_test_seconds=request.max_test_seconds,
+    )
+
+    if isinstance(result, FullWavExportFailure):
+        return FullWavExportResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            validation_errors=result.validation_errors,
+            setup_guidance=result.setup_guidance,
+            final_export=False,
+            public_share=False,
+        )
+
+    loudness_model = LoudnessReadoutModel(
+        integrated_lufs=result.loudness.integrated_lufs,
+        true_peak_dbtp=result.loudness.true_peak_dbtp,
+        peak_level_db=result.loudness.peak_level_db,
+        status=result.loudness.status,
+        message=result.loudness.message,
+    )
+    gate_model = LoudnessGateModel(
+        status=result.loudness_gate.status,
+        message=result.loudness_gate.message,
+        integrated_lufs=result.loudness_gate.integrated_lufs,
+        true_peak_dbtp=result.loudness_gate.true_peak_dbtp,
+        target_integrated_lufs=result.loudness_gate.target_integrated_lufs,
+        target_true_peak_dbtp=result.loudness_gate.target_true_peak_dbtp,
+    )
+
+    return FullWavExportResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        export_artifact_id=result.export_artifact_id,
+        artifact_url=result.artifact_url,
+        download_url=result.download_url,
+        input_summary=FullExportInputSummaryModel(
+            mash_intent=result.input_summary.mash_intent,
+            source_vocal_stem_artifact_id=result.input_summary.source_vocal_stem_artifact_id,
+            target_instrumental_stem_artifact_id=result.input_summary.target_instrumental_stem_artifact_id,
+            tempo_ratio=result.input_summary.tempo_ratio,
+            pitch_shift_semitones=result.input_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.input_summary.alignment_offset_ms,
+            neutral_processing=result.input_summary.neutral_processing,
+        ),
+        processing_summary=FullExportProcessingSummaryModel(
+            method=result.processing_summary.method,
+            vocal_rubberband_ratio=result.processing_summary.vocal_rubberband_ratio,
+            pitch_shift_semitones=result.processing_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.processing_summary.alignment_offset_ms,
+            full_length=result.processing_summary.full_length,
+            max_test_seconds=result.processing_summary.max_test_seconds,
+        ),
+        file_size_bytes=result.file_size_bytes,
+        duration_seconds=result.duration_seconds,
+        sample_rate=result.sample_rate,
+        channel_count=result.channel_count,
+        codec=result.codec,
+        loudness=loudness_model,
+        loudness_gate=gate_model,
+        final_export=result.final_export,
+        public_share=result.public_share,
+        rights_notice=result.rights_notice,
+        warnings=result.warnings,
+        limitations=result.limitations,
+        export_label=result.export_label,
+    )
+
+
 @app.get("/v1/artifacts", response_model=ArtifactListResponse)
 def list_artifacts() -> ArtifactListResponse:
     artifacts = list_preview_artifacts()
@@ -551,6 +646,9 @@ def list_artifacts() -> ArtifactListResponse:
                 primary_file_name=item.primary_file_name,
                 preview_label=item.preview_label,
                 source_combined_preview_artifact_id=item.source_combined_preview_artifact_id,
+                export_subtype=item.export_subtype,
+                source_vocal_stem_artifact_id=item.source_vocal_stem_artifact_id,
+                target_instrumental_stem_artifact_id=item.target_instrumental_stem_artifact_id,
             )
             for item in artifacts
         ],

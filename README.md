@@ -36,7 +36,7 @@ Implemented:
 - **Demucs vocal/instrumental stem preview** (user-initiated, two-stem mode, one track at a time).
 - **Combined vocal-over-instrumental preview** (Rubber Band vocal + FFmpeg mix; requires stem previews first).
 - **Preview artifact browser** with local cleanup and technical/loudness readout.
-- **Local WAV export prototype** from combined preview (user-initiated; unlocks export panel).
+- **Local WAV export** from combined preview copy or **full-length re-render from stem artifacts + plan state**.
 - **Locked future targets** for MP3, stems package, full mastering, and public sharing (not implemented).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.

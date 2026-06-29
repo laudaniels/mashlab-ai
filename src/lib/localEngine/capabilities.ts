@@ -87,6 +87,10 @@ export function isRubberBandAvailable(capabilities: ServiceCapability[]): boolea
   return findCapability(capabilities, "rubberband")?.status === "available";
 }
 
+export function isFfmpegAvailable(capabilities: ServiceCapability[]): boolean {
+  return findCapability(capabilities, "ffmpeg")?.status === "available";
+}
+
 export function isDemucsAvailable(capabilities: ServiceCapability[]): boolean {
   return findCapability(capabilities, "demucs")?.status === "available";
 }

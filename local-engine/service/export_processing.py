@@ -149,6 +149,7 @@ def create_wav_export(
         )
 
     meta = {
+        "export_subtype": "preview-copy",
         "source_combined_preview_artifact_id": source_combined_preview_artifact_id,
         "export_label": export_label.strip() if export_label else None,
         "loudness_target_mode": loudness_target_mode,

@@ -9,7 +9,7 @@ import {
   parseStemPreviewResponse,
 } from "./stemPreview.ts";
 import { parseCombinedPreviewResponse } from "./combinedPreview.ts";
-import { parseExportWavResponse } from "./export.ts";
+import { parseExportWavResponse, parseFullWavExportResponse } from "./export.ts";
 import {
   parseArtifactDeleteResponse,
   parseArtifactListResponse,
@@ -44,6 +44,8 @@ import type { CombinedPreviewResult } from "../../domain/combinedPreview.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 import type { ExportWavRequestParams } from "../../domain/localExport.ts";
 import type { ExportWavResult } from "../../domain/localExport.ts";
+import type { FullLengthExportRequestParams } from "../../domain/fullLengthExport.ts";
+import type { FullLengthExportResult } from "../../domain/fullLengthExport.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -255,6 +257,39 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseExportWavResponse(payload, this.baseUrl);
+  }
+
+  async createFullWavExport(
+    params: FullLengthExportRequestParams
+  ): Promise<FullLengthExportResult | null> {
+    const response = await this.request("/v1/export/full-wav", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        source_vocal_stem_artifact_id: params.sourceVocalStemArtifactId,
+        target_instrumental_stem_artifact_id: params.targetInstrumentalStemArtifactId,
+        mash_intent: params.mashIntent,
+        tempo_ratio: params.tempoRatio,
+        source_bpm: params.sourceBpm,
+        target_bpm: params.targetBpm,
+        pitch_shift_semitones: params.pitchShiftSemitones,
+        alignment_offset_ms: params.alignmentOffsetMs,
+        export_label: params.exportLabel ?? null,
+        loudness_target_mode: params.loudnessTargetMode,
+        neutral_processing: params.neutralProcessing,
+        confirm_neutral_settings: params.confirmNeutralSettings,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 12,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseFullWavExportResponse(payload, this.baseUrl);
   }
 
   async listArtifacts(registry: PreviewArtifactRegistryEntry[] = []) {

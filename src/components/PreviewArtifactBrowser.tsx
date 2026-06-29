@@ -120,7 +120,11 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
             <article className="preview-artifact-card" key={`${artifact.artifactType}-${artifact.artifactId}`}>
               <div className="preview-artifact-card-header">
                 <strong>{artifact.registryLabel ?? artifact.artifactType}</strong>
-                <span className="preview-artifact-type">{artifact.artifactType}</span>
+                <span className="preview-artifact-type">
+                  {artifact.exportSubtype
+                    ? `${artifact.artifactType} / ${artifact.exportSubtype}`
+                    : artifact.artifactType}
+                </span>
               </div>
 
               <dl className="preview-artifact-meta">
@@ -152,6 +156,18 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                   <div>
                     <dt>Source combined preview</dt>
                     <dd>{artifact.sourceCombinedPreviewArtifactId}</dd>
+                  </div>
+                ) : null}
+                {artifact.sourceVocalStemArtifactId ? (
+                  <div>
+                    <dt>Vocal stem</dt>
+                    <dd>{artifact.sourceVocalStemArtifactId}</dd>
+                  </div>
+                ) : null}
+                {artifact.targetInstrumentalStemArtifactId ? (
+                  <div>
+                    <dt>Instrumental stem</dt>
+                    <dd>{artifact.targetInstrumentalStemArtifactId}</dd>
                   </div>
                 ) : null}
               </dl>

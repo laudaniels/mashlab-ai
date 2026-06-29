@@ -1654,7 +1654,7 @@ describe("Preview session management", async () => {
     assert.equal(exportPanelIsLocked(false), true);
     assert.equal(exportPanelIsLocked(true), false);
     assert.equal(exportPanelClaimsFinalMaster(), false);
-    assert.match(EXPORT_PREP_LOCKED_NOTICE, /combined preview/i);
+    assert.match(EXPORT_PREP_LOCKED_NOTICE, /stem previews/i);
   });
 
   it("builds preview registry entries with finalExport false", () => {
@@ -1782,6 +1782,171 @@ describe("Local WAV export prototype", async () => {
     assert.equal(exportPanelIsLocked(true), false);
     assert.match(EXPORT_MP3_STEMS_NOTICE, /not implemented/i);
     assert.match(EXPORT_WAV_ONLY_NOTICE, /WAV export only/i);
+  });
+});
+
+describe("Full-length WAV export", async () => {
+  const {
+    FULL_EXPORT_SUBTYPE,
+    buildFullLengthExportReadiness,
+    evaluateLoudnessGateDisplay,
+    formatReadinessChecklist,
+    fullLengthExportUsesStemSources,
+    isFullLengthExportReady,
+    validateFullLengthExportRequest,
+  } = await importSrc("src/domain/fullLengthExport.ts");
+  const { parseFullWavExportResponse } = await importSrc("src/lib/localEngine/export.ts");
+  const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { exportPanelHasAnySource, hasFullLengthExportSource } = await importSrc(
+    "src/domain/exportPrep.ts"
+  );
+  const { createSessionArtifactStore, updateTrackStemPreviewArtifact, createTrackArtifact } =
+    await importSrc("src/domain/sessionArtifacts.ts");
+
+  it("validates stem artifact sources not preview wav", () => {
+    const params = {
+      sourceVocalStemArtifactId: "stemvocal001",
+      targetInstrumentalStemArtifactId: "stembed00001",
+      mashIntent: "vocal_a_over_beat_b",
+      tempoRatio: 1.05,
+      sourceBpm: 120,
+      targetBpm: 128,
+      pitchShiftSemitones: 2,
+      alignmentOffsetMs: 0,
+      loudnessTargetMode: "measurement_only" as const,
+      neutralProcessing: false,
+      confirmNeutralSettings: false,
+    };
+    assert.equal(validateFullLengthExportRequest(params).length, 0);
+    assert.equal(fullLengthExportUsesStemSources(params), true);
+    assert.ok(validateFullLengthExportRequest({
+      ...params,
+      sourceVocalStemArtifactId: "../preview",
+    }).length > 0);
+  });
+
+  it("requires neutral confirmation when plan missing", () => {
+    const errors = validateFullLengthExportRequest({
+      sourceVocalStemArtifactId: "stemvocal001",
+      targetInstrumentalStemArtifactId: "stembed00001",
+      mashIntent: "vocal_a_over_beat_b",
+      tempoRatio: null,
+      sourceBpm: null,
+      targetBpm: null,
+      pitchShiftSemitones: 0,
+      alignmentOffsetMs: 0,
+      loudnessTargetMode: "measurement_only",
+      neutralProcessing: false,
+      confirmNeutralSettings: false,
+    });
+    assert.ok(errors.length > 0);
+  });
+
+  it("parses full export response with finalExport true and publicShare false", () => {
+    const parsed = parseFullWavExportResponse({
+      ok: true,
+      status: "ready",
+      message: "Full-length export ready.",
+      export_artifact_id: "exportfull001",
+      artifact_url: "/v1/artifacts/exports/exportfull001/export",
+      download_url: "/v1/artifacts/exports/exportfull001/export",
+      final_export: true,
+      public_share: false,
+      rights_notice: "Upload audio you own or are authorized to use.",
+      loudness_gate: {
+        status: "not_available",
+        message: "Gate unavailable.",
+        target_integrated_lufs: -14,
+        target_true_peak_dbtp: -1,
+      },
+      processing_summary: {
+        method: "rubberband-vocal + ffmpeg-full-mix",
+        full_length: true,
+        pitch_shift_semitones: 0,
+        alignment_offset_ms: 0,
+      },
+      input_summary: {
+        mash_intent: "vocal_a_over_beat_b",
+        source_vocal_stem_artifact_id: "stemvocal001",
+        target_instrumental_stem_artifact_id: "stembed00001",
+        pitch_shift_semitones: 0,
+        alignment_offset_ms: 0,
+        neutral_processing: true,
+      },
+    });
+    assert.ok(parsed);
+    assert.equal(parsed?.finalExport, true);
+    assert.equal(parsed?.publicShare, false);
+    assert.equal(parsed?.processingSummary?.fullLength, true);
+  });
+
+  it("parses export artifact subtype full-wav", () => {
+    const parsed = parseArtifactSummary({
+      artifact_id: "exportfull001",
+      artifact_type: "export",
+      export_subtype: FULL_EXPORT_SUBTYPE,
+      status: "ready",
+      created_at: "2026-01-01T00:00:00.000Z",
+      duration_seconds: 180,
+      playback_urls: { primary: "/v1/artifacts/exports/exportfull001/export" },
+      preview_only: false,
+      final_export: true,
+      primary_file_name: "export.wav",
+      source_vocal_stem_artifact_id: "stemvocal001",
+      target_instrumental_stem_artifact_id: "stembed00001",
+    });
+    assert.equal(parsed?.exportSubtype, "full-wav");
+    assert.equal(parsed?.sourceVocalStemArtifactId, "stemvocal001");
+  });
+
+  it("formats readiness checklist and loudness gate states", () => {
+    const store = createSessionArtifactStore("session-1");
+    const items = buildFullLengthExportReadiness({
+      artifactStore: store,
+      context: null,
+      sidecarOnline: true,
+      rubberBandAvailable: true,
+      ffmpegAvailable: true,
+      useNeutralProcessing: true,
+      confirmNeutralSettings: true,
+      rightsAcknowledged: true,
+    });
+    assert.ok(formatReadinessChecklist(items).length >= 6);
+    assert.equal(isFullLengthExportReady(items), false);
+
+    const gate = evaluateLoudnessGateDisplay({
+      integratedLufs: null,
+      truePeakDbtp: null,
+      peakLevelDb: null,
+      status: "not_available",
+      message: "Unavailable.",
+    });
+    assert.equal(gate.status, "not_available");
+  });
+
+  it("export panel unlocks with stem artifacts without combined preview", () => {
+    const store = createSessionArtifactStore("session-2");
+    const file = new File(["a"], "a.wav", { type: "audio/wav" });
+    store.tracks.trackA = updateTrackStemPreviewArtifact(
+      createTrackArtifact({
+        sessionId: "session-2",
+        slotId: "trackA",
+        file,
+        inspection: null,
+      }),
+      "stemtracka001"
+    );
+    store.tracks.trackB = updateTrackStemPreviewArtifact(
+      createTrackArtifact({
+        sessionId: "session-2",
+        slotId: "trackB",
+        file,
+        inspection: null,
+      }),
+      "stemtrackb001"
+    );
+    assert.equal(hasFullLengthExportSource(store), true);
+    assert.equal(exportPanelHasAnySource(false, true), true);
   });
 });
 

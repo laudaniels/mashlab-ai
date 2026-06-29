@@ -45,6 +45,9 @@ class PreviewArtifactEntry:
     primary_file_name: str
     preview_label: str = PREVIEW_ONLY_LABEL
     source_combined_preview_artifact_id: str | None = None
+    export_subtype: str | None = None
+    source_vocal_stem_artifact_id: str | None = None
+    target_instrumental_stem_artifact_id: str | None = None
 
 
 @dataclass
@@ -249,8 +252,24 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                 continue
             meta = _read_export_meta(child)
             source_id = None
-            if meta and isinstance(meta.get("source_combined_preview_artifact_id"), str):
-                source_id = meta["source_combined_preview_artifact_id"]
+            export_subtype = None
+            source_vocal_id = None
+            target_instrumental_id = None
+            if meta:
+                if isinstance(meta.get("source_combined_preview_artifact_id"), str):
+                    source_id = meta["source_combined_preview_artifact_id"]
+                if isinstance(meta.get("export_subtype"), str):
+                    export_subtype = meta["export_subtype"]
+                if isinstance(meta.get("source_vocal_stem_artifact_id"), str):
+                    source_vocal_id = meta["source_vocal_stem_artifact_id"]
+                if isinstance(meta.get("target_instrumental_stem_artifact_id"), str):
+                    target_instrumental_id = meta["target_instrumental_stem_artifact_id"]
+            label = EXPORT_ARTIFACT_LABEL
+            if export_subtype == "full-wav":
+                label = (
+                    "Full-length local export — user responsible for rights. "
+                    "No public distribution rights granted."
+                )
             entries.append(
                 PreviewArtifactEntry(
                     artifact_id=child.name,
@@ -264,8 +283,11 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     preview_only=False,
                     final_export=True,
                     primary_file_name=export_file.name,
-                    preview_label=EXPORT_ARTIFACT_LABEL,
+                    preview_label=label,
                     source_combined_preview_artifact_id=source_id,
+                    export_subtype=export_subtype,
+                    source_vocal_stem_artifact_id=source_vocal_id,
+                    target_instrumental_stem_artifact_id=target_instrumental_id,
                 )
             )
 

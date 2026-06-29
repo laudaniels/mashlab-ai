@@ -103,6 +103,8 @@ Stem preview max duration remains separate (180s cap for Demucs lane).
 
 Generated artifacts appear in the **Preview artifact browser** with cleanup and technical readout.
 
+Full-length WAV export (Phase 14) re-renders from the same stem artifacts without preview trim — see `docs/LOCAL_EXPORTS.md`.
+
 ## Privacy and Rights
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.

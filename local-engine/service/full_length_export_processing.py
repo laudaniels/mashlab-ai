@@ -17,6 +17,14 @@ from combined_preview_processing import (
     stem_vocals_path,
     validate_combined_preview_request,
 )
+from mix_settings import (
+    MixSettings,
+    build_loudness_clipping_warnings,
+    build_mix_processing_notes,
+    default_mix_settings,
+    mix_settings_to_dict,
+    validate_mix_settings,
+)
 from export_processing import EXPORTS_DIR, EXPORT_FILE_NAME, META_FILE_NAME, RIGHTS_NOTICE
 from loudness_gate import evaluate_loudness_gate
 from rubber_band_processing import (
@@ -45,6 +53,9 @@ class FullExportProcessingSummary:
     alignment_offset_ms: float
     full_length: bool
     max_test_seconds: int | None
+    mix_settings: MixSettings
+    limiter_safety_applied: bool
+    clipping_guard_applied: bool
 
 
 @dataclass
@@ -56,6 +67,7 @@ class FullExportInputSummary:
     pitch_shift_semitones: float
     alignment_offset_ms: float
     neutral_processing: bool
+    mix_settings: MixSettings
 
 
 @dataclass
@@ -120,8 +132,31 @@ def create_full_wav_export(
     neutral_processing: bool = False,
     confirm_neutral_settings: bool = False,
     max_test_seconds: int | None = None,
+    vocal_gain_db: float = 0.0,
+    instrumental_gain_db: float = 0.0,
+    master_gain_db: float = 0.0,
+    vocal_fade_in_ms: float = 0.0,
+    vocal_fade_out_ms: float = 0.0,
+    instrumental_fade_in_ms: float = 0.0,
+    instrumental_fade_out_ms: float = 0.0,
+    limiter_safety: bool = False,
+    clipping_guard: bool = False,
 ) -> FullWavExportResult:
     errors: list[str] = []
+
+    mix_settings, mix_errors = validate_mix_settings(
+        vocal_gain_db=vocal_gain_db,
+        instrumental_gain_db=instrumental_gain_db,
+        master_gain_db=master_gain_db,
+        vocal_fade_in_ms=vocal_fade_in_ms,
+        vocal_fade_out_ms=vocal_fade_out_ms,
+        instrumental_fade_in_ms=instrumental_fade_in_ms,
+        instrumental_fade_out_ms=instrumental_fade_out_ms,
+        limiter_safety=limiter_safety,
+        clipping_guard=clipping_guard,
+    )
+    if mix_errors:
+        errors.extend(mix_errors)
 
     if loudness_target_mode not in LOUDNESS_MODES:
         errors.append(
@@ -156,6 +191,9 @@ def create_full_wav_export(
             message="Full-length export request failed validation.",
             validation_errors=errors,
         )
+
+    if mix_settings is None:
+        mix_settings = default_mix_settings()
 
     resolved_ratio, validation_errors = validate_combined_preview_request(
         mash_intent=mash_intent,
@@ -253,6 +291,8 @@ def create_full_wav_export(
             f"Pitch shift of {effective_pitch} semitones may cause audible artifacts in the vocal export."
         )
 
+    bed_duration, _, _ = probe_wav_metadata(bed_path)
+
     try:
         rb_command = build_rubberband_command(
             rubberband,
@@ -283,6 +323,8 @@ def create_full_wav_export(
             mixed_path,
             alignment_offset_ms=alignment_offset_ms,
             max_seconds=max_test_seconds,
+            mix_settings=mix_settings,
+            duration_sec=bed_duration,
         )
         mix_result = subprocess.run(
             mix_command,
@@ -315,6 +357,8 @@ def create_full_wav_export(
                 "Loudness measured only; no normalization unless a normalize mode is selected."
             )
 
+        warnings.extend(build_mix_processing_notes(mix_settings))
+
         meta = {
             "export_subtype": FULL_EXPORT_SUBTYPE,
             "source_vocal_stem_artifact_id": source_vocal_stem_artifact_id,
@@ -328,6 +372,9 @@ def create_full_wav_export(
             "loudness_target_mode": loudness_target_mode,
             "max_test_seconds": max_test_seconds,
             "export_format": "wav",
+            "mix_settings": mix_settings_to_dict(mix_settings),
+            "limiter_safety_applied": mix_settings.limiter_safety,
+            "clipping_guard_applied": mix_settings.clipping_guard,
             "created_at": datetime.now(tz=UTC).isoformat(),
             "public_share": False,
             "final_export": True,
@@ -335,6 +382,7 @@ def create_full_wav_export(
         (export_dir / META_FILE_NAME).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
         technical = analyze_technical_readout(export_path)
+        warnings.extend(build_loudness_clipping_warnings(technical.loudness))
         gate = evaluate_loudness_gate(technical.loudness)
         duration, _, _ = probe_wav_metadata(export_path)
         artifact_url = f"/v1/artifacts/exports/{export_id}/export"
@@ -354,6 +402,7 @@ def create_full_wav_export(
                 pitch_shift_semitones=effective_pitch,
                 alignment_offset_ms=alignment_offset_ms,
                 neutral_processing=neutral_processing,
+                mix_settings=mix_settings,
             ),
             processing_summary=FullExportProcessingSummary(
                 method="rubberband-vocal + ffmpeg-full-mix",
@@ -362,6 +411,9 @@ def create_full_wav_export(
                 alignment_offset_ms=alignment_offset_ms,
                 full_length=max_test_seconds is None,
                 max_test_seconds=max_test_seconds,
+                mix_settings=mix_settings,
+                limiter_safety_applied=mix_settings.limiter_safety,
+                clipping_guard_applied=mix_settings.clipping_guard,
             ),
             file_size_bytes=technical.file_size_bytes,
             duration_seconds=duration or technical.duration_seconds,

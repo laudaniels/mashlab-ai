@@ -41,11 +41,13 @@ import type { PitchTimePreviewResult } from "../../domain/pitchTimePreview.ts";
 import type { StemPreviewRequestParams } from "../../domain/stemPreview.ts";
 import type { StemPreviewResult } from "../../domain/stemPreview.ts";
 import type { CombinedPreviewRequestParams } from "../../domain/combinedPreview.ts";
+import { serializeCombinedPreviewRequestBody } from "../../domain/combinedPreview.ts";
 import type { CombinedPreviewResult } from "../../domain/combinedPreview.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 import type { ExportWavRequestParams } from "../../domain/localExport.ts";
 import type { ExportWavResult } from "../../domain/localExport.ts";
 import type { FullLengthExportRequestParams } from "../../domain/fullLengthExport.ts";
+import { mixSettingsToRequestFields } from "../../domain/mixControls.ts";
 import type { FullLengthExportResult } from "../../domain/fullLengthExport.ts";
 import type { MasterWavRequestParams } from "../../domain/masteringPresets.ts";
 import type { MasterWavResult } from "../../domain/masteringPresets.ts";
@@ -220,19 +222,7 @@ export class LocalEngineClient {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        mash_intent: params.mashIntent,
-        source_vocal_artifact_id: params.sourceVocalArtifactId,
-        target_instrumental_artifact_id: params.targetInstrumentalArtifactId,
-        tempo_ratio: params.tempoRatio,
-        source_bpm: params.sourceBpm,
-        target_bpm: params.targetBpm,
-        pitch_shift_semitones: params.pitchShiftSemitones,
-        alignment_offset_ms: params.alignmentOffsetMs,
-        max_preview_seconds: params.maxPreviewSeconds,
-        formant_preservation: params.formantPreservation,
-        neutral_processing: params.neutralProcessing,
-      }),
+      body: JSON.stringify(serializeCombinedPreviewRequestBody(params)),
       timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
     });
 
@@ -288,6 +278,7 @@ export class LocalEngineClient {
         loudness_target_mode: params.loudnessTargetMode,
         neutral_processing: params.neutralProcessing,
         confirm_neutral_settings: params.confirmNeutralSettings,
+        ...mixSettingsToRequestFields(params.mixSettings),
       }),
       timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 12,
     });

@@ -1502,7 +1502,8 @@ describe("Combined preview processing", async () => {
     assert.match(COMBINED_PREVIEW_ONLY_NOTICE, /not a final export/i);
   });
 
-  it("builds combined preview request params from direction context", () => {
+  it("builds combined preview request params from direction context", async () => {
+    const { createNeutralMixSettings } = await importSrc("src/domain/mixControls.ts");
     const params = buildCombinedPreviewRequestParams(
       {
         mashIntent: "vocal_a_over_beat_b",
@@ -1514,7 +1515,9 @@ describe("Combined preview processing", async () => {
         targetInstrumentalArtifactId: "bbb222",
         alignmentOffsetMs: 120,
       },
-      false
+      false,
+      undefined,
+      createNeutralMixSettings()
     );
 
     assert.equal(params.mashIntent, "vocal_a_over_beat_b");
@@ -1795,6 +1798,7 @@ describe("Full-length WAV export", async () => {
     isFullLengthExportReady,
     validateFullLengthExportRequest,
   } = await importSrc("src/domain/fullLengthExport.ts");
+  const { createNeutralMixSettings } = await importSrc("src/domain/mixControls.ts");
   const { parseFullWavExportResponse } = await importSrc("src/lib/localEngine/export.ts");
   const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
   const { exportPanelHasAnySource, hasFullLengthExportSource } = await importSrc(
@@ -1816,6 +1820,7 @@ describe("Full-length WAV export", async () => {
       loudnessTargetMode: "measurement_only" as const,
       neutralProcessing: false,
       confirmNeutralSettings: false,
+      mixSettings: createNeutralMixSettings(),
     };
     assert.equal(validateFullLengthExportRequest(params).length, 0);
     assert.equal(fullLengthExportUsesStemSources(params), true);
@@ -1838,6 +1843,7 @@ describe("Full-length WAV export", async () => {
       loudnessTargetMode: "measurement_only",
       neutralProcessing: false,
       confirmNeutralSettings: false,
+      mixSettings: createNeutralMixSettings(),
     });
     assert.ok(errors.length > 0);
   });
@@ -2222,10 +2228,11 @@ describe("Mastering preset prototypes", async () => {
         preset: "club_master" as never,
       }).length > 0
     );
-    assert.deepEqual([...ALLOWED_MASTERING_PRESETS], [
-      "measurement_only",
-      "general_safe_normalize",
+    assert.deepEqual([...ALLOWED_MASTERING_PRESETS].sort(), [
+      "club_loudness_prototype",
       "dj_loudness_prototype",
+      "general_safe_normalize",
+      "measurement_only",
     ]);
   });
 
@@ -2386,6 +2393,7 @@ describe("project package export", async () => {
         includedFileCount: null,
         selectedArtifactIds: null,
         publicShare: false,
+        mixSummary: null,
       },
       {
         artifactId: "wavfull001",
@@ -2416,6 +2424,7 @@ describe("project package export", async () => {
         includedFileCount: null,
         selectedArtifactIds: null,
         publicShare: false,
+        mixSummary: null,
       },
       {
         artifactId: "mp3ref001",
@@ -2446,6 +2455,7 @@ describe("project package export", async () => {
         includedFileCount: null,
         selectedArtifactIds: null,
         publicShare: false,
+        mixSummary: null,
       },
     ];
 
@@ -2552,6 +2562,109 @@ describe("project package export", async () => {
   it("cleanup validation accepts package artifact ids safely", () => {
     assert.equal(validateCleanupArtifactId("package001").length, 0);
     assert.ok(validateCleanupArtifactId("../escape").length > 0);
+  });
+});
+
+describe("Mix quality controls", async () => {
+  const {
+    MIX_CONTROLS_NOTICE,
+    MIX_DJ_REVIEW_NOTICE,
+    createNeutralMixSettings,
+    formatMixSettingsSummary,
+    mixSettingsToRequestFields,
+    validateMixSettings,
+  } = await importSrc("src/domain/mixControls.ts");
+  const { parseCombinedPreviewResponse } = await importSrc(
+    "src/lib/localEngine/combinedPreview.ts"
+  );
+  const { parseFullWavExportResponse } = await importSrc("src/lib/localEngine/export.ts");
+  const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { CLUB_LOUDNESS_PROTOTYPE_PRESET, MASTERING_PRESET_DEFINITIONS } = await importSrc(
+    "src/domain/masteringPresets.ts"
+  );
+
+  it("validates mix gain and fade ranges", () => {
+    const neutral = createNeutralMixSettings();
+    assert.equal(validateMixSettings(neutral).length, 0);
+    assert.ok(validateMixSettings({ ...neutral, vocalGainDb: 99 }).length > 0);
+    assert.match(MIX_DJ_REVIEW_NOTICE, /not professional mastering/i);
+    assert.match(MIX_CONTROLS_NOTICE, /new preview or export/i);
+  });
+
+  it("serializes mix settings for API requests", () => {
+    const fields = mixSettingsToRequestFields({
+      ...createNeutralMixSettings(),
+      vocalGainDb: 2,
+      limiterSafety: true,
+    });
+    assert.equal(fields.vocal_gain_db, 2);
+    assert.equal(fields.limiter_safety, true);
+    assert.match(formatMixSettingsSummary(createNeutralMixSettings()), /vocal \+0\.0 dB/);
+  });
+
+  it("parses combined preview response mix summaries", () => {
+    const parsed = parseCombinedPreviewResponse({
+      ok: true,
+      status: "preview_complete",
+      message: "ok",
+      final_export: false,
+      input_summary: {
+        mash_intent: "vocal_a_over_beat_b",
+        source_vocal_artifact_id: "v1",
+        target_instrumental_artifact_id: "b1",
+        mix_settings: { vocal_gain_db: 1.5, limiter_safety: true },
+      },
+      processing_summary: {
+        method: "rubberband-vocal + ffmpeg-full-mix",
+        mix_settings: { vocal_gain_db: 1.5, limiter_safety: true },
+        limiter_safety_applied: true,
+      },
+    });
+    assert.equal(parsed?.inputSummary?.mixSettings?.vocalGainDb, 1.5);
+    assert.equal(parsed?.processingSummary?.limiterSafetyApplied, true);
+  });
+
+  it("parses full export response mix summaries", () => {
+    const parsed = parseFullWavExportResponse({
+      ok: true,
+      status: "ready",
+      message: "ok",
+      final_export: true,
+      input_summary: {
+        source_vocal_stem_artifact_id: "v1",
+        mix_settings: { clipping_guard: true },
+      },
+      processing_summary: {
+        method: "full-length",
+        clipping_guard_applied: true,
+      },
+    });
+    assert.equal(parsed?.inputSummary?.mixSettings?.clippingGuard, true);
+    assert.equal(parsed?.processingSummary?.clippingGuardApplied, true);
+  });
+
+  it("parses artifact mix_summary for browser display", () => {
+    const parsed = parseArtifactSummary({
+      artifact_id: "combo001",
+      artifact_type: "combined-preview",
+      status: "ready",
+      created_at: "2026-01-01T00:00:00Z",
+      playback_urls: { primary: "/v1/artifacts/combined-preview/combo001/preview" },
+      preview_only: true,
+      final_export: false,
+      primary_file_name: "preview.wav",
+      preview_label: "Combined preview",
+      mix_summary: "vocal +2.0 dB · bed -1.0 dB · master +0.0 dB",
+      public_share: false,
+    });
+    assert.equal(parsed?.mixSummary, "vocal +2.0 dB · bed -1.0 dB · master +0.0 dB");
+  });
+
+  it("includes club loudness prototype without certification claims", () => {
+    const club = MASTERING_PRESET_DEFINITIONS.find((p) => p.id === CLUB_LOUDNESS_PROTOTYPE_PRESET);
+    assert.ok(club);
+    assert.match(club!.label, /prototype/i);
+    assert.ok(club!.warnings.some((line) => /not professional mastering|club-ready/i.test(line)));
   });
 });
 

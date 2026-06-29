@@ -89,6 +89,9 @@ import { rubberBandReadinessFromCapabilityStatus } from "../domain/pitchTimePlan
 import type { MashIntent } from "../domain/pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
 import { isCombinedPreviewArtifact } from "../domain/previewArtifacts.ts";
+import type { MixSettings } from "../domain/mixControls.ts";
+import { loadMixSettings } from "../lib/mixSession.ts";
+import { MixControlsPanel } from "./MixControlsPanel.tsx";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import { notifyArtifactRefresh, subscribeArtifactRefresh } from "../lib/artifactRefresh.ts";
 import {
@@ -160,6 +163,7 @@ export function ExportPrepPanel({
   const [mp3Busy, setMp3Busy] = useState(false);
   const [masterBusy, setMasterBusy] = useState(false);
   const [reExportBusy, setReExportBusy] = useState(false);
+  const [mixSettings, setMixSettings] = useState<MixSettings>(() => loadMixSettings());
   const [packageableArtifacts, setPackageableArtifacts] = useState<
     import("../domain/previewArtifacts.ts").PreviewArtifactSummary[]
   >([]);
@@ -602,6 +606,7 @@ export function ExportPrepPanel({
       useNeutralProcessing,
       confirmNeutralSettings,
       fullLoudnessMode,
+      mixSettings,
       fullExportLabel.trim() || null
     );
 
@@ -763,6 +768,12 @@ export function ExportPrepPanel({
               <p className="export-prep-wav-only">No combined preview yet — use full-length export below.</p>
             )}
           </div>
+
+          <MixControlsPanel
+            disabled={fullBusy || busy || mp3Busy || masterBusy || packageBusy}
+            onChange={setMixSettings}
+            settings={mixSettings}
+          />
 
           <div className="export-prep-form export-prep-form-section export-prep-full-length">
             <h4>Full-length render from stem artifacts</h4>

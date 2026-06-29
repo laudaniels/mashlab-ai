@@ -24,6 +24,7 @@ from mastering_presets import (
     build_loudnorm_encode_command,
     evaluate_mastering_gate,
 )
+from mix_settings import build_loudness_clipping_warnings
 
 MASTERS_DIR = config.WORK_DIR / "artifacts" / "masters"
 MASTER_FILE_NAME = "master.wav"
@@ -229,6 +230,7 @@ def create_master_wav(
         after_readout = before_readout
 
     gate = evaluate_mastering_gate(preset, after_readout.loudness)
+    warnings.extend(build_loudness_clipping_warnings(after_readout.loudness))
 
     meta = {
         "master_subtype": "wav",

@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
 from capabilities import get_capability
+from mix_settings import (
+    MixSettings,
+    build_loudness_clipping_warnings,
+    build_mix_filter_complex,
+    build_mix_processing_notes,
+    default_mix_settings,
+    mix_settings_to_dict,
+    validate_mix_settings,
+)
+from artifact_management import analyze_technical_readout
 from rubber_band_processing import (
     build_ffmpeg_trim_command,
     build_rubberband_command,
@@ -23,6 +35,7 @@ import config
 DEFAULT_MAX_PREVIEW_SECONDS = 30
 MAX_PREVIEW_SECONDS_LIMIT = 60
 ALLOWED_MASH_INTENTS = {"vocal_a_over_beat_b", "vocal_b_over_beat_a"}
+PREVIEW_META_FILE = "preview.meta.json"
 
 PREVIEW_LIMITATIONS = [
     "Preview only — not a final export, mastered mashup, or distribution-ready mix.",
@@ -41,6 +54,7 @@ class CombinedPreviewInputSummary:
     alignment_offset_ms: float
     max_preview_seconds: int
     neutral_processing: bool
+    mix_settings: MixSettings
 
 
 @dataclass
@@ -50,6 +64,9 @@ class CombinedPreviewProcessingSummary:
     pitch_shift_semitones: float
     alignment_offset_ms: float
     max_preview_seconds: int
+    mix_settings: MixSettings
+    limiter_safety_applied: bool
+    clipping_guard_applied: bool
 
 
 @dataclass
@@ -155,21 +172,14 @@ def build_ffmpeg_mix_command(
     *,
     alignment_offset_ms: float,
     max_seconds: int,
+    mix_settings: MixSettings | None = None,
 ) -> list[str]:
-    vocal_delay = max(0, int(round(alignment_offset_ms)))
-    bed_delay = max(0, int(round(-alignment_offset_ms)))
-
-    bed_chain = f"[0:a]atrim=0:{max_seconds},asetpts=PTS-STARTPTS"
-    if bed_delay > 0:
-        bed_chain += f",adelay={bed_delay}|{bed_delay}"
-    bed_chain += "[bed]"
-
-    vocal_chain = f"[1:a]atrim=0:{max_seconds},asetpts=PTS-STARTPTS"
-    if vocal_delay > 0:
-        vocal_chain += f",adelay={vocal_delay}|{vocal_delay}"
-    vocal_chain += "[voc]"
-
-    filter_complex = f"{bed_chain};{vocal_chain};[bed][voc]amix=inputs=2:duration=shortest:normalize=0[out]"
+    settings = mix_settings or default_mix_settings()
+    filter_complex = build_mix_filter_complex(
+        alignment_offset_ms=alignment_offset_ms,
+        mix_settings=settings,
+        max_seconds=max_seconds,
+    )
 
     return [
         ffmpeg_binary,
@@ -196,26 +206,17 @@ def build_ffmpeg_full_mix_command(
     *,
     alignment_offset_ms: float,
     max_seconds: int | None = None,
+    mix_settings: MixSettings | None = None,
+    duration_sec: float | None = None,
 ) -> list[str]:
     """Full-length mix without preview trim. Optional max_seconds for testing only."""
-    vocal_delay = max(0, int(round(alignment_offset_ms)))
-    bed_delay = max(0, int(round(-alignment_offset_ms)))
-
-    bed_chain = "[0:a]asetpts=PTS-STARTPTS"
-    if max_seconds is not None:
-        bed_chain = f"[0:a]atrim=0:{max_seconds},asetpts=PTS-STARTPTS"
-    if bed_delay > 0:
-        bed_chain += f",adelay={bed_delay}|{bed_delay}"
-    bed_chain += "[bed]"
-
-    vocal_chain = "[1:a]asetpts=PTS-STARTPTS"
-    if max_seconds is not None:
-        vocal_chain = f"[1:a]atrim=0:{max_seconds},asetpts=PTS-STARTPTS"
-    if vocal_delay > 0:
-        vocal_chain += f",adelay={vocal_delay}|{vocal_delay}"
-    vocal_chain += "[voc]"
-
-    filter_complex = f"{bed_chain};{vocal_chain};[bed][voc]amix=inputs=2:duration=shortest:normalize=0[out]"
+    settings = mix_settings or default_mix_settings()
+    filter_complex = build_mix_filter_complex(
+        alignment_offset_ms=alignment_offset_ms,
+        mix_settings=settings,
+        max_seconds=max_seconds,
+        duration_sec=duration_sec,
+    )
 
     return [
         ffmpeg_binary,
@@ -247,7 +248,35 @@ def process_combined_preview(
     max_preview_seconds: int = DEFAULT_MAX_PREVIEW_SECONDS,
     formant_preservation: bool = True,
     neutral_processing: bool = False,
+    vocal_gain_db: float = 0.0,
+    instrumental_gain_db: float = 0.0,
+    master_gain_db: float = 0.0,
+    vocal_fade_in_ms: float = 0.0,
+    vocal_fade_out_ms: float = 0.0,
+    instrumental_fade_in_ms: float = 0.0,
+    instrumental_fade_out_ms: float = 0.0,
+    limiter_safety: bool = False,
+    clipping_guard: bool = False,
 ) -> CombinedPreviewResult:
+    mix_settings, mix_errors = validate_mix_settings(
+        vocal_gain_db=vocal_gain_db,
+        instrumental_gain_db=instrumental_gain_db,
+        master_gain_db=master_gain_db,
+        vocal_fade_in_ms=vocal_fade_in_ms,
+        vocal_fade_out_ms=vocal_fade_out_ms,
+        instrumental_fade_in_ms=instrumental_fade_in_ms,
+        instrumental_fade_out_ms=instrumental_fade_out_ms,
+        limiter_safety=limiter_safety,
+        clipping_guard=clipping_guard,
+    )
+    if mix_errors or mix_settings is None:
+        return CombinedPreviewFailure(
+            ok=False,
+            status="validation_error",
+            message="Combined preview mix settings failed validation.",
+            validation_errors=mix_errors,
+        )
+
     resolved_ratio, validation_errors = validate_combined_preview_request(
         mash_intent=mash_intent,
         source_vocal_artifact_id=source_vocal_artifact_id,
@@ -385,6 +414,7 @@ def process_combined_preview(
                 output_path,
                 alignment_offset_ms=alignment_offset_ms,
                 max_seconds=max_preview_seconds,
+                mix_settings=mix_settings,
             ),
             capture_output=True,
             text=True,
@@ -399,6 +429,22 @@ def process_combined_preview(
             )
 
         output_duration, _, _ = probe_wav_metadata(output_path)
+        technical = analyze_technical_readout(output_path)
+        warnings.extend(build_mix_processing_notes(mix_settings))
+        warnings.extend(build_loudness_clipping_warnings(technical.loudness))
+
+        meta = {
+            "mash_intent": mash_intent,
+            "source_vocal_artifact_id": source_vocal_artifact_id,
+            "target_instrumental_artifact_id": target_instrumental_artifact_id,
+            "mix_settings": mix_settings_to_dict(mix_settings),
+            "limiter_safety_applied": mix_settings.limiter_safety,
+            "clipping_guard_applied": mix_settings.clipping_guard,
+            "created_at": datetime.now(tz=UTC).isoformat(),
+            "public_share": False,
+            "final_export": False,
+        }
+        (artifact_dir / PREVIEW_META_FILE).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
         return CombinedPreviewSuccess(
             ok=True,
@@ -419,6 +465,7 @@ def process_combined_preview(
                 alignment_offset_ms=alignment_offset_ms,
                 max_preview_seconds=max_preview_seconds,
                 neutral_processing=neutral_processing,
+                mix_settings=mix_settings,
             ),
             processing_summary=CombinedPreviewProcessingSummary(
                 method="rubberband-vocal + ffmpeg-mix",
@@ -426,6 +473,9 @@ def process_combined_preview(
                 pitch_shift_semitones=effective_pitch,
                 alignment_offset_ms=alignment_offset_ms,
                 max_preview_seconds=max_preview_seconds,
+                mix_settings=mix_settings,
+                limiter_safety_applied=mix_settings.limiter_safety,
+                clipping_guard_applied=mix_settings.clipping_guard,
             ),
             output_duration_seconds=output_duration,
             warnings=warnings,

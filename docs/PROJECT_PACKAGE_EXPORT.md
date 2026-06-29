@@ -82,6 +82,7 @@ ZIP download: `GET /v1/artifacts/packages/{id}/download`
 
 - `package_id`, `created_at`, `package_label`, `package_type`
 - `selected_artifact_ids`, artifact entries with readouts when available
+- `mix_settings` on combined preview and full export entries when present (Phase 18)
 - `included_files` with safe relative paths only
 - `public_share: false`, `rights_granted: false`, `user_responsible_for_rights: true`
 - `raw_uploads_included: false`

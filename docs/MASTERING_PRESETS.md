@@ -16,8 +16,9 @@ Mastering **must** use an existing local **WAV export** artifact (`export.wav`).
 | Preset ID | Label | Behavior |
 |-----------|-------|----------|
 | `measurement_only` | Measurement only | Before/after readout (after = before); **no master audio written** |
-| `general_safe_normalize` | General safe normalize | FFmpeg loudnorm ~ **-14 LUFS** / **-1 dBTP** — general playback reference prototype |
+| `general_safe_normalize` | General safe reference | FFmpeg loudnorm ~ **-14 LUFS** / **-1 dBTP** — general playback reference prototype |
 | `dj_loudness_prototype` | DJ loudness prototype | FFmpeg loudnorm ~ **-9.5 LUFS** / **-1 dBTP** — louder prototype; DJ review required |
+| `club_loudness_prototype` | Club loudness prototype | FFmpeg loudnorm ~ **-8 LUFS** / **-1 dBTP** — prototype only; **not club-ready certification** |
 
 ## Endpoint
 
@@ -57,6 +58,8 @@ Playback (when audio created):
 - **Not professional mastering** or a club-ready final unless measured targets pass the informational gate
 - Gate pass/warn is **informational only** — not a release certification
 - DJ loudness prototype may affect dynamics and increase distortion risk
+- Club loudness prototype is louder still (~-8 LUFS) with higher distortion risk — gate pass does **not** mean club-ready
+- Mix-stage limiter/clipping guard (Phase 18) is separate from mastering presets — see `docs/MIX_CONTROLS.md`
 - No public sharing, streaming integration, or distribution rights granted
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.

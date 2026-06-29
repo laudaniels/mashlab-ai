@@ -23,6 +23,7 @@ from artifact_management import (
     _read_master_meta,
     _resolve_under,
 )
+from combined_preview_processing import PREVIEW_META_FILE
 from export_processing import EXPORT_FILE_NAME, EXPORT_MP3_FILE_NAME, RIGHTS_NOTICE
 
 PACKAGES_DIR = config.WORK_DIR / "artifacts" / "packages"
@@ -212,6 +213,18 @@ def _collect_manifest_entry(artifact_id: str, artifact_type: str, subtype: str |
             if meta:
                 entry["export_format"] = meta.get("export_format")
                 entry["export_subtype"] = meta.get("export_subtype")
+                _attach_mix_settings(entry, meta)
+    if artifact_type == "combined-preview":
+        combined_dir = _resolve_under(COMBINED_DIR, artifact_id)
+        if combined_dir:
+            meta_path = combined_dir / PREVIEW_META_FILE
+            if meta_path.is_file():
+                try:
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    if isinstance(meta, dict):
+                        _attach_mix_settings(entry, meta)
+                except (OSError, json.JSONDecodeError):
+                    pass
     if artifact_type == "master":
         master_dir = _resolve_under(MASTERS_DIR, artifact_id)
         if master_dir:
@@ -220,6 +233,18 @@ def _collect_manifest_entry(artifact_id: str, artifact_type: str, subtype: str |
                 entry["master_preset"] = meta.get("master_preset")
                 entry["audio_created"] = meta.get("audio_created")
     return entry
+
+
+def _attach_mix_settings(entry: dict, meta: dict) -> None:
+    mix_raw = meta.get("mix_settings")
+    if isinstance(mix_raw, dict):
+        entry["mix_settings"] = mix_raw
+    if "limiter_safety_applied" in meta:
+        entry["limiter_safety_applied"] = meta.get("limiter_safety_applied")
+    if "clipping_guard_applied" in meta:
+        entry["clipping_guard_applied"] = meta.get("clipping_guard_applied")
+    if meta.get("master_preset"):
+        entry["master_preset"] = meta.get("master_preset")
 
 
 def build_technical_report(selected_ids: list[str]) -> dict:

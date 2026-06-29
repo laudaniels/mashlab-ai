@@ -16,11 +16,13 @@ export const MASTERING_NO_RIGHTS_NOTICE =
 export const MEASUREMENT_ONLY_PRESET = "measurement_only";
 export const GENERAL_SAFE_NORMALIZE_PRESET = "general_safe_normalize";
 export const DJ_LOUDNESS_PROTOTYPE_PRESET = "dj_loudness_prototype";
+export const CLUB_LOUDNESS_PROTOTYPE_PRESET = "club_loudness_prototype";
 
 export const ALLOWED_MASTERING_PRESETS = [
   MEASUREMENT_ONLY_PRESET,
   GENERAL_SAFE_NORMALIZE_PRESET,
   DJ_LOUDNESS_PROTOTYPE_PRESET,
+  CLUB_LOUDNESS_PROTOTYPE_PRESET,
 ] as const;
 
 export type MasteringPresetId = (typeof ALLOWED_MASTERING_PRESETS)[number];
@@ -49,12 +51,15 @@ export const MASTERING_PRESET_DEFINITIONS: MasteringPresetDefinition[] = [
   },
   {
     id: GENERAL_SAFE_NORMALIZE_PRESET,
-    label: "General safe normalize",
+    label: "General safe reference",
     description: "FFmpeg loudnorm prototype for general playback reference (~-14 LUFS / -1 dBTP).",
     targetIntegratedLufs: -14,
     targetTruePeakDbtp: -1,
     createsAudio: true,
-    warnings: ["General playback reference prototype — not professional mastering."],
+    warnings: [
+      "General playback reference prototype — not professional mastering.",
+      "Gate pass/warn is informational only — not certification.",
+    ],
   },
   {
     id: DJ_LOUDNESS_PROTOTYPE_PRESET,
@@ -67,6 +72,21 @@ export const MASTERING_PRESET_DEFINITIONS: MasteringPresetDefinition[] = [
     warnings: [
       "May affect dynamics and increase distortion risk.",
       "DJ review required before live use.",
+      "Not a club-ready or professionally mastered final.",
+    ],
+  },
+  {
+    id: CLUB_LOUDNESS_PROTOTYPE_PRESET,
+    label: "Club loudness prototype",
+    description:
+      "Conservative club/reference prototype (~-8 LUFS / -1 dBTP). Prototype only — not club-ready certification.",
+    targetIntegratedLufs: -8,
+    targetTruePeakDbtp: -1,
+    createsAudio: true,
+    warnings: [
+      "Higher distortion and dynamics loss risk than DJ/general presets.",
+      "DJ review required — gate pass does not mean club-ready.",
+      "Not professional mastering or a distribution-rights claim.",
     ],
   },
 ];
@@ -132,7 +152,7 @@ export function validateMasterWavRequest(params: MasterWavRequestParams): string
 
   if (!ALLOWED_MASTERING_PRESETS.includes(params.preset)) {
     errors.push(
-      "preset must be measurement_only, general_safe_normalize, or dj_loudness_prototype."
+      "preset must be measurement_only, general_safe_normalize, dj_loudness_prototype, or club_loudness_prototype."
     );
   }
 

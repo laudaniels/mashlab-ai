@@ -7,6 +7,7 @@ import type {
   LoudnessGateDisplay,
 } from "../../domain/fullLengthExport.ts";
 import { DEFAULT_FULL_EXPORT_RIGHTS_NOTICE } from "../../domain/fullLengthExport.ts";
+import { parseMixSettings } from "../../domain/mixControls.ts";
 import type { LoudnessReadout } from "../../domain/previewArtifacts.ts";
 import { DEFAULT_LOCAL_ENGINE_URL } from "./types.ts";
 
@@ -163,6 +164,7 @@ function parseFullInputSummary(value: unknown) {
     pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     neutralProcessing: record.neutral_processing === true,
+    mixSettings: parseMixSettings(record.mix_settings),
   };
 }
 
@@ -178,6 +180,9 @@ function parseFullProcessingSummary(value: unknown) {
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     fullLength: record.full_length === true,
     maxTestSeconds: parseNullableNumber(record.max_test_seconds),
+    mixSettings: parseMixSettings(record.mix_settings),
+    limiterSafetyApplied: record.limiter_safety_applied === true,
+    clippingGuardApplied: record.clipping_guard_applied === true,
   };
 }
 

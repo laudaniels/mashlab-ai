@@ -3,6 +3,7 @@ import type {
   CombinedPreviewResult,
 } from "../../domain/combinedPreview.ts";
 import { COMBINED_PREVIEW_ONLY_NOTICE } from "../../domain/combinedPreview.ts";
+import { parseMixSettings } from "../../domain/mixControls.ts";
 import { DEFAULT_LOCAL_ENGINE_URL } from "./types.ts";
 
 export function parseCombinedPreviewResponse(
@@ -91,6 +92,7 @@ function parseInputSummary(value: unknown) {
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     maxPreviewSeconds: parseNullableNumber(record.max_preview_seconds) ?? 30,
     neutralProcessing: record.neutral_processing === true,
+    mixSettings: parseMixSettings(record.mix_settings),
   };
 }
 
@@ -106,6 +108,9 @@ function parseProcessingSummary(value: unknown) {
     pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     maxPreviewSeconds: parseNullableNumber(record.max_preview_seconds) ?? 30,
+    mixSettings: parseMixSettings(record.mix_settings),
+    limiterSafetyApplied: record.limiter_safety_applied === true,
+    clippingGuardApplied: record.clipping_guard_applied === true,
   };
 }
 

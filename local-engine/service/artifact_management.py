@@ -11,11 +11,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import config
+from mix_settings import format_mix_summary, mix_settings_from_dict
 
 ARTIFACT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9]+$")
 ARTIFACTS_ROOT = config.WORK_DIR / "artifacts"
 STEMS_DIR = ARTIFACTS_ROOT / "stems"
 COMBINED_DIR = ARTIFACTS_ROOT / "combined-preview"
+COMBINED_META_FILE = "preview.meta.json"
 PITCH_TIME_DIR = ARTIFACTS_ROOT / "pitch-time-preview"
 EXPORTS_DIR = ARTIFACTS_ROOT / "exports"
 MASTERS_DIR = ARTIFACTS_ROOT / "masters"
@@ -73,6 +75,7 @@ class PreviewArtifactEntry:
     included_file_count: int | None = None
     selected_artifact_ids: list[str] | None = None
     public_share: bool = False
+    mix_summary: str | None = None
 
 
 @dataclass
@@ -252,6 +255,8 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
             preview = child / "preview.wav"
             if not preview.exists():
                 continue
+            combined_meta = _read_combined_meta(child)
+            mix_summary = _mix_summary_from_meta(combined_meta)
             entries.append(
                 PreviewArtifactEntry(
                     artifact_id=child.name,
@@ -265,6 +270,7 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     preview_only=True,
                     final_export=False,
                     primary_file_name=preview.name,
+                    mix_summary=mix_summary,
                 )
             )
 
@@ -352,6 +358,7 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     source_vocal_stem_artifact_id=source_vocal_id,
                     target_instrumental_stem_artifact_id=target_instrumental_id,
                     source_wav_export_artifact_id=source_wav_id,
+                    mix_summary=_mix_summary_from_meta(meta),
                 )
             )
 
@@ -393,6 +400,7 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     source_wav_export_artifact_id=source_wav_id,
                     master_preset=master_preset,
                     mastering_prototype=True,
+                    mix_summary=f"preset {master_preset}" if master_preset else None,
                 )
             )
 
@@ -698,6 +706,26 @@ def _probe_duration(path: Path) -> float | None:
     if not data:
         return None
     return _safe_float(data.get("format", {}).get("duration"))
+
+
+def _read_combined_meta(combined_dir: Path) -> dict | None:
+    meta_path = combined_dir / COMBINED_META_FILE
+    if not meta_path.is_file():
+        return None
+    try:
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _mix_summary_from_meta(meta: dict | None) -> str | None:
+    if not meta or not isinstance(meta, dict):
+        return None
+    mix_raw = meta.get("mix_settings")
+    if isinstance(mix_raw, dict):
+        return format_mix_summary(mix_settings_from_dict(mix_raw))
+    return None
 
 
 def _read_export_meta(export_dir: Path) -> dict | None:

@@ -42,6 +42,7 @@ from mastering_processing import MasterWavFailure, MasterWavSuccess, create_mast
 from mp3_export_processing import ExportMp3Failure, ExportMp3Success, create_mp3_export
 from export_processing import ExportWavFailure, ExportWavSuccess, create_wav_export
 from package_export_processing import PackageExportFailure, PackageExportSuccess, create_project_package
+from mix_settings import MixSettings, mix_settings_to_dict
 from full_length_export_processing import (
     FullWavExportFailure,
     FullWavExportSuccess,
@@ -73,6 +74,7 @@ from models import (
     ArtifactMetadataResponse,
     ArtifactPlaybackUrlsModel,
     LoudnessReadoutModel,
+    MixSettingsModel,
     PreviewArtifactSummary,
     TechnicalReadoutModel,
     CreateJobRequest,
@@ -418,6 +420,15 @@ def process_combined_preview_endpoint(
         max_preview_seconds=request.max_preview_seconds,
         formant_preservation=request.formant_preservation,
         neutral_processing=request.neutral_processing,
+        vocal_gain_db=request.vocal_gain_db,
+        instrumental_gain_db=request.instrumental_gain_db,
+        master_gain_db=request.master_gain_db,
+        vocal_fade_in_ms=request.vocal_fade_in_ms,
+        vocal_fade_out_ms=request.vocal_fade_out_ms,
+        instrumental_fade_in_ms=request.instrumental_fade_in_ms,
+        instrumental_fade_out_ms=request.instrumental_fade_out_ms,
+        limiter_safety=request.limiter_safety,
+        clipping_guard=request.clipping_guard,
     )
 
     if isinstance(result, CombinedPreviewFailure):
@@ -451,6 +462,7 @@ def process_combined_preview_endpoint(
             alignment_offset_ms=result.input_summary.alignment_offset_ms,
             max_preview_seconds=result.input_summary.max_preview_seconds,
             neutral_processing=result.input_summary.neutral_processing,
+            mix_settings=_mix_settings_model(result.input_summary.mix_settings),
         ),
         processing_summary=CombinedPreviewProcessingSummaryModel(
             method=result.processing_summary.method,
@@ -458,6 +470,9 @@ def process_combined_preview_endpoint(
             pitch_shift_semitones=result.processing_summary.pitch_shift_semitones,
             alignment_offset_ms=result.processing_summary.alignment_offset_ms,
             max_preview_seconds=result.processing_summary.max_preview_seconds,
+            mix_settings=_mix_settings_model(result.processing_summary.mix_settings),
+            limiter_safety_applied=result.processing_summary.limiter_safety_applied,
+            clipping_guard_applied=result.processing_summary.clipping_guard_applied,
         ),
         output_duration_seconds=result.output_duration_seconds,
         warnings=result.warnings,
@@ -769,6 +784,15 @@ def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
         neutral_processing=request.neutral_processing,
         confirm_neutral_settings=request.confirm_neutral_settings,
         max_test_seconds=request.max_test_seconds,
+        vocal_gain_db=request.vocal_gain_db,
+        instrumental_gain_db=request.instrumental_gain_db,
+        master_gain_db=request.master_gain_db,
+        vocal_fade_in_ms=request.vocal_fade_in_ms,
+        vocal_fade_out_ms=request.vocal_fade_out_ms,
+        instrumental_fade_in_ms=request.instrumental_fade_in_ms,
+        instrumental_fade_out_ms=request.instrumental_fade_out_ms,
+        limiter_safety=request.limiter_safety,
+        clipping_guard=request.clipping_guard,
     )
 
     if isinstance(result, FullWavExportFailure):
@@ -813,6 +837,7 @@ def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
             pitch_shift_semitones=result.input_summary.pitch_shift_semitones,
             alignment_offset_ms=result.input_summary.alignment_offset_ms,
             neutral_processing=result.input_summary.neutral_processing,
+            mix_settings=_mix_settings_model(result.input_summary.mix_settings),
         ),
         processing_summary=FullExportProcessingSummaryModel(
             method=result.processing_summary.method,
@@ -821,6 +846,9 @@ def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
             alignment_offset_ms=result.processing_summary.alignment_offset_ms,
             full_length=result.processing_summary.full_length,
             max_test_seconds=result.processing_summary.max_test_seconds,
+            mix_settings=_mix_settings_model(result.processing_summary.mix_settings),
+            limiter_safety_applied=result.processing_summary.limiter_safety_applied,
+            clipping_guard_applied=result.processing_summary.clipping_guard_applied,
         ),
         file_size_bytes=result.file_size_bytes,
         duration_seconds=result.duration_seconds,
@@ -875,6 +903,7 @@ def list_artifacts() -> ArtifactListResponse:
                 included_file_count=item.included_file_count,
                 selected_artifact_ids=item.selected_artifact_ids,
                 public_share=item.public_share,
+                mix_summary=item.mix_summary,
             )
             for item in artifacts
         ],
@@ -966,6 +995,11 @@ def clear_preview_artifacts(scope: str = "session") -> ArtifactDeleteResponse:
         message=f"Cleared {deleted_count} local session artifacts (previews and exports).",
         deleted_count=deleted_count,
     )
+
+
+def _mix_settings_model(settings: MixSettings) -> MixSettingsModel:
+    payload = mix_settings_to_dict(settings)
+    return MixSettingsModel(**payload)
 
 
 def _technical_readout_model(readout) -> TechnicalReadoutModel:

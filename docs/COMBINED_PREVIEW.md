@@ -54,6 +54,11 @@ JSON body:
 | `alignment_offset_ms` | Timeline alignment offset |
 | `max_preview_seconds` | Default 30 (max 60) |
 | `neutral_processing` | Force 1.0 ratio / 0 semitones when BPM/key missing |
+| `vocal_gain_db` / `instrumental_gain_db` / `master_gain_db` | Mix levels (-24 to +12 dB) — Phase 18 |
+| `vocal_fade_*_ms` / `instrumental_fade_*_ms` | Fade in/out (0–30 s) — Phase 18 |
+| `limiter_safety` / `clipping_guard` | Optional FFmpeg limiter prototypes — Phase 18 |
+
+See `docs/MIX_CONTROLS.md` for mix control details.
 
 **Success:** `status: preview_complete`, `final_export: false`, `artifact_url`
 

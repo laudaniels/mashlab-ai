@@ -185,6 +185,12 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                     <dd>{artifact.masterPreset}</dd>
                   </div>
                 ) : null}
+                {artifact.mixSummary ? (
+                  <div>
+                    <dt>Mix settings</dt>
+                    <dd>{artifact.mixSummary}</dd>
+                  </div>
+                ) : null}
                 {artifact.packageSubtype ? (
                   <div>
                     <dt>Package type</dt>

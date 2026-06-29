@@ -10,12 +10,14 @@ from loudness_gate import LoudnessGateEvaluation
 MEASUREMENT_ONLY_PRESET = "measurement_only"
 GENERAL_SAFE_NORMALIZE_PRESET = "general_safe_normalize"
 DJ_LOUDNESS_PROTOTYPE_PRESET = "dj_loudness_prototype"
+CLUB_LOUDNESS_PROTOTYPE_PRESET = "club_loudness_prototype"
 
 ALLOWED_MASTERING_PRESETS = frozenset(
     {
         MEASUREMENT_ONLY_PRESET,
         GENERAL_SAFE_NORMALIZE_PRESET,
         DJ_LOUDNESS_PROTOTYPE_PRESET,
+        CLUB_LOUDNESS_PROTOTYPE_PRESET,
     }
 )
 
@@ -23,6 +25,8 @@ GENERAL_TARGET_INTEGRATED_LUFS = -14.0
 GENERAL_TARGET_TRUE_PEAK_DBTP = -1.0
 DJ_PROTOTYPE_TARGET_INTEGRATED_LUFS = -9.5
 DJ_PROTOTYPE_TARGET_TRUE_PEAK_DBTP = -1.0
+CLUB_PROTOTYPE_TARGET_INTEGRATED_LUFS = -8.0
+CLUB_PROTOTYPE_TARGET_TRUE_PEAK_DBTP = -1.0
 
 LUFS_WARN_TOLERANCE = 2.0
 TRUE_PEAK_WARN_TOLERANCE = 0.5
@@ -58,7 +62,7 @@ MASTERING_PRESET_DEFINITIONS: dict[str, MasteringPresetDefinition] = {
     ),
     GENERAL_SAFE_NORMALIZE_PRESET: MasteringPresetDefinition(
         preset_id=GENERAL_SAFE_NORMALIZE_PRESET,
-        label="General safe normalize",
+        label="General safe reference",
         description=(
             "FFmpeg loudnorm prototype targeting general playback reference levels "
             "(approximately -14 LUFS integrated / -1 dBTP true peak)."
@@ -69,7 +73,7 @@ MASTERING_PRESET_DEFINITIONS: dict[str, MasteringPresetDefinition] = {
         creates_audio=True,
         preset_warnings=(
             "General playback reference prototype — not professional mastering.",
-            "Gate pass/warn is informational only.",
+            "Gate pass/warn is informational only — not certification.",
         ),
     ),
     DJ_LOUDNESS_PROTOTYPE_PRESET: MasteringPresetDefinition(
@@ -86,7 +90,24 @@ MASTERING_PRESET_DEFINITIONS: dict[str, MasteringPresetDefinition] = {
         preset_warnings=(
             "DJ loudness prototype — may affect dynamics and increase distortion risk.",
             "DJ review required before any live use.",
-            "Not a club-mastered or professionally mastered final.",
+            "Not a club-ready or professionally mastered final.",
+        ),
+    ),
+    CLUB_LOUDNESS_PROTOTYPE_PRESET: MasteringPresetDefinition(
+        preset_id=CLUB_LOUDNESS_PROTOTYPE_PRESET,
+        label="Club loudness prototype",
+        description=(
+            "Conservative club/reference loudness prototype (~-8 LUFS integrated / -1 dBTP ceiling). "
+            "Prototype only — DJ review required. Not club-ready certification."
+        ),
+        target_integrated_lufs=CLUB_PROTOTYPE_TARGET_INTEGRATED_LUFS,
+        target_true_peak_dbtp=CLUB_PROTOTYPE_TARGET_TRUE_PEAK_DBTP,
+        loudnorm_filter="loudnorm=I=-8:TP=-1:LRA=5",
+        creates_audio=True,
+        preset_warnings=(
+            "Club loudness prototype — higher distortion and dynamics loss risk.",
+            "DJ review required — not professional mastering or club-ready certification.",
+            "Gate pass does not mean club-ready — prototype only.",
         ),
     ),
 }
@@ -197,6 +218,11 @@ def evaluate_mastering_gate(
         prototype_note = (
             "DJ loudness prototype gate — DJ review required. "
             "Not professional mastering or a club-ready master claim."
+        )
+    if preset_id == CLUB_LOUDNESS_PROTOTYPE_PRESET:
+        prototype_note = (
+            "Club loudness prototype gate — DJ review required. "
+            "Not club-ready certification or professional mastering."
         )
 
     if loudness.status == "partial" or warn_reasons:

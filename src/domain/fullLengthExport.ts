@@ -1,10 +1,13 @@
 import { requiredRightsNotice } from "../lib/legal.ts";
 import {
   buildCombinedPreviewRequestParams,
+  COMBINED_PREVIEW_DEFAULT_SECONDS,
   isCombinedPreviewReady,
   resolveCombinedPreviewDirections,
   type CombinedPreviewDirectionContext,
 } from "./combinedPreview.ts";
+import type { MixSettings } from "./mixControls.ts";
+import { validateMixSettings } from "./mixControls.ts";
 import type { MashIntent, PitchTimeDirectionPlan, RubberBandReadiness } from "./pitchTimePlanning.ts";
 import { buildPitchTimePlanFromArtifacts } from "./pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "./sessionArtifacts.ts";
@@ -45,6 +48,7 @@ export interface FullLengthExportRequestParams {
   loudnessTargetMode: FullLengthLoudnessMode;
   neutralProcessing: boolean;
   confirmNeutralSettings: boolean;
+  mixSettings: MixSettings;
 }
 
 export interface LoudnessGateDisplay {
@@ -63,6 +67,9 @@ export interface FullLengthExportProcessingSummary {
   alignmentOffsetMs: number;
   fullLength: boolean;
   maxTestSeconds: number | null;
+  mixSettings: MixSettings | null;
+  limiterSafetyApplied: boolean;
+  clippingGuardApplied: boolean;
 }
 
 export interface FullLengthExportInputSummary {
@@ -73,6 +80,7 @@ export interface FullLengthExportInputSummary {
   pitchShiftSemitones: number;
   alignmentOffsetMs: number;
   neutralProcessing: boolean;
+  mixSettings: MixSettings | null;
 }
 
 export interface FullLengthExportResult {
@@ -209,9 +217,15 @@ export function buildFullLengthExportRequestParams(
   useNeutralProcessing: boolean,
   confirmNeutralSettings: boolean,
   loudnessTargetMode: FullLengthLoudnessMode,
+  mixSettings: MixSettings,
   exportLabel?: string | null
 ): FullLengthExportRequestParams {
-  const previewParams = buildCombinedPreviewRequestParams(context, useNeutralProcessing);
+  const previewParams = buildCombinedPreviewRequestParams(
+    context,
+    useNeutralProcessing,
+    COMBINED_PREVIEW_DEFAULT_SECONDS,
+    mixSettings
+  );
 
   return {
     sourceVocalStemArtifactId: previewParams.sourceVocalArtifactId,
@@ -226,6 +240,7 @@ export function buildFullLengthExportRequestParams(
     loudnessTargetMode,
     neutralProcessing: useNeutralProcessing,
     confirmNeutralSettings: confirmNeutralSettings,
+    mixSettings,
   };
 }
 
@@ -258,6 +273,8 @@ export function validateFullLengthExportRequest(params: FullLengthExportRequestP
   if (params.exportLabel && params.exportLabel.trim().length > 120) {
     errors.push("export_label must be 120 characters or fewer.");
   }
+
+  errors.push(...validateMixSettings(params.mixSettings));
 
   return errors;
 }

@@ -1,4 +1,4 @@
-# Local WAV, MP3, Mastering, and Project Package Exports (Phase 13–17)
+# Local WAV, MP3, Mastering, Mix Controls, and Project Package Exports (Phase 13–18)
 
 MashLab AI / CyphaBlend AI supports **local WAV export** lanes, **MP3 reference export**, **mastering preset prototypes**, and **local project package export**. All exports are explicit, user-initiated, and rights-neutral.
 
@@ -75,9 +75,10 @@ Warnings include: *MP3 is a reference/export format, not proof of distribution r
 
 1. Rubber Band on full vocal stem (pitch/time)
 2. FFmpeg align + mix with target `no_vocals` stem (no preview duration trim by default)
-3. Optional FFmpeg `loudnorm` when normalize mode selected
-4. ffprobe/FFmpeg technical + loudness readout
-5. Non-blocking loudness gate vs display targets (~ -14 LUFS / -1 dBTP)
+3. Optional mix controls (Phase 18): per-track gain, fades, limiter safety, clipping guard — see `docs/MIX_CONTROLS.md`
+4. Optional FFmpeg `loudnorm` when normalize mode selected
+5. ffprobe/FFmpeg technical + loudness readout
+6. Non-blocking loudness gate vs display targets (~ -14 LUFS / -1 dBTP)
 
 ### `POST /v1/export/full-wav`
 

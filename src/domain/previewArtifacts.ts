@@ -70,6 +70,7 @@ export interface PreviewArtifactSummary {
   includedFileCount: number | null;
   selectedArtifactIds: string[] | null;
   publicShare: boolean;
+  mixSummary: string | null;
 }
 
 export interface LoudnessReadout {

@@ -26,6 +26,10 @@ import {
   rubberBandCapabilitySummary,
 } from "../lib/localEngine/capabilities.ts";
 import { validateCombinedPreviewRequestParams } from "../lib/localEngine/combinedPreview.ts";
+import { loadMixSettings } from "../lib/mixSession.ts";
+import { MixControlsPanel } from "./MixControlsPanel.tsx";
+import type { MixSettings } from "../domain/mixControls.ts";
+import { validateMixSettings } from "../domain/mixControls.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 
 interface CombinedPreviewPanelProps {
@@ -62,6 +66,7 @@ export function CombinedPreviewPanel({
   const [customDurationSeconds, setCustomDurationSeconds] = useState(String(COMBINED_PREVIEW_DEFAULT_SECONDS));
   const [processingKey, setProcessingKey] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, CombinedPreviewResult | null>>({});
+  const [mixSettings, setMixSettings] = useState<MixSettings>(() => loadMixSettings());
 
   if (!plan) {
     return (
@@ -115,12 +120,15 @@ export function CombinedPreviewPanel({
     const params = buildCombinedPreviewRequestParams(
       context,
       useNeutralProcessing,
-      previewDurationSeconds
+      previewDurationSeconds,
+      mixSettings
     );
     const durationErrors = validateCombinedPreviewDuration(previewDurationSeconds);
+    const mixErrors = validateMixSettings(mixSettings);
     const validationErrors = [
       ...validateCombinedPreviewRequestParams(params),
       ...durationErrors,
+      ...mixErrors,
     ];
     if (validationErrors.length > 0) {
       setResults((current) => ({
@@ -256,6 +264,12 @@ export function CombinedPreviewPanel({
           </p>
         ) : null}
       </div>
+
+      <MixControlsPanel
+        disabled={processingKey !== null}
+        onChange={setMixSettings}
+        settings={mixSettings}
+      />
 
       <div className="combined-preview-grid">
         {directions.map((context) => {

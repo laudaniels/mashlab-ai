@@ -190,6 +190,18 @@ class StemPreviewResponse(BaseModel):
     validation_errors: list[str] | None = None
 
 
+class MixSettingsModel(BaseModel):
+    vocal_gain_db: float = 0.0
+    instrumental_gain_db: float = 0.0
+    master_gain_db: float = 0.0
+    vocal_fade_in_ms: float = 0.0
+    vocal_fade_out_ms: float = 0.0
+    instrumental_fade_in_ms: float = 0.0
+    instrumental_fade_out_ms: float = 0.0
+    limiter_safety: bool = False
+    clipping_guard: bool = False
+
+
 class CombinedPreviewRequest(BaseModel):
     mash_intent: Literal["vocal_a_over_beat_b", "vocal_b_over_beat_a"]
     source_vocal_artifact_id: str = Field(min_length=1)
@@ -202,6 +214,15 @@ class CombinedPreviewRequest(BaseModel):
     max_preview_seconds: int = 30
     formant_preservation: bool = True
     neutral_processing: bool = False
+    vocal_gain_db: float = 0.0
+    instrumental_gain_db: float = 0.0
+    master_gain_db: float = 0.0
+    vocal_fade_in_ms: float = 0.0
+    vocal_fade_out_ms: float = 0.0
+    instrumental_fade_in_ms: float = 0.0
+    instrumental_fade_out_ms: float = 0.0
+    limiter_safety: bool = False
+    clipping_guard: bool = False
 
 
 class CombinedPreviewInputSummaryModel(BaseModel):
@@ -213,6 +234,7 @@ class CombinedPreviewInputSummaryModel(BaseModel):
     alignment_offset_ms: float = 0
     max_preview_seconds: int = 30
     neutral_processing: bool = False
+    mix_settings: MixSettingsModel | None = None
 
 
 class CombinedPreviewProcessingSummaryModel(BaseModel):
@@ -221,6 +243,9 @@ class CombinedPreviewProcessingSummaryModel(BaseModel):
     pitch_shift_semitones: float = 0
     alignment_offset_ms: float = 0
     max_preview_seconds: int = 30
+    mix_settings: MixSettingsModel | None = None
+    limiter_safety_applied: bool = False
+    clipping_guard_applied: bool = False
 
 
 class CombinedPreviewResponse(BaseModel):
@@ -272,6 +297,7 @@ class PreviewArtifactSummary(BaseModel):
     included_file_count: int | None = None
     selected_artifact_ids: list[str] | None = None
     public_share: bool = False
+    mix_summary: str | None = None
 
 
 class PackageIncludedFileModel(BaseModel):
@@ -459,6 +485,7 @@ class FullExportInputSummaryModel(BaseModel):
     pitch_shift_semitones: float
     alignment_offset_ms: float
     neutral_processing: bool
+    mix_settings: MixSettingsModel | None = None
 
 
 class FullExportProcessingSummaryModel(BaseModel):
@@ -468,6 +495,9 @@ class FullExportProcessingSummaryModel(BaseModel):
     alignment_offset_ms: float
     full_length: bool
     max_test_seconds: int | None = None
+    mix_settings: MixSettingsModel | None = None
+    limiter_safety_applied: bool = False
+    clipping_guard_applied: bool = False
 
 
 class LoudnessGateModel(BaseModel):
@@ -493,6 +523,15 @@ class FullWavExportRequest(BaseModel):
     neutral_processing: bool = False
     confirm_neutral_settings: bool = False
     max_test_seconds: int | None = None
+    vocal_gain_db: float = 0.0
+    instrumental_gain_db: float = 0.0
+    master_gain_db: float = 0.0
+    vocal_fade_in_ms: float = 0.0
+    vocal_fade_out_ms: float = 0.0
+    instrumental_fade_in_ms: float = 0.0
+    instrumental_fade_out_ms: float = 0.0
+    limiter_safety: bool = False
+    clipping_guard: bool = False
 
 
 class FullWavExportResponse(BaseModel):

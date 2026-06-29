@@ -15,6 +15,7 @@ from artifact_management import (
 from export_processing import RIGHTS_NOTICE
 from mastering_presets import (
     ALLOWED_MASTERING_PRESETS,
+    CLUB_LOUDNESS_PROTOTYPE_PRESET,
     DJ_LOUDNESS_PROTOTYPE_PRESET,
     GENERAL_SAFE_NORMALIZE_PRESET,
     MEASUREMENT_ONLY_PRESET,
@@ -45,9 +46,19 @@ class MasteringPresetsTests(unittest.TestCase):
                     MEASUREMENT_ONLY_PRESET,
                     GENERAL_SAFE_NORMALIZE_PRESET,
                     DJ_LOUDNESS_PROTOTYPE_PRESET,
+                    CLUB_LOUDNESS_PROTOTYPE_PRESET,
                 }
             ),
         )
+
+    def test_club_preset_is_prototype_not_certification(self) -> None:
+        preset = get_mastering_preset(CLUB_LOUDNESS_PROTOTYPE_PRESET)
+        self.assertIsNotNone(preset)
+        assert preset is not None
+        self.assertIn("club", preset.label.lower())
+        joined = " ".join(preset.preset_warnings).lower()
+        self.assertIn("not professional mastering", joined)
+        self.assertIn("club-ready", joined)
 
     def test_build_loudnorm_encode_command(self) -> None:
         command = build_loudnorm_encode_command(

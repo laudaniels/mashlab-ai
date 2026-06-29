@@ -108,6 +108,7 @@ export function parseArtifactSummary(
     includedFileCount: parseNullableNumber(record.included_file_count),
     selectedArtifactIds: parseStringArrayOrNull(record.selected_artifact_ids),
     publicShare: record.public_share === true,
+    mixSummary: typeof record.mix_summary === "string" ? record.mix_summary : null,
   };
 }
 

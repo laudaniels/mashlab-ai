@@ -1,3 +1,5 @@
+import type { MixSettings } from "./mixControls.ts";
+import { mixSettingsToRequestFields } from "./mixControls.ts";
 import type { MashIntent, PitchTimeDirectionPlan } from "./pitchTimePlanning.ts";
 import { resolveIntentDirectionPairs, buildTrackPlanningInput } from "./pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "./sessionArtifacts.ts";
@@ -42,6 +44,7 @@ export interface CombinedPreviewRequestParams {
   maxPreviewSeconds: number;
   formantPreservation: boolean;
   neutralProcessing: boolean;
+  mixSettings: MixSettings;
 }
 
 export interface CombinedPreviewProcessingSummary {
@@ -50,6 +53,9 @@ export interface CombinedPreviewProcessingSummary {
   pitchShiftSemitones: number;
   alignmentOffsetMs: number;
   maxPreviewSeconds: number;
+  mixSettings: MixSettings | null;
+  limiterSafetyApplied: boolean;
+  clippingGuardApplied: boolean;
 }
 
 export interface CombinedPreviewInputSummary {
@@ -61,6 +67,7 @@ export interface CombinedPreviewInputSummary {
   alignmentOffsetMs: number;
   maxPreviewSeconds: number;
   neutralProcessing: boolean;
+  mixSettings: MixSettings | null;
 }
 
 export interface CombinedPreviewResult {
@@ -156,7 +163,8 @@ export function isCombinedPreviewReady(params: {
 export function buildCombinedPreviewRequestParams(
   context: CombinedPreviewDirectionContext,
   useNeutralProcessing: boolean,
-  maxPreviewSeconds: number = COMBINED_PREVIEW_DEFAULT_SECONDS
+  maxPreviewSeconds: number = COMBINED_PREVIEW_DEFAULT_SECONDS,
+  mixSettings: MixSettings
 ): CombinedPreviewRequestParams {
   const direction = context.direction;
 
@@ -172,6 +180,30 @@ export function buildCombinedPreviewRequestParams(
     maxPreviewSeconds,
     formantPreservation: true,
     neutralProcessing: useNeutralProcessing,
+    mixSettings,
+  };
+}
+
+export function combinedPreviewRequestIncludesMixSettings(
+  params: CombinedPreviewRequestParams
+): boolean {
+  return mixSettingsToRequestFields(params.mixSettings) !== undefined;
+}
+
+export function serializeCombinedPreviewRequestBody(params: CombinedPreviewRequestParams) {
+  return {
+    mash_intent: params.mashIntent,
+    source_vocal_artifact_id: params.sourceVocalArtifactId,
+    target_instrumental_artifact_id: params.targetInstrumentalArtifactId,
+    tempo_ratio: params.tempoRatio,
+    source_bpm: params.sourceBpm,
+    target_bpm: params.targetBpm,
+    pitch_shift_semitones: params.pitchShiftSemitones,
+    alignment_offset_ms: params.alignmentOffsetMs,
+    max_preview_seconds: params.maxPreviewSeconds,
+    formant_preservation: params.formantPreservation,
+    neutral_processing: params.neutralProcessing,
+    ...mixSettingsToRequestFields(params.mixSettings),
   };
 }
 

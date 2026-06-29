@@ -1,5 +1,11 @@
 export const EXPORT_PREP_LOCKED_NOTICE =
-  "Export is not implemented yet. Current previews are not final masters.";
+  "Create a combined preview first to unlock local WAV export.";
+
+export const EXPORT_PREP_ACTIVE_NOTICE =
+  "Local WAV export from combined preview — user-initiated only. Not a published release.";
+
+export const EXPORT_MP3_STEMS_NOTICE =
+  "MP3, stem package, mastering presets, and public sharing are not implemented.";
 
 export const EXPORT_GENERAL_LUFS_TARGET = "-14 LUFS";
 export const EXPORT_GENERAL_TRUE_PEAK_TARGET = "-1 dBTP";
@@ -9,15 +15,15 @@ export interface ExportTargetPlan {
   id: string;
   label: string;
   description: string;
-  status: "locked";
+  status: "locked" | "available";
 }
 
 export const exportTargetPlans: ExportTargetPlan[] = [
   {
     id: "wav",
     label: "WAV export",
-    description: "Primary lossless master export path.",
-    status: "locked",
+    description: "Local WAV from an existing combined preview artifact.",
+    status: "available",
   },
   {
     id: "mp3",
@@ -43,8 +49,12 @@ export function exportPanelClaimsFinalMaster(): boolean {
   return false;
 }
 
-export function exportPanelIsLocked(): boolean {
-  return true;
+export function exportPanelIsLocked(hasCombinedPreviewArtifact: boolean): boolean {
+  return !hasCombinedPreviewArtifact;
+}
+
+export function isWavExportAvailable(hasCombinedPreviewArtifact: boolean): boolean {
+  return hasCombinedPreviewArtifact;
 }
 
 export function formatLoudnessTargetSummary(): string {

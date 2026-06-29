@@ -69,6 +69,7 @@ import { buildRegistryEntry } from "./domain/previewArtifacts.ts";
 import {
   upsertPreviewArtifactRegistryEntry,
 } from "./lib/previewArtifactRegistry.ts";
+import { notifyArtifactRefresh } from "./lib/artifactRefresh.ts";
 import {
   applyPersistedOverrides,
   clearSessionSnapshot,
@@ -298,6 +299,7 @@ function App() {
         label: `${trackLabels[slotId]} stem preview`,
       })
     );
+    notifyArtifactRefresh();
   }
 
   function registerCombinedPreviewArtifact(params: {
@@ -317,6 +319,7 @@ function App() {
         label: params.label,
       })
     );
+    notifyArtifactRefresh();
   }
 
   async function handleFileChange(slotId: SlotId, event: ChangeEvent<HTMLInputElement>) {
@@ -717,8 +720,8 @@ function App() {
             <ScreenTitle
               eyebrow="Export panel"
               icon={Download}
-              title="Preview Session and Export Prep"
-              subtitle="Manage local preview artifacts and review locked export/mastering targets."
+              title="Preview Session and Local Export"
+              subtitle="Manage local preview and export artifacts. WAV export unlocks after a combined preview exists."
             />
             <PreviewArtifactBrowser />
             <ExportPrepPanel />

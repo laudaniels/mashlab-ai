@@ -4,7 +4,7 @@ import type {
   LoudnessReadout,
   PreviewArtifactSummary,
 } from "../../domain/previewArtifacts.ts";
-import { PREVIEW_ARTIFACT_LABEL, formatTrackSlotLabel, isPreviewArtifactType } from "../../domain/previewArtifacts.ts";
+import { EXPORT_ARTIFACT_LABEL, PREVIEW_ARTIFACT_LABEL, formatTrackSlotLabel, isPreviewArtifactType } from "../../domain/previewArtifacts.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 import { findRegistryEntry } from "../previewArtifactRegistry.ts";
 import { DEFAULT_LOCAL_ENGINE_URL } from "./types.ts";
@@ -68,12 +68,20 @@ export function parseArtifactSummary(
     previewOnly: record.preview_only !== false,
     finalExport: record.final_export === true,
     previewLabel:
-      typeof record.preview_label === "string" ? record.preview_label : PREVIEW_ARTIFACT_LABEL,
+      typeof record.preview_label === "string"
+        ? record.preview_label
+        : record.artifact_type === "export"
+          ? EXPORT_ARTIFACT_LABEL
+          : PREVIEW_ARTIFACT_LABEL,
     primaryFileName:
       typeof record.primary_file_name === "string" ? record.primary_file_name : "preview.wav",
     sourceTrackLabel: formatTrackSlotLabel(registryEntry?.sourceTrackSlot ?? null),
     targetTrackLabel: formatTrackSlotLabel(registryEntry?.targetTrackSlot ?? null),
     registryLabel: registryEntry?.label ?? null,
+    sourceCombinedPreviewArtifactId:
+      typeof record.source_combined_preview_artifact_id === "string"
+        ? record.source_combined_preview_artifact_id
+        : null,
   };
 }
 

@@ -258,6 +258,7 @@ class PreviewArtifactSummary(BaseModel):
     final_export: bool = False
     primary_file_name: str
     preview_label: str = "Preview only — not a final export or master."
+    source_combined_preview_artifact_id: str | None = None
 
 
 class ArtifactListResponse(BaseModel):
@@ -303,3 +304,33 @@ class ArtifactDeleteResponse(BaseModel):
     message: str
     artifact_id: str | None = None
     deleted_count: int | None = None
+
+
+class ExportWavRequest(BaseModel):
+    source_combined_preview_artifact_id: str
+    export_format: str = "wav"
+    export_label: str | None = None
+    loudness_target_mode: str = "measurement_only"
+
+
+class ExportWavResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    export_artifact_id: str | None = None
+    source_combined_preview_artifact_id: str | None = None
+    artifact_url: str | None = None
+    download_url: str | None = None
+    file_size_bytes: int | None = None
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    codec: str | None = None
+    loudness: LoudnessReadoutModel | None = None
+    final_export: bool = False
+    public_share: bool = False
+    rights_notice: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    export_label: str | None = None
+    validation_errors: list[str] | None = None

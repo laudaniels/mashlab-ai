@@ -9,6 +9,7 @@ import {
   parseStemPreviewResponse,
 } from "./stemPreview.ts";
 import { parseCombinedPreviewResponse } from "./combinedPreview.ts";
+import { parseExportWavResponse } from "./export.ts";
 import {
   parseArtifactDeleteResponse,
   parseArtifactListResponse,
@@ -41,6 +42,8 @@ import type { StemPreviewResult } from "../../domain/stemPreview.ts";
 import type { CombinedPreviewRequestParams } from "../../domain/combinedPreview.ts";
 import type { CombinedPreviewResult } from "../../domain/combinedPreview.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
+import type { ExportWavRequestParams } from "../../domain/localExport.ts";
+import type { ExportWavResult } from "../../domain/localExport.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -229,6 +232,29 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseCombinedPreviewResponse(payload, this.baseUrl);
+  }
+
+  async createWavExport(params: ExportWavRequestParams): Promise<ExportWavResult | null> {
+    const response = await this.request("/v1/export/wav", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        source_combined_preview_artifact_id: params.sourceCombinedPreviewArtifactId,
+        export_format: "wav",
+        export_label: params.exportLabel ?? null,
+        loudness_target_mode: params.loudnessTargetMode,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseExportWavResponse(payload, this.baseUrl);
   }
 
   async listArtifacts(registry: PreviewArtifactRegistryEntry[] = []) {

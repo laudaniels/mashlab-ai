@@ -17,8 +17,12 @@ ARTIFACTS_ROOT = config.WORK_DIR / "artifacts"
 STEMS_DIR = ARTIFACTS_ROOT / "stems"
 COMBINED_DIR = ARTIFACTS_ROOT / "combined-preview"
 PITCH_TIME_DIR = ARTIFACTS_ROOT / "pitch-time-preview"
+EXPORTS_DIR = ARTIFACTS_ROOT / "exports"
 
 PREVIEW_ONLY_LABEL = "Preview only — not a final export or master."
+EXPORT_ARTIFACT_LABEL = (
+    "Local export — user responsible for rights. No public distribution rights granted."
+)
 
 
 @dataclass
@@ -39,6 +43,8 @@ class PreviewArtifactEntry:
     preview_only: bool
     final_export: bool
     primary_file_name: str
+    preview_label: str = PREVIEW_ONLY_LABEL
+    source_combined_preview_artifact_id: str | None = None
 
 
 @dataclass
@@ -126,6 +132,12 @@ def find_artifact_primary_path(artifact_id: str) -> tuple[Path | None, str | Non
     if pitch_file and pitch_file.is_file():
         return pitch_file, "pitch-time-preview"
 
+    export_dir = _resolve_under(EXPORTS_DIR, artifact_id)
+    if export_dir and export_dir.is_dir():
+        export_file = export_dir / "export.wav"
+        if export_file.exists():
+            return export_file, "export"
+
     return None, None
 
 
@@ -144,6 +156,10 @@ def find_artifact_root(artifact_id: str) -> Path | None:
     pitch_file = _resolve_under(PITCH_TIME_DIR, f"{artifact_id}.wav")
     if pitch_file and pitch_file.is_file():
         return pitch_file
+
+    export_dir = _resolve_under(EXPORTS_DIR, artifact_id)
+    if export_dir and export_dir.is_dir() and (export_dir / "export.wav").exists():
+        return export_dir
 
     return None
 
@@ -224,6 +240,35 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                 )
             )
 
+    if EXPORTS_DIR.exists():
+        for child in sorted(EXPORTS_DIR.iterdir()):
+            if not child.is_dir() or not is_valid_artifact_id(child.name):
+                continue
+            export_file = child / "export.wav"
+            if not export_file.exists():
+                continue
+            meta = _read_export_meta(child)
+            source_id = None
+            if meta and isinstance(meta.get("source_combined_preview_artifact_id"), str):
+                source_id = meta["source_combined_preview_artifact_id"]
+            entries.append(
+                PreviewArtifactEntry(
+                    artifact_id=child.name,
+                    artifact_type="export",
+                    status="ready",
+                    created_at=_iso_from_mtime(export_file),
+                    duration_seconds=_probe_duration(export_file),
+                    playback_urls=ArtifactPlaybackUrls(
+                        primary=f"/v1/artifacts/exports/{child.name}/export"
+                    ),
+                    preview_only=False,
+                    final_export=True,
+                    primary_file_name=export_file.name,
+                    preview_label=EXPORT_ARTIFACT_LABEL,
+                    source_combined_preview_artifact_id=source_id,
+                )
+            )
+
     return entries
 
 
@@ -238,14 +283,15 @@ def get_artifact_metadata(artifact_id: str) -> ArtifactMetadataResult:
 
     technical = analyze_technical_readout(primary_path)
     playback_url = _playback_url_for(artifact_id, artifact_type)
+    is_export = artifact_type == "export"
 
     return ArtifactMetadataSuccess(
         ok=True,
         artifact_id=artifact_id,
         artifact_type=artifact_type,
         status="ready",
-        preview_only=True,
-        final_export=False,
+        preview_only=not is_export,
+        final_export=is_export,
         technical=technical,
         playback_url=playback_url,
     )
@@ -458,6 +504,17 @@ def _probe_duration(path: Path) -> float | None:
     return _safe_float(data.get("format", {}).get("duration"))
 
 
+def _read_export_meta(export_dir: Path) -> dict | None:
+    meta_path = export_dir / "export.meta.json"
+    if not meta_path.is_file():
+        return None
+    try:
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 def _playback_url_for(artifact_id: str, artifact_type: str) -> str | None:
     if artifact_type == "stem":
         return f"/v1/artifacts/stems/{artifact_id}/vocals"
@@ -465,6 +522,8 @@ def _playback_url_for(artifact_id: str, artifact_type: str) -> str | None:
         return f"/v1/artifacts/combined-preview/{artifact_id}/preview"
     if artifact_type == "pitch-time-preview":
         return f"/v1/artifacts/pitch-time-preview/{artifact_id}"
+    if artifact_type == "export":
+        return f"/v1/artifacts/exports/{artifact_id}/export"
     return None
 
 

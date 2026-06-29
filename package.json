@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "test": "node --experimental-strip-types --test scripts/verify-core.mts",
     "check:local-engine": "node --experimental-strip-types local-engine/check-binaries.mts",
-    "check:python-service": "python -m py_compile local-engine/service/main.py local-engine/service/capabilities.py local-engine/service/metadata.py local-engine/service/beat_analysis.py local-engine/service/key_analysis.py local-engine/service/pitch_time_planning.py local-engine/service/rubber_band_processing.py local-engine/service/demucs_processing.py local-engine/service/combined_preview_processing.py local-engine/service/artifact_management.py local-engine/service/librosa_support.py local-engine/service/uploads.py local-engine/service/jobs.py local-engine/service/models.py local-engine/service/config.py",
+    "check:python-service": "python -m py_compile local-engine/service/main.py local-engine/service/capabilities.py local-engine/service/metadata.py local-engine/service/beat_analysis.py local-engine/service/key_analysis.py local-engine/service/pitch_time_planning.py local-engine/service/rubber_band_processing.py local-engine/service/demucs_processing.py local-engine/service/combined_preview_processing.py local-engine/service/export_processing.py local-engine/service/artifact_management.py local-engine/service/librosa_support.py local-engine/service/uploads.py local-engine/service/jobs.py local-engine/service/models.py local-engine/service/config.py",
     "check:python-service:test": "cd local-engine/service && python -m unittest discover -s tests -p test_*.py"
   },
   "dependencies": {

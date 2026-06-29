@@ -36,14 +36,15 @@ Implemented:
 - **Demucs vocal/instrumental stem preview** (user-initiated, two-stem mode, one track at a time).
 - **Combined vocal-over-instrumental preview** (Rubber Band vocal + FFmpeg mix; requires stem previews first).
 - **Preview artifact browser** with local cleanup and technical/loudness readout.
-- **Locked export/mastering prep panel** (future targets documented; no final export yet).
+- **Local WAV export prototype** from combined preview (user-initiated; unlocks export panel).
+- **Locked future targets** for MP3, stems package, full mastering, and public sharing (not implemented).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
 - True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
-- Final WAV/MP3/stem package export rendering, mastering passes, or public sharing.
+- Full MP3/stem package export, mastering passes, club versions, or public sharing.
 
 ## Legal Notice
 
@@ -73,7 +74,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, preview processing, session artifacts, and timeline alignment.
+See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, preview processing, local exports, session artifacts, and timeline alignment.
 
 ## Quality Commands
 

@@ -1,14 +1,15 @@
-# Preview Session Management — Phase 12
+# Preview Session Management — Phase 12–13
 
-Phase 12 adds **local preview artifact management** without turning previews into final exports.
+Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV export artifacts** and auto-refresh hooks.
 
 ## What This Phase Adds
 
-- Preview artifact browser (stem, combined-preview, pitch-time-preview)
-- Safe local cleanup (single artifact or clear all session previews)
+- Preview artifact browser (stem, combined-preview, pitch-time-preview, **export**)
+- Safe local cleanup (single artifact or clear all session artifacts)
 - Combined preview duration controls (15 / 30 / 60 seconds, custom up to 60)
 - FFmpeg/ffprobe technical readout and loudness analysis where practical
-- Locked export/mastering prep panel (architecture only)
+- Export panel (unlocks when combined preview exists — Phase 13)
+- Auto-refresh after stem/combined/export create and delete/clear (`src/lib/artifactRefresh.ts`)
 
 ## Preview Artifacts Are Local
 
@@ -18,9 +19,10 @@ All preview artifacts live under the sidecar workspace:
 .work/artifacts/stems/{id}/
 .work/artifacts/combined-preview/{id}/preview.wav
 .work/artifacts/pitch-time-preview/{id}.wav
+.work/artifacts/exports/{id}/export.wav
 ```
 
-They are **not** final exports, not cloud-hosted, and not shared publicly.
+Preview artifacts are **not** final exports (except export-type artifacts which are local user-generated WAV files — still not published releases). Nothing is cloud-hosted or shared publicly.
 
 The browser UI stores optional session metadata (source/target track labels) in **sessionStorage** only. Raw upload paths are not shown in the artifact browser.
 
@@ -28,15 +30,18 @@ The browser UI stores optional session metadata (source/target track labels) in 
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /v1/artifacts` | List local preview artifacts |
+| `GET /v1/artifacts` | List local preview and export artifacts |
 | `GET /v1/artifacts/{id}/metadata` | ffprobe + loudness readout |
-| `DELETE /v1/artifacts/{id}` | Delete one preview artifact safely |
-| `DELETE /v1/artifacts?scope=session` | Clear all preview artifacts under `.work/artifacts/` |
+| `DELETE /v1/artifacts/{id}` | Delete one artifact safely |
+| `DELETE /v1/artifacts?scope=session` | Clear all session artifacts under `.work/artifacts/` |
+| `POST /v1/export/wav` | Create local WAV export from combined preview (Phase 13) |
+| `GET /v1/artifacts/exports/{id}/export` | Playback/download export WAV |
 
-All preview entries include:
+Preview entries include `preview_only: true` and `final_export: false`.
 
-- `preview_only: true`
-- `final_export: false`
+Export entries include `preview_only: false`, `final_export: true`, and the label:
+
+> Local export — user responsible for rights. No public distribution rights granted.
 
 ## Cleanup Behavior
 
@@ -65,18 +70,11 @@ If loudnorm cannot run or parse, the API returns structured status:
 
 The combined preview panel exposes 15s / 30s (default) / 60s presets and custom duration up to **60 seconds** (server-side max). Longer selections show an estimated processing-time warning.
 
-## Export Panel Status
+## Export Panel Status (Phase 13)
 
-Export/mastering remains **locked**. The prep panel documents future targets only:
+WAV export unlocks when at least one combined-preview artifact exists. MP3, stem package, full mastering presets, club versions, and public sharing remain unavailable.
 
-- WAV export
-- MP3 export
-- Stems export package
-- DJ-safe preview master
-- Planned general playback loudness target around **-14 LUFS / -1 dBTP**
-- Planned club version target (not implemented)
-
-Copy must state: **Export is not implemented yet. Current previews are not final masters.**
+See `docs/LOCAL_EXPORTS.md` and `docs/EXPORT_AND_MASTERING_PLAN.md`.
 
 ## Privacy and Rights
 

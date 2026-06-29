@@ -38,6 +38,7 @@ from rubber_band_processing import (
     PitchTimePreviewSuccess,
     process_pitch_time_preview,
 )
+from export_processing import ExportWavFailure, ExportWavSuccess, create_wav_export
 from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
@@ -45,6 +46,8 @@ from models import (
     CombinedPreviewProcessingSummaryModel,
     CombinedPreviewRequest,
     CombinedPreviewResponse,
+    ExportWavRequest,
+    ExportWavResponse,
     ArtifactDeleteResponse,
     ArtifactListResponse,
     ArtifactMetadataResponse,
@@ -458,13 +461,79 @@ def get_combined_preview_artifact(artifact_id: str) -> FileResponse:
     )
 
 
+@app.get("/v1/artifacts/exports/{artifact_id}/export")
+def get_export_artifact(artifact_id: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    artifact_path = config.WORK_DIR / "artifacts" / "exports" / artifact_id / "export.wav"
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail="Export artifact not found.")
+
+    return FileResponse(
+        path=artifact_path,
+        media_type="audio/wav",
+        filename=f"mashlab-export-{artifact_id}.wav",
+    )
+
+
+@app.post("/v1/export/wav", response_model=ExportWavResponse)
+def export_wav(request: ExportWavRequest) -> ExportWavResponse:
+    result = create_wav_export(
+        source_combined_preview_artifact_id=request.source_combined_preview_artifact_id,
+        export_format=request.export_format,
+        export_label=request.export_label,
+        loudness_target_mode=request.loudness_target_mode,
+    )
+
+    if isinstance(result, ExportWavFailure):
+        return ExportWavResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            validation_errors=result.validation_errors,
+            final_export=False,
+            public_share=False,
+        )
+
+    loudness_model = LoudnessReadoutModel(
+        integrated_lufs=result.loudness.integrated_lufs,
+        true_peak_dbtp=result.loudness.true_peak_dbtp,
+        peak_level_db=result.loudness.peak_level_db,
+        status=result.loudness.status,
+        message=result.loudness.message,
+    )
+
+    return ExportWavResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        export_artifact_id=result.export_artifact_id,
+        source_combined_preview_artifact_id=result.source_combined_preview_artifact_id,
+        artifact_url=result.artifact_url,
+        download_url=result.download_url,
+        file_size_bytes=result.file_size_bytes,
+        duration_seconds=result.duration_seconds,
+        sample_rate=result.sample_rate,
+        channel_count=result.channel_count,
+        codec=result.codec,
+        loudness=loudness_model,
+        final_export=result.final_export,
+        public_share=result.public_share,
+        rights_notice=result.rights_notice,
+        warnings=result.warnings,
+        limitations=result.limitations,
+        export_label=result.export_label,
+    )
+
+
 @app.get("/v1/artifacts", response_model=ArtifactListResponse)
 def list_artifacts() -> ArtifactListResponse:
     artifacts = list_preview_artifacts()
     return ArtifactListResponse(
         ok=True,
         status="ready",
-        message="Local preview artifacts listed. Preview only — not final exports.",
+        message="Local session artifacts listed. Previews are not final exports; exports are local user-generated files.",
         artifacts=[
             PreviewArtifactSummary(
                 artifact_id=item.artifact_id,
@@ -480,6 +549,8 @@ def list_artifacts() -> ArtifactListResponse:
                 preview_only=item.preview_only,
                 final_export=item.final_export,
                 primary_file_name=item.primary_file_name,
+                preview_label=item.preview_label,
+                source_combined_preview_artifact_id=item.source_combined_preview_artifact_id,
             )
             for item in artifacts
         ],
@@ -500,7 +571,11 @@ def read_artifact_metadata(artifact_id: str) -> ArtifactMetadataResponse:
     return ArtifactMetadataResponse(
         ok=True,
         status=result.status,
-        message="Preview artifact metadata returned. Not a final export.",
+        message=(
+            "Export artifact metadata returned. Local user-generated export — not a published release."
+            if result.final_export
+            else "Preview artifact metadata returned. Not a final export."
+        ),
         artifact_id=result.artifact_id,
         artifact_type=result.artifact_type,
         preview_only=result.preview_only,
@@ -531,14 +606,14 @@ def delete_artifact(artifact_id: str) -> ArtifactDeleteResponse:
         return ArtifactDeleteResponse(
             ok=False,
             status=status,
-            message=message or "Could not delete preview artifact.",
+            message=message or "Could not delete session artifact.",
             artifact_id=artifact_id,
         )
 
     return ArtifactDeleteResponse(
         ok=True,
         status=status,
-        message="Preview artifact deleted from local workspace.",
+        message="Session artifact deleted from local workspace.",
         artifact_id=artifact_id,
     )
 
@@ -549,7 +624,7 @@ def clear_preview_artifacts(scope: str = "session") -> ArtifactDeleteResponse:
         return ArtifactDeleteResponse(
             ok=False,
             status="validation_error",
-            message="Only scope=session is supported for preview artifact cleanup.",
+            message="Only scope=session is supported for session artifact cleanup.",
         )
 
     deleted_count, errors = clear_all_preview_artifacts()
@@ -564,7 +639,7 @@ def clear_preview_artifacts(scope: str = "session") -> ArtifactDeleteResponse:
     return ArtifactDeleteResponse(
         ok=True,
         status="deleted",
-        message=f"Cleared {deleted_count} local preview artifacts.",
+        message=f"Cleared {deleted_count} local session artifacts (previews and exports).",
         deleted_count=deleted_count,
     )
 

@@ -1,9 +1,12 @@
 import type { SlotId } from "./types.ts";
 
-export type PreviewArtifactType = "stem" | "combined-preview" | "pitch-time-preview";
+export type PreviewArtifactType = "stem" | "combined-preview" | "pitch-time-preview" | "export";
 
 export const PREVIEW_ARTIFACT_LABEL =
   "Preview only — not a final export or master.";
+
+export const EXPORT_ARTIFACT_LABEL =
+  "Local export — user responsible for rights. No public distribution rights granted.";
 
 export interface PreviewArtifactRegistryEntry {
   artifactId: string;
@@ -38,6 +41,7 @@ export interface PreviewArtifactSummary {
   sourceTrackLabel: string | null;
   targetTrackLabel: string | null;
   registryLabel: string | null;
+  sourceCombinedPreviewArtifactId: string | null;
 }
 
 export interface LoudnessReadout {
@@ -76,7 +80,20 @@ export function previewArtifactClaimsFinalExport(artifact: PreviewArtifactSummar
 }
 
 export function isPreviewArtifactType(value: string): value is PreviewArtifactType {
-  return value === "stem" || value === "combined-preview" || value === "pitch-time-preview";
+  return (
+    value === "stem" ||
+    value === "combined-preview" ||
+    value === "pitch-time-preview" ||
+    value === "export"
+  );
+}
+
+export function isExportArtifact(artifact: PreviewArtifactSummary): boolean {
+  return artifact.artifactType === "export";
+}
+
+export function isCombinedPreviewArtifact(artifact: PreviewArtifactSummary): boolean {
+  return artifact.artifactType === "combined-preview";
 }
 
 export function formatTrackSlotLabel(slotId: SlotId | null): string | null {

@@ -1651,10 +1651,10 @@ describe("Preview session management", async () => {
   });
 
   it("locked export panel does not claim final master export", () => {
-    assert.equal(exportPanelIsLocked(), true);
+    assert.equal(exportPanelIsLocked(false), true);
+    assert.equal(exportPanelIsLocked(true), false);
     assert.equal(exportPanelClaimsFinalMaster(), false);
-    assert.match(EXPORT_PREP_LOCKED_NOTICE, /Export is not implemented yet/i);
-    assert.match(EXPORT_PREP_LOCKED_NOTICE, /not final masters/i);
+    assert.match(EXPORT_PREP_LOCKED_NOTICE, /combined preview/i);
   });
 
   it("builds preview registry entries with finalExport false", () => {
@@ -1666,6 +1666,122 @@ describe("Preview session management", async () => {
     });
     assert.equal(entry.finalExport, false);
     assert.equal(entry.isPreviewOnly, true);
+  });
+});
+
+describe("Local WAV export prototype", async () => {
+  const { parseExportWavResponse } = await importSrc("src/lib/localEngine/export.ts");
+  const {
+    LOCAL_EXPORT_ARTIFACT_LABEL,
+    exportResultClaimsFinalExport,
+    exportResultGrantsPublicShare,
+    validateExportWavRequest,
+    DEFAULT_EXPORT_RIGHTS_NOTICE,
+    EXPORT_WAV_ONLY_NOTICE,
+  } = await importSrc("src/domain/localExport.ts");
+  const {
+    exportPanelIsLocked,
+    isWavExportAvailable,
+    EXPORT_MP3_STEMS_NOTICE,
+  } = await importSrc("src/domain/exportPrep.ts");
+  const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { previewArtifactClaimsFinalExport } = await importSrc("src/domain/previewArtifacts.ts");
+
+  it("parses successful export response with finalExport true and publicShare false", () => {
+    const parsed = parseExportWavResponse({
+      ok: true,
+      status: "ready",
+      message: "Local WAV export created.",
+      export_artifact_id: "exportabc123",
+      source_combined_preview_artifact_id: "combinedabc1",
+      artifact_url: "/v1/artifacts/exports/exportabc123/export",
+      download_url: "/v1/artifacts/exports/exportabc123/export",
+      file_size_bytes: 2048,
+      duration_seconds: 30,
+      sample_rate: 44100,
+      channel_count: 2,
+      codec: "pcm_s16le",
+      loudness: {
+        integrated_lufs: null,
+        true_peak_dbtp: -1.2,
+        peak_level_db: -2.0,
+        status: "partial",
+        message: "Integrated LUFS could not be measured.",
+      },
+      final_export: true,
+      public_share: false,
+      rights_notice: DEFAULT_EXPORT_RIGHTS_NOTICE,
+      warnings: ["Local user-generated export prototype."],
+      limitations: ["No MP3 or public sharing."],
+    }, "http://127.0.0.1:47831");
+
+    assert.ok(parsed);
+    assert.equal(parsed?.finalExport, true);
+    assert.equal(parsed?.publicShare, false);
+    assert.equal(exportResultClaimsFinalExport(parsed!), true);
+    assert.equal(exportResultGrantsPublicShare(parsed!), false);
+    assert.match(parsed?.rightsNotice ?? "", /Rights to publish or distribute/i);
+    assert.ok(parsed?.playbackUrl?.includes("/v1/artifacts/exports/exportabc123/export"));
+  });
+
+  it("validates combined-preview-only source id", () => {
+    assert.ok(validateExportWavRequest({
+      sourceCombinedPreviewArtifactId: "../bad",
+      loudnessTargetMode: "measurement_only",
+    }).length > 0);
+    assert.equal(validateExportWavRequest({
+      sourceCombinedPreviewArtifactId: "combinedabc1",
+      loudnessTargetMode: "measurement_only",
+    }).length, 0);
+  });
+
+  it("parses export artifact in browser list with export label", () => {
+    const parsed = parseArtifactSummary({
+      artifact_id: "exportabc123",
+      artifact_type: "export",
+      status: "ready",
+      created_at: "2026-01-01T00:00:00.000Z",
+      duration_seconds: 30,
+      playback_urls: { primary: "/v1/artifacts/exports/exportabc123/export" },
+      preview_only: false,
+      final_export: true,
+      primary_file_name: "export.wav",
+      preview_label: LOCAL_EXPORT_ARTIFACT_LABEL,
+      source_combined_preview_artifact_id: "combinedabc1",
+    }, "http://127.0.0.1:47831");
+
+    assert.ok(parsed);
+    assert.equal(parsed?.artifactType, "export");
+    assert.equal(parsed?.finalExport, true);
+    assert.equal(parsed?.previewOnly, false);
+    assert.match(parsed?.previewLabel ?? "", /No public distribution rights granted/i);
+    assert.equal(parsed?.sourceCombinedPreviewArtifactId, "combinedabc1");
+  });
+
+  it("preview artifacts still do not claim finalExport", () => {
+    const preview = parseArtifactSummary({
+      artifact_id: "combinedabc1",
+      artifact_type: "combined-preview",
+      status: "ready",
+      created_at: "2026-01-01T00:00:00.000Z",
+      duration_seconds: 30,
+      playback_urls: { primary: "/v1/artifacts/combined-preview/combinedabc1/preview" },
+      preview_only: true,
+      final_export: false,
+      primary_file_name: "preview.wav",
+    }, "http://127.0.0.1:47831");
+
+    assert.ok(preview);
+    assert.equal(previewArtifactClaimsFinalExport(preview!), false);
+  });
+
+  it("export panel unlock logic follows combined preview availability", () => {
+    assert.equal(isWavExportAvailable(false), false);
+    assert.equal(isWavExportAvailable(true), true);
+    assert.equal(exportPanelIsLocked(false), true);
+    assert.equal(exportPanelIsLocked(true), false);
+    assert.match(EXPORT_MP3_STEMS_NOTICE, /not implemented/i);
+    assert.match(EXPORT_WAV_ONLY_NOTICE, /WAV export only/i);
   });
 });
 

@@ -8,6 +8,7 @@ import {
   loadPreviewArtifactRegistry,
   removePreviewArtifactRegistryEntry,
 } from "../lib/previewArtifactRegistry.ts";
+import { notifyArtifactRefresh, subscribeArtifactRefresh } from "../lib/artifactRefresh.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 
 interface PreviewArtifactBrowserProps {
@@ -41,6 +42,8 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
     void refresh();
   }, [refresh]);
 
+  useEffect(() => subscribeArtifactRefresh(() => void refresh()), [refresh]);
+
   async function handleInspect(artifactId: string) {
     setBusyId(artifactId);
     const metadata = await localEngineClient.getArtifactMetadata(artifactId);
@@ -56,6 +59,7 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
       onRegistryChange?.();
     }
     setBusyId(null);
+    notifyArtifactRefresh();
     await refresh();
   }
 
@@ -68,6 +72,7 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
     }
     setMetadataById({});
     setBusyId(null);
+    notifyArtifactRefresh();
     await refresh();
   }
 
@@ -93,7 +98,7 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
           type="button"
         >
           <Trash2 aria-hidden="true" size={16} />
-          Clear all preview artifacts for this session
+          Clear all session artifacts (previews and exports)
         </button>
       </div>
 
@@ -143,12 +148,31 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                   <dt>Target</dt>
                   <dd>{artifact.targetTrackLabel ?? "—"}</dd>
                 </div>
+                {artifact.sourceCombinedPreviewArtifactId ? (
+                  <div>
+                    <dt>Source combined preview</dt>
+                    <dd>{artifact.sourceCombinedPreviewArtifactId}</dd>
+                  </div>
+                ) : null}
               </dl>
 
-              <p className="preview-artifact-label">{artifact.previewLabel}</p>
+              <p
+                className={`preview-artifact-label ${
+                  artifact.artifactType === "export" ? "preview-artifact-label-export" : ""
+                }`}
+              >
+                {artifact.previewLabel}
+              </p>
 
               {artifact.playbackUrl ? (
-                <audio controls preload="none" src={artifact.playbackUrl} />
+                <>
+                  <audio controls preload="none" src={artifact.playbackUrl} />
+                  {artifact.artifactType === "export" ? (
+                    <a className="preview-artifact-download" download href={artifact.playbackUrl}>
+                      Download local export WAV
+                    </a>
+                  ) : null}
+                </>
               ) : (
                 <p className="preview-artifact-no-playback">Playback unavailable.</p>
               )}
@@ -165,7 +189,7 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                   Technical readout
                 </button>
                 <button disabled={isBusy} onClick={() => void handleDelete(artifact.artifactId)} type="button">
-                  Delete preview
+                  Delete artifact
                 </button>
               </div>
 

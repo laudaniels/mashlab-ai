@@ -1,53 +1,55 @@
-# Export and Mastering Plan — Phase 12 Scaffolding
+# Export and Mastering Plan
 
-Export and mastering are **not implemented** in the MVP. Phase 12 adds a locked prep panel and documents the future lane only.
+## Current State (Phase 13)
 
-## Current State
+- **Local WAV export prototype** is available from existing combined-preview artifacts only
+- Export panel unlocks when at least one combined-preview exists
+- Export artifacts live at `.work/artifacts/exports/{uuid}/export.wav`
+- Export responses set `finalExport: true` and `publicShare: false`
+- MP3, stem package export, full mastering, club versions, and public sharing remain **not implemented**
 
-- Preview artifacts exist locally (stem, combined, pitch/time previews)
-- Preview WAVs are **not** final masters
-- No WAV/MP3/stem package export rendering
-- No loudness normalization pass for final delivery
-- No true-peak limiting for publish-ready output
+Preview artifacts (stem, combined, pitch/time) remain `finalExport: false`.
 
-The export screen states:
+## Phase 13 WAV Export (Implemented)
 
-> Export is not implemented yet. Current previews are not final masters.
+| Item | Status |
+|------|--------|
+| WAV from combined preview | Available (user-initiated) |
+| Measurement-only loudness readout | Default |
+| Optional normalize preview copy | Prototype only — not full mastering |
+| MP3 export | Not implemented |
+| Stems export package | Not implemented |
+| DJ-safe preview master | Not implemented |
+| Public sharing | Not implemented |
 
-## Planned Export Targets (Future)
+See `docs/LOCAL_EXPORTS.md` for API and storage details.
 
-| Target | Purpose | Status |
-|--------|---------|--------|
-| WAV export | Primary lossless master | Locked / planned |
-| MP3 export | Compressed reference render | Locked / planned |
-| Stems export | Separated stem package | Locked / planned |
-| DJ-safe preview master | Loudness-checked review master | Locked / planned |
+## Planned Loudness Targets (Future Full Mastering)
 
-## Planned Loudness Targets (Future, Not Active)
-
-These are **design targets** for a future export lane — not applied to current previews:
+These are **design targets** for a future mastering lane — not claims about current exports:
 
 | Profile | Integrated loudness | True peak |
 |---------|---------------------|-----------|
 | General playback | ~ -14 LUFS | ~ -1 dBTP |
 | Club version | TBD (planned) | TBD (planned) |
 
-Current preview metadata readout may measure loudness for **review only**. That does not mean the preview is mastered or publish-ready.
+Current export loudness readout is for **review/measurement**. Optional `normalize_preview` applies FFmpeg loudnorm to the preview copy only and is explicitly labeled as a prototype — not club-ready mastering.
 
-## Architecture Notes (Future Implementation)
+## Architecture Notes
 
 1. Explicit user export action (no auto-export)
-2. Render from session artifacts + approved plan state
-3. FFmpeg/Rubber Band/Demucs pipelines already proven in preview lanes
-4. Loudness/true-peak validation gate before marking export complete
-5. Local filesystem output only in MVP (no public sharing hub)
+2. Phase 13 copies from combined preview; future phases may re-render full length
+3. Preview lanes (Demucs, Rubber Band, FFmpeg) remain separate from export mastering
+4. Loudness/true-peak validation gate before marking future masters complete
+5. Local filesystem output only (no public sharing hub)
 
 ## Legal Reminder
 
-Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
+Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility. **No distribution rights are granted by export.**
 
 ## Related Docs
 
+- `docs/LOCAL_EXPORTS.md`
 - `docs/PREVIEW_SESSION_MANAGEMENT.md`
 - `docs/COMBINED_PREVIEW.md`
 - `docs/RUBBER_BAND_PROCESSING.md`

@@ -1250,6 +1250,92 @@ audio {
   font-size: 12px;
 }
 
+.rhythm-selftest-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed rgba(132, 146, 176, 0.24);
+  border-radius: 8px;
+  background: rgba(16, 23, 34, 0.6);
+}
+
+.rhythm-selftest-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rhythm-selftest-header h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.rhythm-selftest-header p {
+  margin: 4px 0 0;
+  color: #9eb0cb;
+  font-size: 12px;
+}
+
+.rhythm-selftest-run-button {
+  justify-self: start;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #1f2a3d;
+  color: #eef3fb;
+  border: 1px solid rgba(132, 146, 176, 0.28);
+}
+
+.rhythm-selftest-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #ffb84d;
+  font-size: 12px;
+}
+
+.rhythm-selftest-summary,
+.rhythm-selftest-engine-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #b8c4d9;
+  font-size: 12px;
+}
+
+.rhythm-selftest-engine {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: #101722;
+}
+
+.rhythm-selftest-engine.status-pass {
+  border-left: 3px solid #2ee6a6;
+}
+
+.rhythm-selftest-engine.status-failed,
+.rhythm-selftest-engine.status-missing_dependency,
+.rhythm-selftest-engine.status-not_configured {
+  border-left: 3px solid #ffb84d;
+}
+
+.rhythm-selftest-status-pill {
+  color: #9eb0cb;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.rhythm-selftest-limitation,
+.rhythm-selftest-setup,
+.rhythm-selftest-rights,
+.rhythm-selftest-dj {
+  color: #9eb0cb;
+  font-size: 11px;
+}
+
 .timeline-summary-list p {
   margin: 0;
   color: #b8c4d9;

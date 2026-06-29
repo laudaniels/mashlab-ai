@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 import config
 from beat_analysis import analyze_beat_file
 from capabilities import detect_capabilities, python_version_label
+from rhythm_selftest import run_rhythm_selftest
 from jobs import complete_metadata_job, create_job, fail_job, get_job, update_job
 from key_analysis import analyze_key_file
 from phrase_analysis import analyze_phrase_file
@@ -57,6 +58,7 @@ from section_export_processing import (
 from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
+    RhythmSelfTestResponse,
     CombinedPreviewInputSummaryModel,
     CombinedPreviewProcessingSummaryModel,
     CombinedPreviewRequest,
@@ -152,6 +154,11 @@ def capabilities() -> CapabilitiesResponse:
         python_version=python_version_label(),
         capabilities=detect_capabilities(),
     )
+
+
+@app.get("/v1/capabilities/rhythm-selftest", response_model=RhythmSelfTestResponse)
+def rhythm_selftest() -> RhythmSelfTestResponse:
+    return run_rhythm_selftest()
 
 
 @app.post("/v1/jobs", response_model=JobResponse)

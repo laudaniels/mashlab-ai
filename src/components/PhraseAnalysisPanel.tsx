@@ -17,14 +17,13 @@ import { requiredRightsNotice } from "../lib/legal.ts";
 import {
   findCapability,
   heuristicPhrasePlanningAvailable,
-  isEssentiaAvailable,
-  isBeatnetAvailable,
-  isMadmomAvailable,
   phraseAnalysisCapabilitySummary,
   verifiedPhraseAnalysisAvailable,
 } from "../lib/localEngine/capabilities.ts";
 import { localEngineClient } from "../lib/localEngine/client.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
+import type { RhythmSelfTestResponse } from "../domain/rhythmSelfTest.ts";
+import { RhythmSelfTestPanel, rhythmSelfTestAvailability } from "./RhythmSelfTestPanel.tsx";
 
 interface PhraseAnalysisPanelProps {
   tracks: TrackState[];
@@ -47,6 +46,9 @@ export function PhraseAnalysisPanel({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<PhraseAnalysisResult | null>(null);
   const [comparison, setComparison] = useState<PhraseAnalysisComparison | null>(null);
+  const [selfTestResponse, setSelfTestResponse] = useState<RhythmSelfTestResponse | null>(null);
+
+  const engineAvailability = rhythmSelfTestAvailability(selfTestResponse, localStatus.capabilities);
 
   const capabilitySummary = useMemo(
     () => phraseAnalysisCapabilitySummary(localStatus.capabilities),
@@ -57,9 +59,7 @@ export function PhraseAnalysisPanel({
   const artifact = artifactStore.tracks[selectedSlot];
 
   const advancedAvailable =
-    isEssentiaAvailable(localStatus.capabilities) ||
-    isBeatnetAvailable(localStatus.capabilities) ||
-    isMadmomAvailable(localStatus.capabilities);
+    engineAvailability.essentia || engineAvailability.madmom || engineAvailability.beatnet;
 
   async function handleRunPhraseAnalysis() {
     if (!selectedTrack) {
@@ -173,14 +173,14 @@ export function PhraseAnalysisPanel({
           <select disabled={busy} onChange={(event) => setMethod(event.target.value as PhraseAnalysisMethodPreference)} value={method}>
             <option value="auto">Auto (advanced if available, else heuristic)</option>
             <option value="heuristic">Heuristic (from beat times)</option>
-            <option value="essentia" disabled={!isEssentiaAvailable(localStatus.capabilities)}>
-              Essentia {isEssentiaAvailable(localStatus.capabilities) ? "" : "(not installed)"}
+            <option value="essentia" disabled={!engineAvailability.essentia}>
+              Essentia {engineAvailability.essentia ? "" : "(not installed / self-test not passed)"}
             </option>
-            <option value="beatnet" disabled={!isBeatnetAvailable(localStatus.capabilities)}>
-              BeatNet+ {isBeatnetAvailable(localStatus.capabilities) ? "" : "(not installed)"}
+            <option value="beatnet" disabled={!engineAvailability.beatnet}>
+              BeatNet+ {engineAvailability.beatnet ? "" : "(not installed / stub)"}
             </option>
-            <option value="madmom" disabled={!isMadmomAvailable(localStatus.capabilities)}>
-              madmom {isMadmomAvailable(localStatus.capabilities) ? "" : "(not installed)"}
+            <option value="madmom" disabled={!engineAvailability.madmom}>
+              madmom {engineAvailability.madmom ? "" : "(not installed / self-test not passed)"}
             </option>
           </select>
         </label>
@@ -217,6 +217,12 @@ export function PhraseAnalysisPanel({
           )}
         </button>
       </div>
+
+      <RhythmSelfTestPanel
+        capabilities={localStatus.capabilities}
+        online={localStatus.online}
+        onSelfTestComplete={setSelfTestResponse}
+      />
 
       {!advancedAvailable && method !== "heuristic" ? (
         <p className="phrase-analysis-note">

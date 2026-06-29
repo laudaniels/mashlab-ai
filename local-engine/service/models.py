@@ -43,6 +43,48 @@ class CapabilitiesResponse(BaseModel):
     capabilities: list[ServiceCapability]
 
 
+RhythmSelfTestStatus = Literal[
+    "pass",
+    "missing_dependency",
+    "not_configured",
+    "failed",
+    "not_implemented",
+    "skipped",
+]
+
+
+class RhythmEngineSelfTestResult(BaseModel):
+    engine_name: str
+    engine_id: str
+    import_status: str
+    smoke_test_status: RhythmSelfTestStatus
+    beat_marker_count: int = 0
+    downbeat_marker_count: int = 0
+    phrase_marker_count: int = 0
+    basis_label: str = "Unavailable"
+    confidence: float | None = None
+    bpm: float | None = None
+    limitations: list[str] = Field(default_factory=list)
+    setup_guidance: str | None = None
+    message: str = ""
+
+
+class RhythmSelfTestResponse(BaseModel):
+    ok: bool = True
+    service: str
+    python_version: str
+    platform: str
+    no_user_audio_processed: bool = True
+    test_signal: str
+    dj_review_required: bool = True
+    heuristic_fallback_available: bool
+    verified_downbeat_available: bool
+    verified_phrase_available: bool
+    results: list[RhythmEngineSelfTestResult]
+    rights_notice: str
+    limitations: list[str] = Field(default_factory=list)
+
+
 class CreateJobRequest(BaseModel):
     phase: JobPhase
     session_id: str = Field(min_length=1)

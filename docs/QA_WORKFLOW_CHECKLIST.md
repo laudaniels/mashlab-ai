@@ -93,6 +93,16 @@ If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for th
 - [ ] No fake verified labels when downbeats not detected
 - [ ] Arrangement drafts prefer verified phrase evidence over heuristic when present
 - [ ] Arrangement context includes phrase evidence fields when bound
+
+## Phase 26: Rhythm engine self-test
+
+- [ ] **Run rhythm self-test** button on Timeline / Local Engine Status (manual only — not auto-run)
+- [ ] Self-test notice: no user audio processed
+- [ ] Heuristic engine shows pass on Windows with librosa
+- [ ] madmom/Essentia show missing_dependency or not_configured on Windows without optional deps
+- [ ] Verified labels appear only when self-test reports real markers
+- [ ] Setup guidance shown for missing engines
+- [ ] WSL/Linux path documented in `docs/WSL_RHYTHM_ENGINE_SETUP.md`
 - [ ] DJ review notice visible; rights notice unchanged
 
 ### 6. Combined preview

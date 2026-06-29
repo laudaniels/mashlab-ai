@@ -40,6 +40,16 @@ pip install cython numpy scipy madmom
 
 **Phase 25 install attempt (Windows Python 3.12):** Essentia and madmom both failed to build. Heuristic fallback remains default; all checks pass without optional engines.
 
+## Rhythm Self-Test (Phase 26)
+
+### `GET /v1/capabilities/rhythm-selftest`
+
+Runs without user audio. Generates a synthetic click track in `.work/temp`, tests each engine, deletes the temp file.
+
+Returns per-engine: import status, smoke-test status (`pass`, `missing_dependency`, `not_configured`, `failed`, `not_implemented`, `skipped`), marker counts, basis label, confidence (when produced), setup guidance.
+
+See `docs/WSL_RHYTHM_ENGINE_SETUP.md` for Linux/WSL optional engine install.
+
 ## Endpoint
 
 ### `POST /v1/analyze/phrases`

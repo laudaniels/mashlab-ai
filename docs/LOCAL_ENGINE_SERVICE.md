@@ -85,6 +85,7 @@ Default bind: `http://127.0.0.1:47831`
 |----------|---------|
 | `GET /health` | Service online + rights notice |
 | `GET /v1/capabilities` | Python, FFmpeg, Rubber Band, Demucs, librosa status |
+| `GET /v1/capabilities/rhythm-selftest` | Synthetic rhythm engine smoke test (no user audio) |
 | `POST /v1/analyze/beat` | BPM analysis |
 | `POST /v1/analyze/key` | Key analysis |
 | `POST /v1/analyze/phrases` | Phrase/downbeat analysis (heuristic + optional Essentia/madmom adapters) |

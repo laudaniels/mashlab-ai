@@ -3930,6 +3930,139 @@ describe("Phrase and downbeat analysis upgrade path", async () => {
   });
 });
 
+describe("Rhythm engine self-test", async () => {
+  const { parseRhythmSelfTestResponse } = await importSrc("src/lib/localEngine/rhythmSelfTest.ts");
+  const {
+    RHYTHM_SELF_TEST_NO_USER_AUDIO_NOTICE,
+    advancedEngineAvailableFromSelfTest,
+    formatRhythmEngineSelfTestLine,
+    formatRhythmSelfTestStatus,
+    formatRhythmSelfTestSummary,
+    rhythmSelfTestClaimsVerifiedWithoutMarkers,
+  } = await importSrc("src/domain/rhythmSelfTest.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+
+  it("parses rhythm self-test response", () => {
+    const parsed = parseRhythmSelfTestResponse({
+      ok: true,
+      service: "mashlab-local-engine",
+      python_version: "3.12.0",
+      platform: "Windows",
+      no_user_audio_processed: true,
+      test_signal: "synthetic_click_track_120bpm_8s",
+      dj_review_required: true,
+      heuristic_fallback_available: true,
+      verified_downbeat_available: false,
+      verified_phrase_available: false,
+      rights_notice: requiredRightsNotice,
+      limitations: ["Self-test only"],
+      results: [
+        {
+          engine_name: "Heuristic phrase planning",
+          engine_id: "heuristic",
+          import_status: "available",
+          smoke_test_status: "pass",
+          beat_marker_count: 16,
+          downbeat_marker_count: 0,
+          phrase_marker_count: 2,
+          basis_label: "Heuristic",
+          confidence: null,
+          bpm: 120,
+          limitations: [],
+          setup_guidance: null,
+          message: "ok",
+        },
+        {
+          engine_name: "madmom",
+          engine_id: "madmom",
+          import_status: "not_configured",
+          smoke_test_status: "not_configured",
+          beat_marker_count: 0,
+          downbeat_marker_count: 0,
+          phrase_marker_count: 0,
+          basis_label: "Unavailable",
+          confidence: null,
+          bpm: null,
+          limitations: [],
+          setup_guidance: "pip install madmom",
+          message: "missing",
+        },
+      ],
+    });
+    assert.ok(parsed);
+    assert.equal(parsed!.noUserAudioProcessed, true);
+    assert.match(formatRhythmSelfTestSummary(parsed!)[0], /Platform/i);
+  });
+
+  it("formats missing dependency and pass status", () => {
+    assert.equal(formatRhythmSelfTestStatus("missing_dependency"), "missing dependency");
+    const line = formatRhythmEngineSelfTestLine({
+      engineName: "madmom",
+      engineId: "madmom",
+      importStatus: "not_configured",
+      smokeTestStatus: "not_configured",
+      beatMarkerCount: 0,
+      downbeatMarkerCount: 0,
+      phraseMarkerCount: 0,
+      basisLabel: "Unavailable",
+      confidence: null,
+      bpm: null,
+      limitations: [],
+      setupGuidance: "Install madmom.",
+      message: "missing",
+    });
+    assert.match(line, /madmom/i);
+    assert.match(line, /Unavailable/i);
+  });
+
+  it("guards verified labels without markers", () => {
+    assert.equal(
+      rhythmSelfTestClaimsVerifiedWithoutMarkers({
+        engineName: "madmom",
+        engineId: "madmom",
+        importStatus: "available",
+        smokeTestStatus: "pass",
+        beatMarkerCount: 1,
+        downbeatMarkerCount: 0,
+        phraseMarkerCount: 0,
+        basisLabel: "Verified phrase",
+        confidence: null,
+        bpm: null,
+        limitations: [],
+        setupGuidance: null,
+        message: "bad",
+      }),
+      true
+    );
+  });
+
+  it("merges self-test pass into engine availability helper", () => {
+    const results = [
+      {
+        engineName: "Essentia",
+        engineId: "essentia",
+        importStatus: "available",
+        smokeTestStatus: "pass" as const,
+        beatMarkerCount: 16,
+        downbeatMarkerCount: 0,
+        phraseMarkerCount: 2,
+        basisLabel: "Heuristic",
+        confidence: 0.8,
+        bpm: 120,
+        limitations: [],
+        setupGuidance: null,
+        message: "ok",
+      },
+    ];
+    assert.equal(advancedEngineAvailableFromSelfTest(results, "essentia", false), true);
+    assert.equal(advancedEngineAvailableFromSelfTest(null, "essentia", false), false);
+  });
+
+  it("includes no user audio processing copy", () => {
+    assert.match(RHYTHM_SELF_TEST_NO_USER_AUDIO_NOTICE, /No user audio/i);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

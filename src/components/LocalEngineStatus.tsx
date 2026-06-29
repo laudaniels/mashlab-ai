@@ -6,6 +6,7 @@ import {
 } from "../domain/dependencyHealth.ts";
 import { findCapability } from "../lib/localEngine/capabilities.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
+import { RhythmSelfTestPanel } from "./RhythmSelfTestPanel.tsx";
 
 export function LocalEngineStatus() {
   const { status, isChecking } = useLocalEngineStatus();
@@ -78,6 +79,10 @@ export function LocalEngineStatus() {
         <p className="local-engine-offline-note">
           Rubber Band, FFmpeg, and Demucs lanes are user-initiated only — nothing auto-processes.
         </p>
+      ) : null}
+
+      {status.online ? (
+        <RhythmSelfTestPanel capabilities={status.capabilities} online={status.online} />
       ) : null}
     </section>
   );

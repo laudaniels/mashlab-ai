@@ -61,6 +61,8 @@ import { phraseAnalysisFromApiResult } from "../../domain/phraseAnalysis.ts";
 import type { PhraseAnalysisResult } from "../../domain/phraseAnalysis.ts";
 import type { PackageExportResult, PackageExportRequestParams } from "../../domain/projectPackage.ts";
 import { parsePackageExportResponse } from "./package.ts";
+import { parseRhythmSelfTestResponse } from "./rhythmSelfTest.ts";
+import type { RhythmSelfTestResponse } from "../../domain/rhythmSelfTest.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -116,6 +118,17 @@ export class LocalEngineClient {
     }
 
     return parseCapabilitiesResponse(await response.json());
+  }
+
+  async runRhythmSelfTest(): Promise<RhythmSelfTestResponse | null> {
+    const response = await this.request("/v1/capabilities/rhythm-selftest", {
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
+    });
+    if (!response?.ok) {
+      return null;
+    }
+
+    return parseRhythmSelfTestResponse(await response.json());
   }
 
   async submitJob(request: CreateLocalJobRequest): Promise<LocalServiceJob | null> {

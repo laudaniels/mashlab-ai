@@ -53,13 +53,15 @@ If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for th
 - [ ] User clicks to create stem preview per track
 - [ ] Artifacts stored under `.work/artifacts/stems/{id}/`
 
-### 5b. Arrangement draft plan (Phase 20)
+### 5b. Arrangement draft plan (Phase 20–21)
 - [ ] Drafts / Timeline / Export show Arrangement Plan panel
 - [ ] Three templates: Clean Blend, Club Edit, Creative Blend
+- [ ] Section timeline rows are selectable (advisory only)
+- [ ] **Apply section to preview settings** configures duration/offset/mix — no auto-processing
+- [ ] Missing requirements show **Go to required step** navigation
+- [ ] Combined Preview shows bound section and start offset status
 - [ ] Plan shows phrase basis honestly (beats / heuristic / DJ override / unavailable)
-- [ ] Section labels are advisory — no fake verse/chorus/drop detection
 - [ ] "Plan only — no audio is processed until you click preview or export" visible
-- [ ] **Apply draft settings** updates mash intent / mix / preview duration hints only
 - [ ] User must still click Create combined preview or Export manually
 - [ ] Rights notice visible on arrangement panel
 

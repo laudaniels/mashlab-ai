@@ -42,6 +42,7 @@ export interface CombinedPreviewRequestParams {
   pitchShiftSemitones: number;
   alignmentOffsetMs: number;
   maxPreviewSeconds: number;
+  previewStartSeconds: number;
   formantPreservation: boolean;
   neutralProcessing: boolean;
   mixSettings: MixSettings;
@@ -66,6 +67,7 @@ export interface CombinedPreviewInputSummary {
   pitchShiftSemitones: number;
   alignmentOffsetMs: number;
   maxPreviewSeconds: number;
+  previewStartSeconds: number;
   neutralProcessing: boolean;
   mixSettings: MixSettings | null;
 }
@@ -164,7 +166,8 @@ export function buildCombinedPreviewRequestParams(
   context: CombinedPreviewDirectionContext,
   useNeutralProcessing: boolean,
   maxPreviewSeconds: number = COMBINED_PREVIEW_DEFAULT_SECONDS,
-  mixSettings: MixSettings
+  mixSettings: MixSettings,
+  previewStartSeconds: number = 0
 ): CombinedPreviewRequestParams {
   const direction = context.direction;
 
@@ -178,6 +181,7 @@ export function buildCombinedPreviewRequestParams(
     pitchShiftSemitones: useNeutralProcessing ? 0 : (direction.suggestedPitchShiftSemitones ?? 0),
     alignmentOffsetMs: context.alignmentOffsetMs,
     maxPreviewSeconds,
+    previewStartSeconds: Math.max(0, previewStartSeconds),
     formantPreservation: true,
     neutralProcessing: useNeutralProcessing,
     mixSettings,
@@ -201,6 +205,7 @@ export function serializeCombinedPreviewRequestBody(params: CombinedPreviewReque
     pitch_shift_semitones: params.pitchShiftSemitones,
     alignment_offset_ms: params.alignmentOffsetMs,
     max_preview_seconds: params.maxPreviewSeconds,
+    preview_start_seconds: params.previewStartSeconds,
     formant_preservation: params.formantPreservation,
     neutral_processing: params.neutralProcessing,
     ...mixSettingsToRequestFields(params.mixSettings),
@@ -211,6 +216,14 @@ export function validateCombinedPreviewDuration(seconds: number): string[] {
   const errors: string[] = [];
   if (!Number.isFinite(seconds) || seconds < 1 || seconds > COMBINED_PREVIEW_MAX_SECONDS) {
     errors.push(`max_preview_seconds must be between 1 and ${COMBINED_PREVIEW_MAX_SECONDS}.`);
+  }
+  return errors;
+}
+
+export function validateCombinedPreviewStartOffset(seconds: number): string[] {
+  const errors: string[] = [];
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    errors.push("preview_start_seconds must be zero or greater.");
   }
   return errors;
 }

@@ -1403,6 +1403,97 @@ audio {
 
 .arrangement-plan-applied,
 .arrangement-plan-applied-note,
+.arrangement-plan-binding-note,
+.combined-preview-applied-draft,
+.combined-preview-offset-note {
+  color: #86efac;
+  font-size: 12px;
+}
+
+.arrangement-plan-binding-note {
+  color: #94a3b8 !important;
+}
+
+.arrangement-section-select-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arrangement-section-row {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(132, 146, 176, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 12, 18, 0.45);
+  color: #cbd5e1;
+  text-align: left;
+  cursor: pointer;
+}
+
+.arrangement-section-row.is-selected {
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.25);
+}
+
+.arrangement-section-row-note {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.arrangement-selected-section {
+  margin-top: 8px;
+  color: #e2e8f0;
+  font-size: 12px;
+}
+
+.arrangement-plan-missing {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: #fbbf24;
+}
+
+.arrangement-missing-requirements {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.arrangement-missing-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.arrangement-go-step-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.1);
+  color: #e0f2fe;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.arrangement-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.arrangement-plan-applied,
+.arrangement-plan-applied-note,
 .combined-preview-applied-draft {
   color: #86efac;
   font-size: 12px;

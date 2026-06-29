@@ -53,6 +53,7 @@ JSON body:
 | `pitch_shift_semitones` | Vocal pitch shift |
 | `alignment_offset_ms` | Timeline alignment offset |
 | `max_preview_seconds` | Default 30 (max 60) |
+| `preview_start_seconds` | Optional start offset into stem artifacts (default 0) — Phase 21 |
 | `neutral_processing` | Force 1.0 ratio / 0 semitones when BPM/key missing |
 | `vocal_gain_db` / `instrumental_gain_db` / `master_gain_db` | Mix levels (-24 to +12 dB) — Phase 18 |
 | `vocal_fade_*_ms` / `instrumental_fade_*_ms` | Fade in/out (0–30 s) — Phase 18 |
@@ -123,6 +124,8 @@ When the user clicks **Apply draft settings** on the Arrangement Plan panel:
 3. User must still click **Create combined preview** explicitly.
 
 See `docs/ARRANGEMENT_DRAFTS.md`.
+
+When an arrangement section is bound with an available start time, the sidecar trims vocal and bed stems using FFmpeg `-ss preview_start_seconds` before Rubber Band and mix. If start time is unavailable in the plan, the UI applies duration/intent/mix only and shows an honest pending notice.
 
 ## Related Docs
 

@@ -16,6 +16,10 @@ import type { BeatGridModel } from "./beatGrid.ts";
 import { formatPhraseReadiness } from "./beatGrid.ts";
 import type { SlotId } from "./types.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
+import {
+  buildMissingRequirementActions,
+  type MissingRequirementAction,
+} from "./arrangementSectionBinding.ts";
 
 export type DraftType = "clean_blend" | "club_edit" | "creative_blend";
 
@@ -92,6 +96,7 @@ export interface ArrangementPlanModel {
   warnings: string[];
   limitations: string[];
   missingRequirements: string[];
+  missingRequirementActions: MissingRequirementAction[];
   readinessReady: boolean;
   readinessReason: string;
   djReviewRequired: true;
@@ -210,6 +215,10 @@ export function buildArrangementPlan(params: {
   mashIntent: MashIntent;
   rubberBandStatus?: RubberBandReadiness;
   rubberBandMessage?: string;
+  sidecarOnline?: boolean;
+  rubberBandAvailable?: boolean;
+  demucsAvailable?: boolean;
+  ffmpegAvailable?: boolean;
 }): ArrangementPlanModel | null {
   const trackA = params.artifactStore.tracks.trackA;
   const trackB = params.artifactStore.tracks.trackB;
@@ -244,6 +253,14 @@ export function buildArrangementPlan(params: {
   const sections = buildArrangementSections(template, targetGrid, direction ?? null, phraseBasis);
   const required = buildRequiredArtifacts(params.artifactStore);
   const missing = buildMissingRequirements(required, direction ?? null);
+  const missingActions = buildMissingRequirementActions({
+    required,
+    direction: direction ?? null,
+    sidecarOnline: params.sidecarOnline ?? false,
+    rubberBandAvailable: params.rubberBandAvailable ?? false,
+    demucsAvailable: params.demucsAvailable ?? false,
+    ffmpegAvailable: params.ffmpegAvailable ?? false,
+  });
   const readiness = evaluateArrangementReadiness(required, missing);
 
   return {
@@ -271,6 +288,7 @@ export function buildArrangementPlan(params: {
       "No auto-processing — user must click preview or export explicitly.",
     ],
     missingRequirements: missing,
+    missingRequirementActions: missingActions,
     readinessReady: readiness.ready,
     readinessReason: readiness.reason,
     djReviewRequired: true,
@@ -507,6 +525,21 @@ export function formatExportModeLabel(mode: ArrangementExportMode): string {
     default:
       return "Preview or full-length — user chooses at export";
   }
+}
+
+export function findArrangementSection(
+  plan: ArrangementPlanModel,
+  sectionId: string
+): ArrangementSection | null {
+  return plan.arrangementSections.find((section) => section.id === sectionId) ?? null;
+}
+
+export function resolveTargetBedBpm(
+  artifactStore: SessionArtifactStore,
+  plan: ArrangementPlanModel
+): number | null {
+  const target = artifactStore.tracks[plan.targetTrackSlot];
+  return target?.overrides.bpm ?? target?.effectiveBeatGrid?.bpm ?? target?.beatAnalysis?.bpm ?? null;
 }
 
 export function arrangementAutoProcessingEnabled(): boolean {

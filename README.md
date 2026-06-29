@@ -45,13 +45,14 @@ Implemented:
 - **Locked future targets** for club version certification and public sharing (not implemented).
 - **End-to-end workflow QA** — session checklist panel, dependency health display, actionable errors, artifact lifecycle safety (Phase 19).
 - **Arrangement draft intelligence prototype** — Clean Blend / Club Edit / Creative Blend planning templates with optional apply-settings handoff (Phase 20; planning only, no auto-processing).
+- **Arrangement section preview binding** — select advisory sections, bind preview duration/start/mix, deep-link missing requirements (Phase 21).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
 - True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
-- Automated arrangement rendering from draft plans (Phase 20 is planning-only).
+- Automated arrangement rendering from draft plans (Phase 20–21 is planning-only; section binding configures preview — user still clicks Create preview).
 - Club version certification and public sharing.
 
 ## Legal Notice

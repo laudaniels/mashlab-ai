@@ -11,6 +11,7 @@ import {
   isCombinedPreviewReady,
   resolveCombinedPreviewDirections,
   validateCombinedPreviewDuration,
+  validateCombinedPreviewStartOffset,
   type CombinedPreviewResult,
 } from "../domain/combinedPreview.ts";
 import {
@@ -27,7 +28,12 @@ import {
 } from "../lib/localEngine/capabilities.ts";
 import { validateCombinedPreviewRequestParams } from "../lib/localEngine/combinedPreview.ts";
 import { loadMixSettings, saveMixSettings } from "../lib/mixSession.ts";
-import { loadAppliedDraftSettings } from "../lib/arrangementDraftSession.ts";
+import {
+  formatSectionBindingSummary,
+  PREVIEW_START_OFFSET_PENDING_NOTICE,
+  type SectionPreviewBinding,
+} from "../domain/arrangementSectionBinding.ts";
+import { loadPreviewConfigurationSource } from "../lib/arrangementDraftSession.ts";
 import { MixControlsPanel } from "./MixControlsPanel.tsx";
 import type { MixSettings } from "../domain/mixControls.ts";
 import { validateMixSettings } from "../domain/mixControls.ts";
@@ -68,20 +74,49 @@ export function CombinedPreviewPanel({
   const [processingKey, setProcessingKey] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, CombinedPreviewResult | null>>({});
   const [mixSettings, setMixSettings] = useState<MixSettings>(() => loadMixSettings());
+  const [previewStartSeconds, setPreviewStartSeconds] = useState(0);
+  const [sectionBinding, setSectionBinding] = useState<SectionPreviewBinding | null>(null);
   const [appliedDraftNotice, setAppliedDraftNotice] = useState<string | null>(null);
+  const [startOffsetNotice, setStartOffsetNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    const applied = loadAppliedDraftSettings();
-    if (!applied) {
+    const config = loadPreviewConfigurationSource();
+    if (!config) {
       return;
     }
 
-    setPreviewDurationSeconds(applied.previewDurationSeconds);
-    setCustomDurationSeconds(String(applied.previewDurationSeconds));
-    setMixSettings(applied.mixSettings);
-    saveMixSettings(applied.mixSettings);
+    if (config.source === "section_binding") {
+      const binding = config.binding;
+      setSectionBinding(binding);
+      setPreviewDurationSeconds(binding.previewDurationSeconds);
+      setCustomDurationSeconds(String(binding.previewDurationSeconds));
+      setMixSettings(binding.mixSettings);
+      saveMixSettings(binding.mixSettings);
+      setAppliedDraftNotice(
+        `Arrangement section "${binding.sectionLabel}" loaded — click Create combined preview when ready.`
+      );
+      if (binding.startOffsetStatus === "applied") {
+        setPreviewStartSeconds(binding.previewStartSeconds ?? 0);
+        setStartOffsetNotice(
+          binding.previewStartSeconds && binding.previewStartSeconds > 0
+            ? `Start offset ${binding.previewStartSeconds.toFixed(1)}s will be sent when you create preview.`
+            : "Preview begins at source artifact start (0s)."
+        );
+      } else {
+        setPreviewStartSeconds(0);
+        setStartOffsetNotice(PREVIEW_START_OFFSET_PENDING_NOTICE);
+      }
+      return;
+    }
+
+    setPreviewDurationSeconds(config.settings.previewDurationSeconds);
+    setCustomDurationSeconds(String(config.settings.previewDurationSeconds));
+    setMixSettings(config.settings.mixSettings);
+    saveMixSettings(config.settings.mixSettings);
+    setPreviewStartSeconds(0);
+    setStartOffsetNotice(null);
     setAppliedDraftNotice(
-      `Arrangement draft "${applied.draftType.replace(/_/g, " ")}" settings loaded — click Create combined preview when ready.`
+      `Arrangement draft "${config.settings.draftType.replace(/_/g, " ")}" settings loaded — click Create combined preview when ready.`
     );
   }, []);
 
@@ -138,13 +173,16 @@ export function CombinedPreviewPanel({
       context,
       useNeutralProcessing,
       previewDurationSeconds,
-      mixSettings
+      mixSettings,
+      previewStartSeconds
     );
     const durationErrors = validateCombinedPreviewDuration(previewDurationSeconds);
+    const startErrors = validateCombinedPreviewStartOffset(previewStartSeconds);
     const mixErrors = validateMixSettings(mixSettings);
     const validationErrors = [
       ...validateCombinedPreviewRequestParams(params),
       ...durationErrors,
+      ...startErrors,
       ...mixErrors,
     ];
     if (validationErrors.length > 0) {
@@ -226,6 +264,14 @@ export function CombinedPreviewPanel({
             and FFmpeg mixing. Not a finished mashup.
           </p>
           {appliedDraftNotice ? <p className="combined-preview-applied-draft">{appliedDraftNotice}</p> : null}
+          {sectionBinding ? (
+            <p className="combined-preview-applied-draft">
+              {formatSectionBindingSummary(sectionBinding)}
+            </p>
+          ) : null}
+          {startOffsetNotice ? (
+            <p className="combined-preview-offset-note">{startOffsetNotice}</p>
+          ) : null}
         </div>
         <span className={`planning-badge planning-badge-${rubberBandBadgeClass(rubberBand.status)}`}>
           Rubber Band: {rubberBand.status}

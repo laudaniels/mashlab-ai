@@ -212,6 +212,7 @@ class CombinedPreviewRequest(BaseModel):
     pitch_shift_semitones: float = 0
     alignment_offset_ms: float = 0
     max_preview_seconds: int = 30
+    preview_start_seconds: float = 0
     formant_preservation: bool = True
     neutral_processing: bool = False
     vocal_gain_db: float = 0.0
@@ -233,6 +234,7 @@ class CombinedPreviewInputSummaryModel(BaseModel):
     pitch_shift_semitones: float = 0
     alignment_offset_ms: float = 0
     max_preview_seconds: int = 30
+    preview_start_seconds: float = 0
     neutral_processing: bool = False
     mix_settings: MixSettingsModel | None = None
 
@@ -243,6 +245,7 @@ class CombinedPreviewProcessingSummaryModel(BaseModel):
     pitch_shift_semitones: float = 0
     alignment_offset_ms: float = 0
     max_preview_seconds: int = 30
+    preview_start_seconds: float = 0
     mix_settings: MixSettingsModel | None = None
     limiter_safety_applied: bool = False
     clipping_guard_applied: bool = False

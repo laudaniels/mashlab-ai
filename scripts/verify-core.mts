@@ -2927,6 +2927,247 @@ describe("Arrangement draft intelligence", async () => {
   });
 });
 
+describe("Arrangement section preview binding", async () => {
+  const {
+    bindSectionToPreviewSettings,
+    buildMissingRequirementActions,
+    computeSectionDurationSeconds,
+    findMissingRequirementAction,
+    formatPhraseBasisSourceLabel,
+    resolvePreviewStartOffset,
+    sectionBindingAutoProcessingEnabled,
+    selectArrangementSection,
+    ARRANGEMENT_SECTION_BINDING_NOTICE,
+  } = await importSrc("src/domain/arrangementSectionBinding.ts");
+  const {
+    buildArrangementPlan,
+    findArrangementSection,
+  } = await importSrc("src/domain/arrangementPlanning.ts");
+  const { buildWorkflowReadiness, emptyWorkflowArtifactCounts } = await importSrc(
+    "src/domain/workflowReadiness.ts"
+  );
+  const { createSessionArtifactStore, createTrackArtifact } = await importSrc(
+    "src/domain/sessionArtifacts.ts"
+  );
+  const { buildBeatGridFromAnalysis } = await importSrc("src/domain/beatGrid.ts");
+  const {
+    serializeCombinedPreviewRequestBody,
+    validateCombinedPreviewStartOffset,
+  } = await importSrc("src/domain/combinedPreview.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+  const {
+    saveSectionPreviewBinding,
+    loadSectionPreviewBinding,
+    saveSelectedArrangementSection,
+    loadSelectedArrangementSection,
+  } = await importSrc("src/lib/arrangementDraftSession.ts");
+
+  function buildStoreWithBeats() {
+    const store = createSessionArtifactStore("binding-session");
+    const beat = {
+      bpm: 128,
+      beatCount: 32,
+      beatTimes: Array.from({ length: 32 }, (_, index) => index * 0.46875),
+      bpmConfidence: 0.8,
+      downbeatStatus: "not_implemented" as const,
+      limitations: [],
+      method: "librosa",
+    };
+    const grid = buildBeatGridFromAnalysis(beat, { jobComplete: true, phraseLengthBars: 16 });
+    const trackA = createTrackArtifact({
+      sessionId: "binding-session",
+      slotId: "trackA",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    const trackB = createTrackArtifact({
+      sessionId: "binding-session",
+      slotId: "trackB",
+      file: new File(["b"], "b.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    store.tracks.trackA = {
+      ...trackA,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemA001", updatedAt: new Date().toISOString() },
+    };
+    store.tracks.trackB = {
+      ...trackB,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemB001", updatedAt: new Date().toISOString() },
+    };
+    return store;
+  }
+
+  it("selects advisory section with phrase basis metadata", () => {
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned");
+    assert.ok(section);
+    const selected = selectArrangementSection(plan!, section!, 128);
+    assert.equal(selected.draftType, "club_edit");
+    assert.equal(selected.sectionId, "intro-planned");
+    assert.equal(selected.sourceLabel, formatPhraseBasisSourceLabel(section!.basis));
+    assert.match(selected.limitations.join(" "), /planning|config/i);
+  });
+
+  it("binds section duration from heuristic bars", () => {
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "mix-body")!;
+    const duration = computeSectionDurationSeconds(section, 128);
+    assert.ok(duration);
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    assert.equal(binding.previewDurationSeconds, duration);
+    assert.equal(binding.planningOnly, true);
+  });
+
+  it("marks start offset pending when section start is unavailable", () => {
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "creative_blend",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = {
+      ...findArrangementSection(plan!, "hook-advisory")!,
+      startTimeSeconds: null,
+    };
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    assert.equal(binding.startOffsetStatus, "pending_unavailable");
+    assert.equal(binding.previewStartSeconds, null);
+    assert.equal(sectionBindingAutoProcessingEnabled(), false);
+  });
+
+  it("maps missing requirements to navigation targets", () => {
+    const actions = buildMissingRequirementActions({
+      required: {
+        trackALoaded: false,
+        trackBLoaded: false,
+        trackAStemPreview: false,
+        trackBStemPreview: false,
+        beatAnalysisAvailable: false,
+        phraseDataAvailable: false,
+      },
+      direction: null,
+      sidecarOnline: false,
+      rubberBandAvailable: false,
+      demucsAvailable: false,
+      ffmpegAvailable: false,
+    });
+    assert.ok(findMissingRequirementAction(actions, "tracks_not_loaded"));
+    assert.equal(findMissingRequirementAction(actions, "tracks_not_loaded")?.targetScreen, "upload");
+    assert.equal(findMissingRequirementAction(actions, "stem_previews_missing")?.targetScreen, "stems");
+  });
+
+  it("reflects arrangement binding in workflow readiness", () => {
+    const store = buildStoreWithBeats();
+    const steps = buildWorkflowReadiness({
+      tracks: {
+        trackA: { slotId: "trackA", status: "ready" } as never,
+        trackB: { slotId: "trackB", status: "ready" } as never,
+      },
+      trackJobs: { trackA: null, trackB: null },
+      artifactStore: store,
+      sidecarOnline: true,
+      capabilities: [],
+      artifactCounts: emptyWorkflowArtifactCounts(),
+      arrangementDraftSelected: true,
+      arrangementSectionBound: true,
+    });
+    const bindingStep = steps.find((step) => step.id === "arrangement_preview_binding");
+    assert.equal(bindingStep?.status, "complete");
+    const draftStep = steps.find((step) => step.id === "arrangement_draft");
+    assert.equal(draftStep?.status, "complete");
+  });
+
+  it("serializes preview start offset in combined preview request body", () => {
+    const body = serializeCombinedPreviewRequestBody({
+      mashIntent: "vocal_a_over_beat_b",
+      sourceVocalArtifactId: "aaa",
+      targetInstrumentalArtifactId: "bbb",
+      tempoRatio: 1,
+      sourceBpm: 120,
+      targetBpm: 128,
+      pitchShiftSemitones: 0,
+      alignmentOffsetMs: 0,
+      maxPreviewSeconds: 30,
+      previewStartSeconds: 16,
+      formantPreservation: true,
+      neutralProcessing: false,
+      mixSettings: {
+        vocalGainDb: 0,
+        instrumentalGainDb: 0,
+        masterGainDb: 0,
+        vocalFadeInMs: 0,
+        vocalFadeOutMs: 0,
+        instrumentalFadeInMs: 0,
+        instrumentalFadeOutMs: 0,
+        limiterSafety: false,
+        clippingGuard: false,
+      },
+    });
+    assert.equal(body.preview_start_seconds, 16);
+    assert.equal(validateCombinedPreviewStartOffset(-1).length, 1);
+  });
+
+  it("persists selected section and binding in session storage", () => {
+    const storage = new Map<string, string>();
+    const original = globalThis.localStorage;
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          storage.set(key, value);
+        },
+        removeItem: (key: string) => {
+          storage.delete(key);
+        },
+      },
+    });
+
+    try {
+      const plan = buildArrangementPlan({
+        artifactStore: buildStoreWithBeats(),
+        draftType: "clean_blend",
+        mashIntent: "vocal_a_over_beat_b",
+      });
+      const section = findArrangementSection(plan!, "mix-body")!;
+      saveSelectedArrangementSection(selectArrangementSection(plan!, section, 128));
+      const binding = bindSectionToPreviewSettings(plan!, section, 128);
+      saveSectionPreviewBinding(binding);
+      assert.equal(loadSelectedArrangementSection()?.sectionId, "mix-body");
+      assert.equal(loadSectionPreviewBinding()?.sectionLabel, section.label);
+      assert.equal(loadSectionPreviewBinding()?.rightsNotice, requiredRightsNotice);
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        value: original,
+      });
+    }
+  });
+
+  it("includes binding rights notice without fake section claims", () => {
+    assert.match(ARRANGEMENT_SECTION_BINDING_NOTICE, /does not process audio/i);
+    const offset = resolvePreviewStartOffset(null);
+    assert.equal(offset.startOffsetStatus, "pending_unavailable");
+    const plan = buildArrangementPlan({
+      artifactStore: buildStoreWithBeats(),
+      draftType: "clean_blend",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    assert.ok(!plan?.arrangementSections.some((item) => /verse detected|downbeat verified/i.test(item.label)));
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

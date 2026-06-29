@@ -53,6 +53,7 @@ class CombinedPreviewInputSummary:
     pitch_shift_semitones: float
     alignment_offset_ms: float
     max_preview_seconds: int
+    preview_start_seconds: float
     neutral_processing: bool
     mix_settings: MixSettings
 
@@ -64,6 +65,7 @@ class CombinedPreviewProcessingSummary:
     pitch_shift_semitones: float
     alignment_offset_ms: float
     max_preview_seconds: int
+    preview_start_seconds: float
     mix_settings: MixSettings
     limiter_safety_applied: bool
     clipping_guard_applied: bool
@@ -123,6 +125,7 @@ def validate_combined_preview_request(
     alignment_offset_ms: float,
     max_preview_seconds: int,
     neutral_processing: bool,
+    preview_start_seconds: float = 0.0,
 ) -> tuple[float | None, list[str]]:
     errors: list[str] = []
 
@@ -141,6 +144,9 @@ def validate_combined_preview_request(
         errors.append(
             f"max_preview_seconds must be between 1 and {MAX_PREVIEW_SECONDS_LIMIT}."
         )
+
+    if preview_start_seconds < 0 or not isinstance(preview_start_seconds, (int, float)):
+        errors.append("preview_start_seconds must be zero or greater.")
 
     if pitch_shift_semitones < -12 or pitch_shift_semitones > 12:
         errors.append("pitch_shift_semitones must be between -12 and 12.")
@@ -246,6 +252,7 @@ def process_combined_preview(
     pitch_shift_semitones: float = 0.0,
     alignment_offset_ms: float = 0.0,
     max_preview_seconds: int = DEFAULT_MAX_PREVIEW_SECONDS,
+    preview_start_seconds: float = 0.0,
     formant_preservation: bool = True,
     neutral_processing: bool = False,
     vocal_gain_db: float = 0.0,
@@ -288,6 +295,7 @@ def process_combined_preview(
         alignment_offset_ms=alignment_offset_ms,
         max_preview_seconds=max_preview_seconds,
         neutral_processing=neutral_processing,
+        preview_start_seconds=preview_start_seconds,
     )
 
     if validation_errors:
@@ -357,7 +365,13 @@ def process_combined_preview(
 
     try:
         vocal_trim_result = subprocess.run(
-            build_ffmpeg_trim_command(ffmpeg, vocal_path, vocal_trim, max_preview_seconds),
+            build_ffmpeg_trim_command(
+                ffmpeg,
+                vocal_path,
+                vocal_trim,
+                max_preview_seconds,
+                preview_start_seconds,
+            ),
             capture_output=True,
             text=True,
             check=False,
@@ -393,7 +407,13 @@ def process_combined_preview(
             )
 
         bed_trim_result = subprocess.run(
-            build_ffmpeg_trim_command(ffmpeg, bed_path, bed_trim, max_preview_seconds),
+            build_ffmpeg_trim_command(
+                ffmpeg,
+                bed_path,
+                bed_trim,
+                max_preview_seconds,
+                preview_start_seconds,
+            ),
             capture_output=True,
             text=True,
             check=False,
@@ -464,6 +484,7 @@ def process_combined_preview(
                 pitch_shift_semitones=effective_pitch,
                 alignment_offset_ms=alignment_offset_ms,
                 max_preview_seconds=max_preview_seconds,
+                preview_start_seconds=preview_start_seconds,
                 neutral_processing=neutral_processing,
                 mix_settings=mix_settings,
             ),
@@ -473,6 +494,7 @@ def process_combined_preview(
                 pitch_shift_semitones=effective_pitch,
                 alignment_offset_ms=alignment_offset_ms,
                 max_preview_seconds=max_preview_seconds,
+                preview_start_seconds=preview_start_seconds,
                 mix_settings=mix_settings,
                 limiter_safety_applied=mix_settings.limiter_safety,
                 clipping_guard_applied=mix_settings.clipping_guard,

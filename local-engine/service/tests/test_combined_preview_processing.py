@@ -45,6 +45,35 @@ class CombinedPreviewProcessingTests(unittest.TestCase):
         )
         self.assertTrue(any("mash_intent" in error for error in errors))
 
+    def test_validate_rejects_negative_preview_start(self) -> None:
+        _, errors = validate_combined_preview_request(
+            mash_intent="vocal_a_over_beat_b",
+            source_vocal_artifact_id="abc123",
+            target_instrumental_artifact_id="def456",
+            tempo_ratio=1.0,
+            source_bpm=120,
+            target_bpm=128,
+            pitch_shift_semitones=0,
+            alignment_offset_ms=0,
+            max_preview_seconds=30,
+            neutral_processing=True,
+            preview_start_seconds=-1,
+        )
+        self.assertTrue(any("preview_start_seconds" in error for error in errors))
+
+    def test_trim_command_includes_start_offset(self) -> None:
+        from rubber_band_processing import build_ffmpeg_trim_command
+
+        command = build_ffmpeg_trim_command(
+            "ffmpeg",
+            Path("/tmp/source.wav"),
+            Path("/tmp/trim.wav"),
+            30,
+            12.5,
+        )
+        self.assertIn("-ss", command)
+        self.assertIn("12.5", command)
+
     def test_build_ffmpeg_mix_command_includes_alignment_delay(self) -> None:
         command = build_ffmpeg_mix_command(
             "ffmpeg",

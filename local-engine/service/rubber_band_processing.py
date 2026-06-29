@@ -146,18 +146,26 @@ def build_ffmpeg_trim_command(
     input_path: Path,
     output_path: Path,
     max_seconds: int,
+    start_seconds: float = 0.0,
 ) -> list[str]:
-    return [
+    command = [
         ffmpeg_binary,
         "-y",
-        "-i",
-        str(input_path),
-        "-t",
-        str(max_seconds),
-        "-acodec",
-        "pcm_s16le",
-        str(output_path),
     ]
+    if start_seconds > 0:
+        command.extend(["-ss", str(start_seconds)])
+    command.extend(
+        [
+            "-i",
+            str(input_path),
+            "-t",
+            str(max_seconds),
+            "-acodec",
+            "pcm_s16le",
+            str(output_path),
+        ]
+    )
+    return command
 
 
 def validate_preview_request(

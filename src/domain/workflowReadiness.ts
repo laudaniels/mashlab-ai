@@ -45,6 +45,9 @@ export interface WorkflowReadinessInput {
   sidecarOnline: boolean;
   capabilities: ServiceCapability[];
   artifactCounts: WorkflowArtifactCounts;
+  arrangementDraftSelected?: boolean;
+  arrangementDraftApplied?: boolean;
+  arrangementSectionBound?: boolean;
 }
 
 export function emptyWorkflowArtifactCounts(): WorkflowArtifactCounts {
@@ -214,11 +217,36 @@ export function buildWorkflowReadiness(input: WorkflowReadinessInput): WorkflowS
     {
       id: "arrangement_draft",
       label: "Arrangement draft plan",
-      status: loaded === 2 ? "pending" : "blocked",
+      status:
+        input.arrangementSectionBound
+          ? "complete"
+          : input.arrangementDraftApplied
+            ? "partial"
+            : input.arrangementDraftSelected
+              ? "partial"
+              : loaded === 2
+                ? "pending"
+                : "blocked",
       detail:
-        loaded === 2
-          ? "Choose Clean Blend, Club Edit, or Creative Blend on Drafts/Timeline/Export — planning only until preview/export."
-          : "Load both tracks to open arrangement draft templates.",
+        loaded !== 2
+          ? "Load both tracks to open arrangement draft templates."
+          : input.arrangementSectionBound
+            ? "Section bound to preview settings — click Create combined preview manually."
+            : input.arrangementDraftApplied
+              ? "Draft settings applied — select a section or create preview when ready."
+              : input.arrangementDraftSelected
+                ? "Draft template selected — apply settings or bind a section."
+                : "Choose Clean Blend, Club Edit, or Creative Blend — planning only until preview/export.",
+    },
+    {
+      id: "arrangement_preview_binding",
+      label: "Section preview binding",
+      status: input.arrangementSectionBound ? "complete" : loaded === 2 ? "pending" : "blocked",
+      detail: input.arrangementSectionBound
+        ? "Arrangement section configured for combined preview — no auto-processing."
+        : loaded === 2
+          ? "Optional — select an advisory section and apply to preview settings."
+          : "Load both tracks first.",
     },
     {
       id: "stems_available",

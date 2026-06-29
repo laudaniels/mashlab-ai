@@ -1,4 +1,4 @@
-# Arrangement Draft Intelligence (Phase 20)
+# Arrangement Draft Intelligence (Phase 20–21)
 
 Phase 20 adds the **first arrangement intelligence layer** in MashLab AI / CyphaBlend AI. It helps DJs plan draft mash structures using honest templates — **planning only**, with no auto-processing and no claims of true song-section detection.
 
@@ -73,6 +73,57 @@ The user **must still** click:
 - **Export** buttons (Export screen)
 
 No audio is processed by applying a draft.
+
+## Section Selection and Preview Binding (Phase 21)
+
+Phase 21 makes arrangement plans **operational inside the existing user-initiated workflow**:
+
+1. **Select an advisory section** from the section timeline (Clean Blend / Club Edit / Creative Blend).
+2. Click **Apply section to preview settings** — configures combined preview duration, optional start offset, mash intent, and mix settings.
+3. Combined Preview panel shows the bound section and whether start offset will be applied.
+4. User **must still click Create combined preview** — no auto-processing.
+
+### Selected section stores
+
+- Draft type, section id/label
+- Start time (when available), duration bars/seconds
+- Phrase basis and source label (heuristic / DJ override / unavailable)
+- Limitations (advisory only — not detected song structure)
+
+### Start offset behavior
+
+| Condition | UI / sidecar behavior |
+|-----------|----------------------|
+| Start time available (> 0s) | `preview_start_seconds` sent to sidecar FFmpeg trim |
+| Start unavailable | Duration + intent/mix apply only; UI shows pending notice |
+| Start at 0s | Preview begins at source artifact start |
+
+Notice when offset unavailable:
+
+> Section start is planned but current preview begins at the source artifact start.
+
+### Missing requirement deep links
+
+The Arrangement Plan panel lists actionable missing requirements with **Go to required step** buttons:
+
+- Upload tracks → Upload screen
+- Run analysis → Analysis screen
+- DJ overrides / pitch-time plan → Timeline
+- Stem previews → Stems screen
+- Sidecar / FFmpeg / Rubber Band / Demucs hints → Analysis or Stems
+
+### Session persistence
+
+- `mashlab-arrangement-section-v1` — selected section metadata
+- `mashlab-arrangement-section-binding-v1` — preview binding (no raw audio)
+
+### Workflow checklist
+
+Session checklist tracks:
+
+- Arrangement draft plan selected / applied
+- Section bound to preview settings
+- Combined preview still requires explicit user action
 
 ## UI Surfaces
 

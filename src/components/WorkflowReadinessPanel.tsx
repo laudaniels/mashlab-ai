@@ -16,6 +16,11 @@ import { localEngineClient } from "../lib/localEngine/client.ts";
 import { loadPreviewArtifactRegistry } from "../lib/previewArtifactRegistry.ts";
 import { subscribeArtifactRefresh } from "../lib/artifactRefresh.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
+import {
+  loadAppliedDraftSettings,
+  loadSectionPreviewBinding,
+  loadSelectedDraftType,
+} from "../lib/arrangementDraftSession.ts";
 
 interface WorkflowReadinessPanelProps {
   tracks: Record<SlotId, TrackState | null>;
@@ -58,6 +63,9 @@ export function WorkflowReadinessPanel({
         sidecarOnline: localStatus.online,
         capabilities: localStatus.capabilities,
         artifactCounts,
+        arrangementDraftSelected: Boolean(loadSelectedDraftType()),
+        arrangementDraftApplied: Boolean(loadAppliedDraftSettings()),
+        arrangementSectionBound: Boolean(loadSectionPreviewBinding()),
       }),
     [tracks, trackJobs, artifactStore, localStatus.online, localStatus.capabilities, artifactCounts]
   );

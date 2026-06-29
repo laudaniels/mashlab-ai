@@ -1,15 +1,23 @@
-import { AlertTriangle, LayoutTemplate, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, LayoutTemplate, Sparkles, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   applyDraftSettingsFromPlan,
   ARRANGEMENT_PLANNING_ONLY_NOTICE,
   buildArrangementPlan,
   DRAFT_TEMPLATE_DEFINITIONS,
-  formatArrangementSectionTimeline,
+  findArrangementSection,
   formatExportModeLabel,
   getDraftTemplateDefinition,
+  resolveTargetBedBpm,
   type DraftType,
 } from "../domain/arrangementPlanning.ts";
+import {
+  ARRANGEMENT_SECTION_BINDING_NOTICE,
+  bindSectionToPreviewSettings,
+  formatSectionBindingSummary,
+  selectArrangementSection,
+  type AppScreenId,
+} from "../domain/arrangementSectionBinding.ts";
 import {
   rubberBandReadinessFromCapabilityStatus,
   type MashIntent,
@@ -17,20 +25,37 @@ import {
 import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
 import {
   loadAppliedDraftSettings,
+  loadSelectedArrangementSection,
   loadSelectedDraftType,
   saveAppliedDraftSettings,
+  saveSectionPreviewBinding,
+  saveSelectedArrangementSection,
   saveSelectedDraftType,
 } from "../lib/arrangementDraftSession.ts";
-import { rubberBandCapabilitySummary } from "../lib/localEngine/capabilities.ts";
+import {
+  isDemucsAvailable,
+  isFfmpegAvailable,
+  isRubberBandAvailable,
+  rubberBandCapabilitySummary,
+} from "../lib/localEngine/capabilities.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
 import { formatMixSettingsSummary } from "../domain/mixControls.ts";
+import type { ArrangementSection } from "../domain/arrangementPlanning.ts";
 
 interface ArrangementPlanPanelProps {
   artifactStore: SessionArtifactStore;
   mashIntent: MashIntent;
   onIntentChange: (intent: MashIntent) => void;
   onDraftApplied?: () => void;
+  onNavigateToScreen?: (screen: AppScreenId) => void;
+}
+
+function formatSectionRow(section: ArrangementSection): string {
+  const start =
+    section.startTimeSeconds !== null ? `${section.startTimeSeconds.toFixed(1)}s` : "time TBD";
+  const bars = section.durationBars !== null ? `${section.durationBars} bars` : "bars TBD";
+  return `${section.label} · ${start} · ${bars} · ${section.basis.replace(/_/g, " ")}`;
 }
 
 export function ArrangementPlanPanel({
@@ -38,13 +63,21 @@ export function ArrangementPlanPanel({
   mashIntent,
   onIntentChange,
   onDraftApplied,
+  onNavigateToScreen,
 }: ArrangementPlanPanelProps) {
   const { status: localStatus } = useLocalEngineStatus();
   const rubberBand = rubberBandCapabilitySummary(localStatus.capabilities);
   const rubberBandStatus = rubberBandReadinessFromCapabilityStatus(rubberBand.status);
+  const rubberBandAvailable = isRubberBandAvailable(localStatus.capabilities);
+  const demucsAvailable = isDemucsAvailable(localStatus.capabilities);
+  const ffmpegAvailable = isFfmpegAvailable(localStatus.capabilities);
 
   const [draftType, setDraftType] = useState<DraftType>(() => loadSelectedDraftType());
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
+    () => loadSelectedArrangementSection()?.sectionId ?? null
+  );
   const [appliedMessage, setAppliedMessage] = useState<string | null>(null);
+  const [bindingMessage, setBindingMessage] = useState<string | null>(null);
 
   useEffect(() => {
     saveSelectedDraftType(draftType);
@@ -58,11 +91,27 @@ export function ArrangementPlanPanel({
         mashIntent,
         rubberBandStatus,
         rubberBandMessage: rubberBand.message,
+        sidecarOnline: localStatus.online,
+        rubberBandAvailable,
+        demucsAvailable,
+        ffmpegAvailable,
       }),
-    [artifactStore, draftType, mashIntent, rubberBand.message, rubberBandStatus]
+    [
+      artifactStore,
+      draftType,
+      mashIntent,
+      rubberBand.message,
+      rubberBandStatus,
+      localStatus.online,
+      rubberBandAvailable,
+      demucsAvailable,
+      ffmpegAvailable,
+    ]
   );
 
   const applied = loadAppliedDraftSettings();
+  const selectedSection =
+    plan && selectedSectionId ? findArrangementSection(plan, selectedSectionId) : null;
 
   if (!plan) {
     return (
@@ -78,6 +127,13 @@ export function ArrangementPlanPanel({
     );
   }
 
+  function handleSelectSection(section: ArrangementSection) {
+    setSelectedSectionId(section.id);
+    const targetBpm = resolveTargetBedBpm(artifactStore, plan!);
+    saveSelectedArrangementSection(selectArrangementSection(plan!, section, targetBpm));
+    setBindingMessage(null);
+  }
+
   function handleApplyDraftSettings() {
     const appliedSettings = applyDraftSettingsFromPlan(plan!);
     saveAppliedDraftSettings(appliedSettings);
@@ -88,8 +144,28 @@ export function ArrangementPlanPanel({
     onDraftApplied?.();
   }
 
+  function handleApplySectionToPreview() {
+    if (!selectedSection) {
+      return;
+    }
+
+    const targetBpm = resolveTargetBedBpm(artifactStore, plan!);
+    const binding = bindSectionToPreviewSettings(plan!, selectedSection, targetBpm);
+    saveSectionPreviewBinding(binding);
+    saveAppliedDraftSettings({
+      draftType: plan!.draftType,
+      mashIntent: binding.mashIntent,
+      previewDurationSeconds: binding.previewDurationSeconds,
+      mixSettings: binding.mixSettings,
+      exportMode: plan!.suggestedExportMode,
+      appliedAt: binding.boundAt,
+    });
+    onIntentChange(binding.mashIntent);
+    setBindingMessage(formatSectionBindingSummary(binding));
+    onDraftApplied?.();
+  }
+
   const template = getDraftTemplateDefinition(draftType);
-  const sectionLines = formatArrangementSectionTimeline(plan.arrangementSections);
 
   return (
     <section className="arrangement-plan-panel" aria-label="Arrangement draft plan">
@@ -98,6 +174,7 @@ export function ArrangementPlanPanel({
         <div>
           <h3>Arrangement Draft Plan</h3>
           <p>{ARRANGEMENT_PLANNING_ONLY_NOTICE}</p>
+          <p className="arrangement-plan-binding-note">{ARRANGEMENT_SECTION_BINDING_NOTICE}</p>
           <p className="arrangement-plan-rights">{requiredRightsNotice}</p>
         </div>
         <span
@@ -136,14 +213,6 @@ export function ArrangementPlanPanel({
           </dd>
         </div>
         <div>
-          <dt>Source vocal</dt>
-          <dd>{plan.sourceTrackLabel}</dd>
-        </div>
-        <div>
-          <dt>Target bed</dt>
-          <dd>{plan.targetTrackLabel}</dd>
-        </div>
-        <div>
           <dt>Phrase basis</dt>
           <dd>{plan.phraseBasis.replace(/_/g, " ")}</dd>
         </div>
@@ -154,23 +223,31 @@ export function ArrangementPlanPanel({
       </dl>
 
       <div className="arrangement-plan-block">
-        <h4>Tempo plan</h4>
-        <p>{plan.tempoPlanSummary}</p>
-      </div>
-
-      <div className="arrangement-plan-block">
-        <h4>Key / pitch plan</h4>
-        <p>{plan.keyPitchPlanSummary}</p>
-        <p className="arrangement-plan-note">{plan.phraseBasisDetail}</p>
-      </div>
-
-      <div className="arrangement-plan-block">
-        <h4>Section timeline (advisory)</h4>
-        <ul className="arrangement-section-list">
-          {sectionLines.map((line) => (
-            <li key={line}>{line}</li>
+        <h4>Section timeline (advisory — select one)</h4>
+        <ul className="arrangement-section-select-list">
+          {plan.arrangementSections.map((section) => (
+            <li key={section.id}>
+              <button
+                className={`arrangement-section-row ${
+                  selectedSectionId === section.id ? "is-selected" : ""
+                }`}
+                onClick={() => handleSelectSection(section)}
+                type="button"
+              >
+                <span>{formatSectionRow(section)}</span>
+                <span className="arrangement-section-row-note">{section.description}</span>
+              </button>
+            </li>
           ))}
         </ul>
+        {selectedSection ? (
+          <div className="arrangement-selected-section">
+            <strong>Selected:</strong> {selectedSection.label} · basis:{" "}
+            {selectedSection.basis.replace(/_/g, " ")} · DJ review required
+          </div>
+        ) : (
+          <p className="arrangement-plan-note">Select an advisory section to bind preview settings.</p>
+        )}
       </div>
 
       <div className="arrangement-plan-block">
@@ -180,14 +257,37 @@ export function ArrangementPlanPanel({
         <p>Mix reference: {formatMixSettingsSummary(plan.mixSettingsReference)}</p>
       </div>
 
-      {plan.missingRequirements.length > 0 ? (
-        <div className="arrangement-plan-warnings">
+      {(plan.missingRequirements.length > 0 || plan.missingRequirementActions.length > 0) ? (
+        <div className="arrangement-plan-missing">
           <AlertTriangle aria-hidden="true" size={16} />
-          <ul>
-            {plan.missingRequirements.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <div>
+            <strong>Required steps</strong>
+            <ul className="arrangement-missing-requirements">
+              {plan.missingRequirements.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+              {plan.missingRequirementActions.map((action) => (
+                <li key={action.id}>
+                  <div className="arrangement-missing-action">
+                    <span>
+                      <strong>{action.label}:</strong> {action.requiredAction}
+                      {action.dependencyHint ? ` (${action.dependencyHint})` : ""}
+                    </span>
+                    {onNavigateToScreen ? (
+                      <button
+                        className="arrangement-go-step-button"
+                        onClick={() => onNavigateToScreen(action.targetScreen)}
+                        type="button"
+                      >
+                        Go to required step
+                        <ArrowRight aria-hidden="true" size={14} />
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       ) : null}
 
@@ -212,9 +312,18 @@ export function ArrangementPlanPanel({
           <Wand2 aria-hidden="true" size={16} />
           Apply draft settings
         </button>
+        <button
+          disabled={!selectedSection}
+          onClick={handleApplySectionToPreview}
+          type="button"
+        >
+          <Sparkles aria-hidden="true" size={16} />
+          Apply section to preview settings
+        </button>
       </div>
 
       {appliedMessage ? <p className="arrangement-plan-applied">{appliedMessage}</p> : null}
+      {bindingMessage ? <p className="arrangement-plan-applied">{bindingMessage}</p> : null}
       {applied ? (
         <p className="arrangement-plan-applied-note">
           Last applied: {applied.draftType.replace(/_/g, " ")} at{" "}

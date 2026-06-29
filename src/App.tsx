@@ -666,6 +666,7 @@ function App() {
                 artifactStore={artifactStore}
                 mashIntent={mashIntent}
                 onIntentChange={setMashIntent}
+                onNavigateToScreen={setActiveScreen}
               />
             ) : (
               <NoticeStrip
@@ -706,6 +707,7 @@ function App() {
                   artifactStore={artifactStore}
                   mashIntent={mashIntent}
                   onIntentChange={setMashIntent}
+                  onNavigateToScreen={setActiveScreen}
                 />
                 <CombinedPreviewPanel
                   artifactStore={artifactStore}
@@ -738,6 +740,7 @@ function App() {
                 artifactStore={artifactStore}
                 mashIntent={mashIntent}
                 onIntentChange={setMashIntent}
+                onNavigateToScreen={setActiveScreen}
               />
             ) : null}
             <ExportPrepPanel artifactStore={artifactStore} mashIntent={mashIntent} />

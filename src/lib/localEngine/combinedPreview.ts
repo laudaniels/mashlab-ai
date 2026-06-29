@@ -58,6 +58,10 @@ export function validateCombinedPreviewRequestParams(
     errors.push("max_preview_seconds must be between 1 and 60.");
   }
 
+  if (!Number.isFinite(params.previewStartSeconds) || params.previewStartSeconds < 0) {
+    errors.push("preview_start_seconds must be zero or greater.");
+  }
+
   return errors;
 }
 
@@ -91,6 +95,7 @@ function parseInputSummary(value: unknown) {
     pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     maxPreviewSeconds: parseNullableNumber(record.max_preview_seconds) ?? 30,
+    previewStartSeconds: parseNullableNumber(record.preview_start_seconds) ?? 0,
     neutralProcessing: record.neutral_processing === true,
     mixSettings: parseMixSettings(record.mix_settings),
   };
@@ -108,6 +113,7 @@ function parseProcessingSummary(value: unknown) {
     pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     maxPreviewSeconds: parseNullableNumber(record.max_preview_seconds) ?? 30,
+    previewStartSeconds: parseNullableNumber(record.preview_start_seconds) ?? 0,
     mixSettings: parseMixSettings(record.mix_settings),
     limiterSafetyApplied: record.limiter_safety_applied === true,
     clippingGuardApplied: record.clipping_guard_applied === true,

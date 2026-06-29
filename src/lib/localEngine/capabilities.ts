@@ -83,6 +83,24 @@ export function findCapability(
   return capabilities.find((capability) => capability.id === capabilityId);
 }
 
+export function rubberBandCapabilitySummary(capabilities: ServiceCapability[]): {
+  status: ServiceCapability["status"] | "unknown";
+  message: string;
+} {
+  const rubberBand = findCapability(capabilities, "rubberband");
+  if (!rubberBand) {
+    return {
+      status: "unknown",
+      message: "Rubber Band readiness unknown. Browser-only planning remains available.",
+    };
+  }
+
+  return {
+    status: rubberBand.status,
+    message: rubberBand.message,
+  };
+}
+
 function isCapabilityStatus(value: unknown): value is CapabilityStatus {
   return (
     value === "available" ||

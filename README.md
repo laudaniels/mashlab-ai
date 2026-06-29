@@ -30,12 +30,15 @@ Implemented:
 - Session-scoped artifact store per track (browser memory only, no cloud).
 - DJ override controls for BPM, key, mode, Camelot, alignment offset, and phrase length.
 - Timeline alignment UI with waveform preview, beat markers, and heuristic phrase regions.
+- Pitch/time planning panel with mash intent selector (planning only).
+- Rubber Band CLI capability detection in local sidecar.
+- SessionStorage persistence for DJ overrides and mash intent (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
 - True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
-- Stem separation, AI arrangement, pitch/time processing, vocal cleanup, mastering, or export rendering.
+- Stem separation, actual pitch/time **processing**, AI arrangement, vocal cleanup, mastering, or export rendering.
 
 ## Legal Notice
 
@@ -65,7 +68,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, session artifacts, and timeline alignment.
+See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, session artifacts, and timeline alignment.
 
 ## Quality Commands
 

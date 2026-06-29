@@ -1144,6 +1144,97 @@ audio {
   background: rgba(52, 211, 153, 0.35);
 }
 
+.pitch-time-panel {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid rgba(132, 146, 176, 0.22);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #141a28 0%, #10151f 100%);
+}
+
+.pitch-time-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.pitch-time-panel-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.pitch-time-panel-header p {
+  margin: 6px 0 0;
+  color: #9eb0cb;
+  font-size: 13px;
+}
+
+.pitch-time-intent-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.pitch-time-intent-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #eef3fb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pitch-time-intent-row select {
+  padding: 10px 12px;
+  border: 1px solid rgba(132, 146, 176, 0.22);
+  border-radius: 8px;
+  background: #151b26;
+  color: #ffffff;
+}
+
+.pitch-time-intent-note {
+  grid-column: 2;
+  color: #8fa3c0;
+  font-size: 12px;
+}
+
+.pitch-time-rubberband-note {
+  margin: 0;
+  color: #b8c4d9;
+  font-size: 13px;
+}
+
+.pitch-time-direction-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.pitch-time-direction-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(132, 146, 176, 0.16);
+  border-radius: 8px;
+  background: #151b26;
+}
+
+.pitch-time-direction-card h4 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.pitch-time-notes p {
+  margin: 0;
+  color: #9eb0cb;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .analysis-track-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

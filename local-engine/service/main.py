@@ -11,6 +11,7 @@ from capabilities import detect_capabilities, python_version_label
 from jobs import complete_metadata_job, create_job, fail_job, get_job, update_job
 from key_analysis import analyze_key_file
 from metadata import analyze_metadata_file
+from pitch_time_planning import PitchTimePlanRequest, PitchTimePlanResponse, build_pitch_time_plan
 from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
@@ -149,6 +150,17 @@ async def analyze_key(file: UploadFile = File(...)) -> KeyAnalysisResponse:
         return analyze_key_file(temp_path, filename)
     finally:
         cleanup_path(temp_path)
+
+
+@app.post("/v1/plan/pitch-time", response_model=PitchTimePlanResponse)
+def plan_pitch_time(request: PitchTimePlanRequest) -> PitchTimePlanResponse:
+    plan = build_pitch_time_plan(request)
+    return PitchTimePlanResponse(
+        ok=True,
+        status="planning-only",
+        message="Pitch/time plan generated. No audio was processed.",
+        plan=plan,
+    )
 
 
 def _phase_status_for(phase: str) -> str:

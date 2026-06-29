@@ -64,7 +64,21 @@ Suggested install guidance:
 | Beat / phrase | BeatNet+, Essentia, librosa prototype | Return BPM confidence and bar markers |
 | Key / harmony | Essentia / librosa key detectors | Camelot mapping and pitch-shift guardrails |
 | Stems | Demucs / HTDemucs | MDX-Net and UVR-style options later |
-| Pitch / time | Rubber Band CLI | SoundTouch fallback for lightweight previews |
+| Pitch / time | Rubber Band CLI | SoundTouch fallback for lightweight previews; **planning endpoint available** |
+
+## Implemented Sidecar Endpoints (Current)
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Service identity |
+| `GET /v1/capabilities` | FFmpeg, librosa, **Rubber Band CLI** detection |
+| `POST /v1/jobs` | Job queue (metadata, beat, key) |
+| `POST /v1/analyze/metadata` | ffprobe metadata |
+| `POST /v1/analyze/beat` | librosa beat prototype |
+| `POST /v1/analyze/key` | librosa key prototype |
+| `POST /v1/plan/pitch-time` | **Planning-only** tempo/key strategy from JSON summaries (no audio) |
+
+Rubber Band is detected via `rubberband`, `rubberband-cli`, `rubberband.exe`, or `rubberband-cli.exe` on PATH. Status is `available` or `missing`. Browser-only planning works when Rubber Band is absent.
 | Vocal cleanup | Deterministic DSP chain | User-controlled gain/EQ/comp/de-ess/space |
 | Arrangement | Phrase-aware draft generator | Clean Blend, Club Edit, Creative Blend |
 | Export | FFmpeg + loudness/true-peak checks | WAV primary; MP3 optional |

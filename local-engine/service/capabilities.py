@@ -110,13 +110,38 @@ def detect_capabilities() -> list[ServiceCapability]:
         _optional_python_package("essentia", "Essentia", "essentia", planned=True),
         _optional_python_package("torch", "PyTorch", "torch", planned=True),
         _optional_python_package("demucs", "Demucs", "demucs", planned=True),
-        _binary_capability(
-            "rubberband",
-            "Rubber Band CLI",
-            ["rubberband", "rubberband-cli", "rubberband.exe"],
-            planned=True,
-        ),
+        _rubberband_capability(),
     ]
+
+
+def _rubberband_capability() -> ServiceCapability:
+    binary_names = [
+        "rubberband",
+        "rubberband-cli",
+        "rubberband.exe",
+        "rubberband-cli.exe",
+    ]
+
+    for name in binary_names:
+        path = shutil.which(name)
+        if path:
+            return ServiceCapability(
+                id="rubberband",
+                label="Rubber Band CLI",
+                status="available",
+                message=f"Rubber Band CLI found at {path}. Ready for future pitch/time processing.",
+                version=path,
+            )
+
+    return ServiceCapability(
+        id="rubberband",
+        label="Rubber Band CLI",
+        status="missing",
+        message=(
+            "Rubber Band CLI was not found on PATH. Install rubberband-cli to enable future "
+            "pitch/time processing. MashLab remains usable in browser-only planning mode."
+        ),
+    )
 
 
 def get_capability(capability_id: str) -> ServiceCapability | None:

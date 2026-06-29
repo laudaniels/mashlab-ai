@@ -846,6 +846,155 @@ describe("MashLab core verification", async () => {
     assert.equal(lane?.phraseRegions.length, 0);
     assert.match(lane?.phraseReadiness ?? "", /unavailable/i);
   });
+
+  const {
+    buildPitchTimePlan,
+    buildPitchTimePlanFromArtifacts,
+    buildSafeRangeWarning,
+    computeTempoStretchPercent,
+    computeTempoStretchRatio,
+    planClaimsAudioProcessed,
+    resolveIntentDirectionPairs,
+    resolveTempoDirection,
+    buildTrackPlanningInput,
+  } = await importSrc("src/domain/pitchTimePlanning.ts");
+  const { rubberBandCapabilitySummary } = await importSrc("src/lib/localEngine/capabilities.ts");
+
+  it("computes tempo stretch ratio and direction", () => {
+    const ratio = computeTempoStretchRatio(120, 128);
+    assert.equal(ratio, 1.067);
+    assert.equal(computeTempoStretchPercent(ratio), 6.7);
+    assert.equal(resolveTempoDirection(ratio), "speed_up");
+    assert.equal(resolveTempoDirection(computeTempoStretchRatio(128, 120)), "slow_down");
+    assert.equal(resolveTempoDirection(computeTempoStretchRatio(120, 120)), "none");
+  });
+
+  it("warns on unsafe pitch shift ranges", () => {
+    assert.equal(buildSafeRangeWarning(3), null);
+    assert.match(buildSafeRangeWarning(5) ?? "", /comfort zone/i);
+    assert.match(buildSafeRangeWarning(7) ?? "", /vocal-safe range/i);
+  });
+
+  it("updates pitch/time planning by mash intent", () => {
+    const trackA = {
+      slotId: "trackA" as const,
+      label: "Track A",
+      bpm: 120,
+      bpmSource: "detected" as const,
+      keyProfile: { key: "A", mode: "minor" as const, camelot: "8A", confidence: 0.7, method: "test" },
+      keySource: "detected" as const,
+      camelotSource: "detected" as const,
+    };
+    const trackB = {
+      slotId: "trackB" as const,
+      label: "Track B",
+      bpm: 128,
+      bpmSource: "detected" as const,
+      keyProfile: { key: "C", mode: "major" as const, camelot: "8B", confidence: 0.66, method: "test" },
+      keySource: "detected" as const,
+      camelotSource: "detected" as const,
+    };
+
+    const single = buildPitchTimePlan({ trackA, trackB, intent: "vocal_a_over_beat_b" });
+    const both = buildPitchTimePlan({ trackA, trackB, intent: "compare_both" });
+
+    assert.equal(single.directions.length, 1);
+    assert.equal(both.directions.length, 2);
+    assert.equal(resolveIntentDirectionPairs("vocal_b_over_beat_a", trackA, trackB).length, 1);
+  });
+
+  it("prefers DJ overrides in pitch/time planning", () => {
+    const store = createSessionArtifactStore("pitch-time-session");
+    store.tracks.trackA = updateTrackArtifactOverrides(
+      rebuildTrackArtifact({
+        ...createTrackArtifact({
+          sessionId: "pitch-time-session",
+          slotId: "trackA",
+          file: new File(["a"], "a.wav", { type: "audio/wav" }),
+          inspection: null,
+        }),
+        beatAnalysis: {
+          bpm: 120,
+          beatTimes: [],
+          beatCount: 0,
+          bpmConfidence: 0.7,
+          method: "test",
+          limitations: [],
+          downbeatOffsetMs: null,
+          phraseBarMarkers: [],
+        },
+        keyAnalysis: {
+          key: "A",
+          mode: "minor",
+          camelot: "8A",
+          confidence: 0.7,
+          method: "test",
+          limitations: [],
+          pitchShiftSemitones: null,
+        },
+      }),
+      { bpm: 130 }
+    );
+    store.tracks.trackB = rebuildTrackArtifact({
+      ...createTrackArtifact({
+        sessionId: "pitch-time-session",
+        slotId: "trackB",
+        file: new File(["b"], "b.wav", { type: "audio/wav" }),
+        inspection: null,
+      }),
+      beatAnalysis: {
+        bpm: 128,
+        beatTimes: [],
+        beatCount: 0,
+        bpmConfidence: 0.7,
+        method: "test",
+        limitations: [],
+        downbeatOffsetMs: null,
+        phraseBarMarkers: [],
+      },
+      keyAnalysis: {
+        key: "C",
+        mode: "major",
+        camelot: "8B",
+        confidence: 0.66,
+        method: "test",
+        limitations: [],
+        pitchShiftSemitones: null,
+      },
+    });
+
+    const plan = buildPitchTimePlanFromArtifacts({
+      artifactStore: store,
+      intent: "vocal_a_over_beat_b",
+    });
+
+    assert.ok(plan);
+    assert.equal(plan?.directions[0]?.sourceBpm, 130);
+    assert.equal(plan?.directions[0]?.bpmSource, "user_override");
+  });
+
+  it("does not claim audio was processed in pitch/time plans", () => {
+    const plan = buildPitchTimePlan({
+      trackA: buildTrackPlanningInput(createSessionArtifactStore("x"), "trackA", "Track A"),
+      trackB: buildTrackPlanningInput(createSessionArtifactStore("x"), "trackB", "Track B"),
+      intent: "compare_both",
+    });
+    assert.equal(plan.audioProcessed, false);
+    assert.equal(planClaimsAudioProcessed(plan), false);
+    assert.match(plan.planningOnlyNotice, /Planning only/i);
+  });
+
+  it("parses Rubber Band capability summaries", () => {
+    const available = rubberBandCapabilitySummary([
+      { id: "rubberband", label: "Rubber Band CLI", status: "available", message: "found", version: null },
+    ]);
+    const missing = rubberBandCapabilitySummary([
+      { id: "rubberband", label: "Rubber Band CLI", status: "missing", message: "not found", version: null },
+    ]);
+
+    assert.equal(available.status, "available");
+    assert.equal(missing.status, "missing");
+  });
 });
 
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {

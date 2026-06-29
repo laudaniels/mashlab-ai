@@ -43,13 +43,16 @@ import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
 import { MashupPlanningPanel } from "./components/MashupPlanningPanel";
+import { PitchTimePlanPanel } from "./components/PitchTimePlanPanel";
 import { TimelineAlignmentPanel } from "./components/TimelineAlignmentPanel";
 import { TrackOverridePanel } from "./components/TrackOverridePanel";
 import type { MashTrackJob } from "./domain/jobs.ts";
+import type { MashIntent } from "./domain/pitchTimePlanning.ts";
 import {
   clearTrackArtifactOverrides,
   createSessionArtifactStore,
   createTrackArtifact,
+  rebuildTrackArtifact,
   resolvePlanningBpm,
   syncTrackArtifactFromJob,
   updateTrackArtifactOverrides,
@@ -57,6 +60,13 @@ import {
 } from "./domain/sessionArtifacts.ts";
 import type { TrackDjOverrides } from "./domain/trackOverrides.ts";
 import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
+import {
+  applyPersistedOverrides,
+  clearSessionSnapshot,
+  loadSessionSnapshot,
+  saveSessionSnapshot,
+  serializeSessionSnapshot,
+} from "./lib/sessionPersistence.ts";
 
 type ScreenId = WorkflowScreen["id"];
 type TrackMap = Record<SlotId, TrackState | null>;
@@ -100,7 +110,29 @@ function App() {
   const [artifactStore, setArtifactStore] = useState<SessionArtifactStore>(() =>
     createSessionArtifactStore(sessionIdRef.current)
   );
+  const [mashIntent, setMashIntent] = useState<MashIntent>("compare_both");
   const tracksRef = useRef(tracks);
+
+  useEffect(() => {
+    const snapshot = loadSessionSnapshot();
+    if (snapshot && snapshot.sessionId === sessionIdRef.current) {
+      setMashIntent(snapshot.mashIntent);
+      setArtifactStore((current) => {
+        const merged = applyPersistedOverrides(current, snapshot);
+        return {
+          ...merged,
+          tracks: {
+            trackA: merged.tracks.trackA ? rebuildTrackArtifact(merged.tracks.trackA) : null,
+            trackB: merged.tracks.trackB ? rebuildTrackArtifact(merged.tracks.trackB) : null,
+          },
+        };
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    saveSessionSnapshot(serializeSessionSnapshot({ store: artifactStore, mashIntent }));
+  }, [artifactStore, mashIntent]);
 
   useEffect(() => {
     tracksRef.current = tracks;
@@ -170,12 +202,24 @@ function App() {
         };
       }
 
-      const artifact = createTrackArtifact({
+      const snapshot = loadSessionSnapshot();
+      const persisted = snapshot?.tracks[slotId];
+      const canRestoreOverrides =
+        persisted &&
+        persisted.fileIdentity.name === track.file.name &&
+        persisted.fileIdentity.sizeBytes === track.file.size &&
+        persisted.fileIdentity.lastModified === track.file.lastModified;
+
+      let artifact = createTrackArtifact({
         sessionId: sessionIdRef.current,
         slotId,
         file: track.file,
         inspection: track.inspection,
       });
+
+      if (canRestoreOverrides) {
+        artifact = updateTrackArtifactOverrides(artifact, persisted.overrides);
+      }
 
       return {
         ...current,
@@ -314,6 +358,7 @@ function App() {
       ...current,
       tracks: { ...current.tracks, [slotId]: null },
     }));
+    clearSessionSnapshot();
     clearAnalysisCache();
   }
 
@@ -466,7 +511,16 @@ function App() {
                 value={readyTracks.length === 2 ? "Ready to compare" : "Load both tracks"}
               />
             </div>
-            {readyTracks.length === 2 ? <MashupPlanningPanel artifactStore={artifactStore} /> : null}
+            {readyTracks.length === 2 ? (
+              <>
+                <MashupPlanningPanel artifactStore={artifactStore} />
+                <PitchTimePlanPanel
+                  artifactStore={artifactStore}
+                  intent={mashIntent}
+                  onIntentChange={setMashIntent}
+                />
+              </>
+            ) : null}
             {readyTracks.length > 0 ? (
               <div className="override-panel-grid">
                 {readyTracks.map((track) => (
@@ -580,7 +634,16 @@ function App() {
                 ))}
               </div>
             ) : null}
-            {readyTracks.length === 2 ? <MashupPlanningPanel artifactStore={artifactStore} /> : null}
+            {readyTracks.length === 2 ? (
+              <>
+                <MashupPlanningPanel artifactStore={artifactStore} />
+                <PitchTimePlanPanel
+                  artifactStore={artifactStore}
+                  intent={mashIntent}
+                  onIntentChange={setMashIntent}
+                />
+              </>
+            ) : null}
           </section>
         );
       case "export":

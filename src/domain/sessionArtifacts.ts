@@ -173,7 +173,7 @@ export function resolvePlanningBpm(artifact: TrackSessionArtifact | null): {
     return { value: artifact.beatAnalysis.bpm, source: "detected" };
   }
 
-  if (artifact.effectiveBeatGrid?.bpm !== null) {
+  if (artifact.effectiveBeatGrid?.bpm !== null && artifact.effectiveBeatGrid?.bpm !== undefined) {
     return { value: artifact.effectiveBeatGrid.bpm, source: "detected" };
   }
 

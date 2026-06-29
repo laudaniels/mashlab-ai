@@ -23,9 +23,21 @@ Each `TrackSessionArtifact` includes:
 ## Session Scope
 
 - Artifacts live in React state for the current browser session.
-- Clearing a track slot removes its artifact.
-- Refreshing the page clears all artifacts.
-- No filesystem or IndexedDB persistence yet (future optional upgrade).
+- **Phase 8:** override summaries, mash intent, and file identity are also saved to **sessionStorage** (local-only).
+- Raw audio is never persisted.
+- Clearing a track slot removes its artifact and clears session snapshot.
+- Closing the browser tab clears sessionStorage; re-uploading the same file restores overrides when file identity matches.
+
+## Phase 8 Persistence
+
+`src/lib/sessionPersistence.ts` stores:
+
+- `mashIntent` (vocal A/B planning assumption)
+- Per-track `overrides`
+- File identity for restore matching
+- Beat/key summary snapshots (not full beat arrays)
+
+No IndexedDB, cloud sync, or account storage.
 
 ## Override Precedence
 
@@ -42,7 +54,11 @@ When an override is active, UI labels show **DJ override** or **user-supplied**.
 1. Upload completes → artifact created with browser metadata
 2. Track job progresses → beat/key results synced into artifact
 3. User edits override panel → artifact rebuilt with effective grid/profile
-4. Mashup Planning + Timeline read from artifact store
+4. Mashup Planning + Timeline + Pitch/Time Plan read from artifact store
+
+## Pitch/Time Planning (Phase 8)
+
+Effective artifacts feed the pitch/time planner. See `docs/PITCH_TIME_PLANNING.md`.
 
 ## Privacy
 

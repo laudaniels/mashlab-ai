@@ -52,6 +52,13 @@ export function LocalEngineStatus() {
           ffprobe is missing. Install FFmpeg to unlock richer local metadata analysis.
         </p>
       ) : null}
+
+      {status.online && findCapability(status.capabilities, "rubberband")?.status === "missing" ? (
+        <p className="local-engine-offline-note">
+          Rubber Band CLI is not installed. Pitch/time planning works in the browser; processing
+          requires rubberband-cli on PATH when that lane is implemented.
+        </p>
+      ) : null}
     </section>
   );
 }

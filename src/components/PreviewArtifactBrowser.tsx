@@ -2,7 +2,8 @@ import { AlertTriangle, FolderOpen, LoaderCircle, RefreshCw, Trash2 } from "luci
 import { useCallback, useEffect, useState } from "react";
 import type { ArtifactMetadataResult, PreviewArtifactSummary } from "../domain/previewArtifacts.ts";
 import { PREVIEW_ARTIFACT_LABEL } from "../domain/previewArtifacts.ts";
-import { formatExportSubtypeLabel, isMp3ExportArtifact } from "../domain/mp3Export.ts";
+import { formatArtifactTypeLabel, isMasterArtifact } from "../domain/masteringPresets.ts";
+import { isMp3ExportArtifact } from "../domain/mp3Export.ts";
 import { localEngineClient } from "../lib/localEngine/client.ts";
 import {
   clearPreviewArtifactRegistry,
@@ -121,13 +122,7 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
             <article className="preview-artifact-card" key={`${artifact.artifactType}-${artifact.artifactId}`}>
               <div className="preview-artifact-card-header">
                 <strong>{artifact.registryLabel ?? artifact.artifactType}</strong>
-                <span className="preview-artifact-type">
-                  {artifact.artifactType === "export"
-                    ? formatExportSubtypeLabel(artifact.exportSubtype, artifact.exportFormat)
-                    : artifact.exportSubtype
-                      ? `${artifact.artifactType} / ${artifact.exportSubtype}`
-                      : artifact.artifactType}
-                </span>
+                <span className="preview-artifact-type">{formatArtifactTypeLabel(artifact)}</span>
               </div>
 
               <dl className="preview-artifact-meta">
@@ -179,11 +174,19 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                     <dd>{artifact.sourceWavExportArtifactId}</dd>
                   </div>
                 ) : null}
+                {artifact.masterPreset ? (
+                  <div>
+                    <dt>Mastering preset</dt>
+                    <dd>{artifact.masterPreset}</dd>
+                  </div>
+                ) : null}
               </dl>
 
               <p
                 className={`preview-artifact-label ${
-                  artifact.artifactType === "export" ? "preview-artifact-label-export" : ""
+                  artifact.artifactType === "export" || artifact.artifactType === "master"
+                    ? "preview-artifact-label-export"
+                    : ""
                 }`}
               >
                 {artifact.previewLabel}
@@ -198,6 +201,12 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                         ? "Download local MP3 reference"
                         : "Download local export WAV"}
                     </a>
+                  ) : artifact.artifactType === "master" && artifact.playbackUrl ? (
+                    <a className="preview-artifact-download" download href={artifact.playbackUrl}>
+                      Download local master WAV
+                    </a>
+                  ) : isMasterArtifact(artifact) ? (
+                    <p className="preview-artifact-no-playback">Measurement-only — no master audio file.</p>
                   ) : null}
                 </>
               ) : (

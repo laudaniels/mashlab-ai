@@ -1,12 +1,20 @@
 import type { SlotId } from "./types.ts";
 
-export type PreviewArtifactType = "stem" | "combined-preview" | "pitch-time-preview" | "export";
+export type PreviewArtifactType =
+  | "stem"
+  | "combined-preview"
+  | "pitch-time-preview"
+  | "export"
+  | "master";
 
 export const PREVIEW_ARTIFACT_LABEL =
   "Preview only — not a final export or master.";
 
 export const EXPORT_ARTIFACT_LABEL =
   "Local export — user responsible for rights. No public distribution rights granted.";
+
+export const MASTER_ARTIFACT_LABEL =
+  "Local mastering prototype — user responsible for rights. No public distribution rights granted.";
 
 export const MP3_EXPORT_ARTIFACT_LABEL =
   "Local MP3 reference export — user responsible for rights. No public distribution rights granted.";
@@ -50,6 +58,8 @@ export interface PreviewArtifactSummary {
   sourceVocalStemArtifactId: string | null;
   targetInstrumentalStemArtifactId: string | null;
   sourceWavExportArtifactId: string | null;
+  masterPreset: string | null;
+  masteringPrototype: boolean;
 }
 
 export interface LoudnessReadout {
@@ -92,12 +102,17 @@ export function isPreviewArtifactType(value: string): value is PreviewArtifactTy
     value === "stem" ||
     value === "combined-preview" ||
     value === "pitch-time-preview" ||
-    value === "export"
+    value === "export" ||
+    value === "master"
   );
 }
 
 export function isExportArtifact(artifact: PreviewArtifactSummary): boolean {
   return artifact.artifactType === "export";
+}
+
+export function isMasterArtifact(artifact: PreviewArtifactSummary): boolean {
+  return artifact.artifactType === "master";
 }
 
 export function isCombinedPreviewArtifact(artifact: PreviewArtifactSummary): boolean {

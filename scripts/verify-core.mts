@@ -2137,6 +2137,206 @@ describe("MP3 reference export and export session UX", async () => {
   });
 });
 
+describe("Mastering preset prototypes", async () => {
+  const { parseMasterWavResponse } = await importSrc("src/lib/localEngine/mastering.ts");
+  const {
+    ALLOWED_MASTERING_PRESETS,
+    MASTER_ARTIFACT_LABEL,
+    MASTERING_PROTOTYPE_NOTICE,
+    formatArtifactTypeLabel,
+    formatGateStatus,
+    formatMasteringPresetName,
+    formatMasteringWarnings,
+    formatReadoutLoudnessLine,
+    masteringPanelIsLocked,
+    masterResultClaimsFinalExport,
+    masterResultGrantsPublicShare,
+    masterResultIsPrototype,
+    validateMasterWavRequest,
+    MEASUREMENT_ONLY_PRESET,
+  } = await importSrc("src/domain/masteringPresets.ts");
+  const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { isMasteringAvailable } = await importSrc("src/domain/exportPrep.ts");
+  const { validateCleanupArtifactId } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { isWavExportArtifact } = await importSrc("src/domain/mp3Export.ts");
+
+  it("parses mastering response with finalExport, masteringPrototype, publicShare false", () => {
+    const parsed = parseMasterWavResponse({
+      ok: true,
+      status: "ready",
+      message: "Mastering preset applied.",
+      master_artifact_id: "master001",
+      source_wav_export_artifact_id: "wavexport001",
+      preset: "general_safe_normalize",
+      artifact_url: "/v1/artifacts/masters/master001/master",
+      download_url: "/v1/artifacts/masters/master001/master",
+      before_readout: {
+        loudness: { integrated_lufs: -18, true_peak_dbtp: -3, status: "available", message: "before" },
+      },
+      after_readout: {
+        loudness: { integrated_lufs: -14.2, true_peak_dbtp: -1.1, status: "available", message: "after" },
+      },
+      target_integrated_lufs: -14,
+      target_true_peak_dbtp: -1,
+      loudness_gate: {
+        status: "pass",
+        message: "Within preset targets — prototype only.",
+        target_integrated_lufs: -14,
+        target_true_peak_dbtp: -1,
+      },
+      audio_created: true,
+      final_export: true,
+      public_share: false,
+      mastering_prototype: true,
+      rights_notice: "Upload audio you own or are authorized to use.",
+      warnings: ["Prototype only."],
+      limitations: ["No distribution rights granted."],
+    });
+
+    assert.equal(parsed?.finalExport, true);
+    assert.equal(parsed?.publicShare, false);
+    assert.equal(parsed?.masteringPrototype, true);
+    assert.equal(masterResultClaimsFinalExport(parsed!), true);
+    assert.equal(masterResultGrantsPublicShare(parsed!), false);
+    assert.equal(masterResultIsPrototype(parsed!), true);
+    assert.match(parsed?.rightsNotice ?? "", /authorized/i);
+  });
+
+  it("validates WAV-export-only source and preset options", () => {
+    assert.equal(
+      validateMasterWavRequest({
+        sourceWavExportArtifactId: "wavexport001",
+        preset: MEASUREMENT_ONLY_PRESET,
+      }).length,
+      0
+    );
+    assert.ok(
+      validateMasterWavRequest({
+        sourceWavExportArtifactId: "../bad",
+        preset: MEASUREMENT_ONLY_PRESET,
+      }).length > 0
+    );
+    assert.ok(
+      validateMasterWavRequest({
+        sourceWavExportArtifactId: "wavexport001",
+        preset: "club_master" as never,
+      }).length > 0
+    );
+    assert.deepEqual([...ALLOWED_MASTERING_PRESETS], [
+      "measurement_only",
+      "general_safe_normalize",
+      "dj_loudness_prototype",
+    ]);
+  });
+
+  it("locks mastering panel until WAV exports exist", () => {
+    assert.equal(masteringPanelIsLocked([]), true);
+    assert.equal(isMasteringAvailable(0), false);
+    assert.equal(isMasteringAvailable(1), true);
+  });
+
+  it("formats before/after readout and gate status", () => {
+    const line = formatReadoutLoudnessLine({
+      durationSeconds: 30,
+      sampleRate: 44100,
+      channelCount: 2,
+      codec: "pcm_s16le",
+      container: "WAV",
+      fileSizeBytes: 1024,
+      loudness: {
+        integratedLufs: -14.2,
+        truePeakDbtp: -1.0,
+        peakLevelDb: -1.0,
+        status: "available",
+        message: "Measured.",
+      },
+    });
+    assert.match(line, /-14\.2 LUFS/);
+    assert.equal(
+      formatGateStatus({
+        status: "warn",
+        message: "Prototype gate.",
+        integratedLufs: -12,
+        truePeakDbtp: -0.5,
+        targetIntegratedLufs: -14,
+        targetTruePeakDbtp: -1,
+      }),
+      "warn"
+    );
+    assert.equal(formatMasteringPresetName("dj_loudness_prototype"), "DJ loudness prototype");
+  });
+
+  it("parses master artifact in browser list", () => {
+    const parsed = parseArtifactSummary({
+      artifact_id: "master001",
+      artifact_type: "master",
+      master_preset: "general_safe_normalize",
+      source_wav_export_artifact_id: "wavexport001",
+      mastering_prototype: true,
+      status: "ready",
+      created_at: "2026-06-23T12:00:00Z",
+      playback_urls: { primary: "/v1/artifacts/masters/master001/master" },
+      preview_only: false,
+      final_export: true,
+      primary_file_name: "master.wav",
+      preview_label: MASTER_ARTIFACT_LABEL,
+    });
+    assert.equal(parsed?.artifactType, "master");
+    assert.equal(parsed?.masterPreset, "general_safe_normalize");
+    assert.equal(parsed?.masteringPrototype, true);
+    assert.equal(formatArtifactTypeLabel(parsed!), "master / general_safe_normalize");
+  });
+
+  it("distinguishes master from export artifacts", () => {
+    const wavExport = {
+      artifactId: "wavex001",
+      artifactType: "export" as const,
+      status: "ready",
+      createdAt: "",
+      durationSeconds: 30,
+      playbackUrls: { primary: null, vocals: null, noVocals: null },
+      playbackUrl: null,
+      previewOnly: false,
+      finalExport: true,
+      previewLabel: "Local export",
+      primaryFileName: "export.wav",
+      sourceTrackLabel: null,
+      targetTrackLabel: null,
+      registryLabel: null,
+      sourceCombinedPreviewArtifactId: null,
+      exportSubtype: "preview-copy",
+      exportFormat: "wav",
+      sourceVocalStemArtifactId: null,
+      targetInstrumentalStemArtifactId: null,
+      sourceWavExportArtifactId: null,
+      masterPreset: null,
+      masteringPrototype: false,
+    };
+    assert.equal(isWavExportArtifact(wavExport), true);
+    assert.match(MASTERING_PROTOTYPE_NOTICE, /not professional mastering/i);
+    assert.match(MASTER_ARTIFACT_LABEL, /No public distribution rights granted/i);
+  });
+
+  it("cleanup validation accepts master artifact ids safely", () => {
+    assert.equal(validateCleanupArtifactId("master001").length, 0);
+    assert.ok(validateCleanupArtifactId("../escape").length > 0);
+  });
+
+  it("formats mastering warnings including rights limitations", () => {
+    const parsed = parseMasterWavResponse({
+      ok: true,
+      status: "ready",
+      message: "ok",
+      final_export: true,
+      public_share: false,
+      mastering_prototype: true,
+      warnings: ["Prototype only."],
+      limitations: ["No distribution rights granted."],
+    });
+    assert.ok(formatMasteringWarnings(parsed!).some((line) => /distribution rights/i.test(line)));
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

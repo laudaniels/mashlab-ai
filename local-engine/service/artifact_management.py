@@ -18,6 +18,7 @@ STEMS_DIR = ARTIFACTS_ROOT / "stems"
 COMBINED_DIR = ARTIFACTS_ROOT / "combined-preview"
 PITCH_TIME_DIR = ARTIFACTS_ROOT / "pitch-time-preview"
 EXPORTS_DIR = ARTIFACTS_ROOT / "exports"
+MASTERS_DIR = ARTIFACTS_ROOT / "masters"
 
 PREVIEW_ONLY_LABEL = "Preview only — not a final export or master."
 EXPORT_ARTIFACT_LABEL = (
@@ -25,6 +26,10 @@ EXPORT_ARTIFACT_LABEL = (
 )
 MP3_EXPORT_ARTIFACT_LABEL = (
     "Local MP3 reference export — user responsible for rights. "
+    "No public distribution rights granted."
+)
+MASTER_ARTIFACT_LABEL = (
+    "Local mastering prototype — user responsible for rights. "
     "No public distribution rights granted."
 )
 
@@ -54,6 +59,8 @@ class PreviewArtifactEntry:
     source_vocal_stem_artifact_id: str | None = None
     target_instrumental_stem_artifact_id: str | None = None
     source_wav_export_artifact_id: str | None = None
+    master_preset: str | None = None
+    mastering_prototype: bool = False
 
 
 @dataclass
@@ -150,6 +157,12 @@ def find_artifact_primary_path(artifact_id: str) -> tuple[Path | None, str | Non
         if export_file.exists():
             return export_file, "export"
 
+    master_dir = _resolve_under(MASTERS_DIR, artifact_id)
+    if master_dir and master_dir.is_dir():
+        master_file = master_dir / "master.wav"
+        if master_file.exists():
+            return master_file, "master"
+
     return None, None
 
 
@@ -173,6 +186,12 @@ def find_artifact_root(artifact_id: str) -> Path | None:
     if export_dir and export_dir.is_dir():
         if (export_dir / "export.wav").exists() or (export_dir / "export.mp3").exists():
             return export_dir
+
+    master_dir = _resolve_under(MASTERS_DIR, artifact_id)
+    if master_dir and master_dir.is_dir() and (
+        (master_dir / "master.wav").exists() or (master_dir / "master.meta.json").exists()
+    ):
+        return master_dir
 
     return None
 
@@ -320,12 +339,69 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                 )
             )
 
+    if MASTERS_DIR.exists():
+        for child in sorted(MASTERS_DIR.iterdir()):
+            if not child.is_dir() or not is_valid_artifact_id(child.name):
+                continue
+            master_wav = child / "master.wav"
+            master_meta = child / "master.meta.json"
+            if not master_wav.exists() and not master_meta.exists():
+                continue
+            meta = _read_master_meta(child)
+            source_wav_id = None
+            master_preset = None
+            audio_created = master_wav.exists()
+            if meta:
+                if isinstance(meta.get("source_wav_export_artifact_id"), str):
+                    source_wav_id = meta["source_wav_export_artifact_id"]
+                if isinstance(meta.get("master_preset"), str):
+                    master_preset = meta["master_preset"]
+                if isinstance(meta.get("audio_created"), bool):
+                    audio_created = meta["audio_created"]
+            primary_file = master_wav if master_wav.exists() else master_meta
+            playback = (
+                f"/v1/artifacts/masters/{child.name}/master" if master_wav.exists() else None
+            )
+            entries.append(
+                PreviewArtifactEntry(
+                    artifact_id=child.name,
+                    artifact_type="master",
+                    status="ready" if audio_created else "measurement-only",
+                    created_at=_iso_from_mtime(primary_file),
+                    duration_seconds=_probe_duration(master_wav) if master_wav.exists() else None,
+                    playback_urls=ArtifactPlaybackUrls(primary=playback),
+                    preview_only=False,
+                    final_export=True,
+                    primary_file_name=primary_file.name,
+                    preview_label=MASTER_ARTIFACT_LABEL,
+                    source_wav_export_artifact_id=source_wav_id,
+                    master_preset=master_preset,
+                    mastering_prototype=True,
+                )
+            )
+
     return entries
 
 
 def get_artifact_metadata(artifact_id: str) -> ArtifactMetadataResult:
     primary_path, artifact_type = find_artifact_primary_path(artifact_id)
     if primary_path is None or artifact_type is None:
+        master_dir = _resolve_under(MASTERS_DIR, artifact_id)
+        if master_dir and master_dir.is_dir():
+            meta = _read_master_meta(master_dir)
+            after_raw = meta.get("after_readout") if meta else None
+            technical = _technical_from_meta_dict(after_raw if isinstance(after_raw, dict) else None)
+            if technical is not None:
+                return ArtifactMetadataSuccess(
+                    ok=True,
+                    artifact_id=artifact_id,
+                    artifact_type="master",
+                    status="measurement-only",
+                    preview_only=False,
+                    final_export=True,
+                    technical=technical,
+                    playback_url=None,
+                )
         return ArtifactOperationFailure(
             ok=False,
             status="missing_artifact",
@@ -335,14 +411,15 @@ def get_artifact_metadata(artifact_id: str) -> ArtifactMetadataResult:
     technical = analyze_technical_readout(primary_path)
     playback_url = _playback_url_for(artifact_id, artifact_type, primary_path)
     is_export = artifact_type == "export"
+    is_master = artifact_type == "master"
 
     return ArtifactMetadataSuccess(
         ok=True,
         artifact_id=artifact_id,
         artifact_type=artifact_type,
         status="ready",
-        preview_only=not is_export,
-        final_export=is_export,
+        preview_only=not (is_export or is_master),
+        final_export=is_export or is_master,
         technical=technical,
         playback_url=playback_url,
     )
@@ -566,6 +643,39 @@ def _read_export_meta(export_dir: Path) -> dict | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _read_master_meta(master_dir: Path) -> dict | None:
+    meta_path = master_dir / "master.meta.json"
+    if not meta_path.is_file():
+        return None
+    try:
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _technical_from_meta_dict(value: dict | None) -> TechnicalReadout | None:
+    if not value or not isinstance(value, dict):
+        return None
+    loudness_raw = value.get("loudness")
+    loudness = LoudnessReadout(
+        integrated_lufs=_safe_float(loudness_raw.get("integrated_lufs")) if isinstance(loudness_raw, dict) else None,
+        true_peak_dbtp=_safe_float(loudness_raw.get("true_peak_dbtp")) if isinstance(loudness_raw, dict) else None,
+        peak_level_db=_safe_float(loudness_raw.get("peak_level_db")) if isinstance(loudness_raw, dict) else None,
+        status=loudness_raw.get("status", "not_available") if isinstance(loudness_raw, dict) else "not_available",
+        message=loudness_raw.get("message", "Readout unavailable.") if isinstance(loudness_raw, dict) else "Readout unavailable.",
+    )
+    return TechnicalReadout(
+        duration_seconds=_safe_float(value.get("duration_seconds")),
+        sample_rate=_safe_int(value.get("sample_rate")),
+        channel_count=_safe_int(value.get("channel_count")),
+        codec=value.get("codec") if isinstance(value.get("codec"), str) else None,
+        container=value.get("container") if isinstance(value.get("container"), str) else None,
+        file_size_bytes=_safe_int(value.get("file_size_bytes")),
+        loudness=loudness,
+    )
+
+
 def _playback_url_for(artifact_id: str, artifact_type: str, primary_path: Path | None = None) -> str | None:
     if artifact_type == "stem":
         return f"/v1/artifacts/stems/{artifact_id}/vocals"
@@ -577,6 +687,8 @@ def _playback_url_for(artifact_id: str, artifact_type: str, primary_path: Path |
         if primary_path is not None and primary_path.name == "export.mp3":
             return f"/v1/artifacts/exports/{artifact_id}/export.mp3"
         return f"/v1/artifacts/exports/{artifact_id}/export"
+    if artifact_type == "master":
+        return f"/v1/artifacts/masters/{artifact_id}/master"
     return None
 
 

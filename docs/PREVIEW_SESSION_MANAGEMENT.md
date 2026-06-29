@@ -1,6 +1,6 @@
-# Preview Session Management — Phase 12–15
+# Preview Session Management — Phase 12–16
 
-Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV export artifacts**. Phase 15 adds **MP3 reference exports** and **export session UX**.
+Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV export artifacts**. Phase 15 adds **MP3 reference exports**. Phase 16 adds **mastering preset prototypes**.
 
 ## What This Phase Adds
 
@@ -10,7 +10,7 @@ Phase 12 adds **local preview artifact management**. Phase 13 adds **local WAV e
 - FFmpeg/ffprobe technical readout and loudness analysis where practical
 - Export panel (unlocks when combined preview or stem artifacts exist — Phase 13–14)
 - MP3 reference export section (unlocks when WAV export exists — Phase 15)
-- Export session preferences in localStorage (bitrate, loudness mode, last export, re-export — Phase 15)
+- Mastering preset section (unlocks when WAV export exists — Phase 16)
 - Auto-refresh after stem/combined/export create and delete/clear (`src/lib/artifactRefresh.ts`)
 
 ## Preview Artifacts Are Local
@@ -23,6 +23,8 @@ All preview artifacts live under the sidecar workspace:
 .work/artifacts/pitch-time-preview/{id}.wav
 .work/artifacts/exports/{id}/export.wav
 .work/artifacts/exports/{id}/export.mp3
+.work/artifacts/masters/{id}/master.wav
+.work/artifacts/masters/{id}/master.meta.json
 ```
 
 Preview artifacts are **not** final exports (except export-type artifacts which are local user-generated WAV/MP3 files — still not published releases). Nothing is cloud-hosted or shared publicly.
@@ -41,6 +43,8 @@ The browser UI stores optional session metadata (source/target track labels) in 
 | `POST /v1/export/mp3` | Create local MP3 reference from WAV export (Phase 15) |
 | `GET /v1/artifacts/exports/{id}/export` | Playback/download export WAV |
 | `GET /v1/artifacts/exports/{id}/export.mp3` | Playback/download export MP3 |
+| `POST /v1/master/wav` | Run mastering preset on WAV export (Phase 16) |
+| `GET /v1/artifacts/masters/{id}/master` | Playback/download master WAV |
 
 Preview entries include `preview_only: true` and `final_export: false`.
 

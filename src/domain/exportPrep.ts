@@ -39,9 +39,9 @@ export const exportTargetPlans: ExportTargetPlan[] = [
   },
   {
     id: "dj-preview-master",
-    label: "DJ-safe preview master",
-    description: "Future loudness/true-peak checked preview master — not the same as current previews.",
-    status: "locked",
+    label: "Mastering presets",
+    description: "Local mastering preset prototypes from WAV exports.",
+    status: "available",
   },
 ];
 
@@ -74,6 +74,10 @@ export function exportPanelHasAnySource(
 }
 
 export function isMp3ExportAvailable(wavExportCount: number): boolean {
+  return wavExportCount > 0;
+}
+
+export function isMasteringAvailable(wavExportCount: number): boolean {
   return wavExportCount > 0;
 }
 

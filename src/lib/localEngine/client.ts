@@ -9,6 +9,7 @@ import {
   parseStemPreviewResponse,
 } from "./stemPreview.ts";
 import { parseCombinedPreviewResponse } from "./combinedPreview.ts";
+import { parseMasterWavResponse } from "./mastering.ts";
 import { parseExportWavResponse, parseFullWavExportResponse, parseMp3ExportResponse } from "./export.ts";
 import {
   parseArtifactDeleteResponse,
@@ -46,6 +47,8 @@ import type { ExportWavRequestParams } from "../../domain/localExport.ts";
 import type { ExportWavResult } from "../../domain/localExport.ts";
 import type { FullLengthExportRequestParams } from "../../domain/fullLengthExport.ts";
 import type { FullLengthExportResult } from "../../domain/fullLengthExport.ts";
+import type { MasterWavRequestParams } from "../../domain/masteringPresets.ts";
+import type { MasterWavResult } from "../../domain/masteringPresets.ts";
 import type { Mp3ExportRequestParams } from "../../domain/mp3Export.ts";
 import type { Mp3ExportResult } from "../../domain/mp3Export.ts";
 
@@ -314,6 +317,28 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseMp3ExportResponse(payload, this.baseUrl);
+  }
+
+  async createMasterWav(params: MasterWavRequestParams): Promise<MasterWavResult | null> {
+    const response = await this.request("/v1/master/wav", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        source_wav_export_artifact_id: params.sourceWavExportArtifactId,
+        preset: params.preset,
+        export_label: params.exportLabel ?? null,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 8,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseMasterWavResponse(payload, this.baseUrl);
   }
 
   async listArtifacts(registry: PreviewArtifactRegistryEntry[] = []) {

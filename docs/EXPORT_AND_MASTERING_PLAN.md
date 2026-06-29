@@ -1,16 +1,28 @@
 # Export and Mastering Plan
 
-## Current State (Phase 15)
+## Current State (Phase 16)
 
+- **Mastering preset prototypes** from WAV export artifacts (measurement-only, general safe normalize, DJ loudness prototype)
 - **Full-length WAV export** re-renders from stem artifacts + session plan (Rubber Band + FFmpeg full mix)
 - **Preview-length WAV export** copies existing combined preview artifact (Phase 13)
 - **MP3 reference export** encodes from existing WAV export artifact only (Phase 15)
 - Export panel unlocks when both stem previews exist **or** a combined preview exists
-- MP3 section unlocks when at least one WAV export exists
-- Loudness gate displays pass/warn/not_available against planned general targets (informational only)
-- Stem package export, club mastering, and public sharing remain **not implemented**
+- Mastering and MP3 sections unlock when at least one WAV export exists
+- Loudness gate displays pass/warn/not_available against preset targets (informational only)
+- Stem package export, club mastering certification, and public sharing remain **not implemented**
 
 Preview artifacts (stem, combined, pitch/time) remain `finalExport: false`.
+
+## Phase 16 Mastering Presets (Implemented)
+
+| Item | Status |
+|------|--------|
+| Measurement-only readout (no audio write) | Available |
+| General safe normalize (~-14 LUFS / -1 dBTP) | Available when FFmpeg present |
+| DJ loudness prototype (~-9.5 LUFS / -1 dBTP) | Available when FFmpeg present |
+| Before/after readout + informational gate | Available when FFmpeg measures |
+
+See `docs/MASTERING_PRESETS.md` for API and storage details.
 
 ## Phase 15 MP3 Reference Export (Implemented)
 
@@ -36,7 +48,7 @@ See `docs/LOCAL_EXPORTS.md` for API and storage details.
 
 ## Recommended Next Phase
 
-**Mastering presets** — measurement-only, general-safe normalization, and DJ loudness prototype — still local and rights-neutral. Not public sharing or streaming integration.
+**Club version presets + export packaging UX** — still local and rights-neutral. Not public sharing or streaming integration.
 
 ## Planned Loudness Targets (Future Full Mastering)
 

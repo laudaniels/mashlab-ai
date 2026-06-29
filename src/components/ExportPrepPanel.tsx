@@ -27,9 +27,27 @@ import {
   exportTargetPlans,
   formatLoudnessTargetSummary,
   hasFullLengthExportSource,
+  isMasteringAvailable,
   isMp3ExportAvailable,
   isWavExportAvailable,
 } from "../domain/exportPrep.ts";
+import {
+  DEFAULT_MASTERING_PRESET,
+  formatGateStatus,
+  formatMasteringPresetName,
+  formatMasteringWarnings,
+  formatReadoutLoudnessLine,
+  formatTargetLoudnessSummary,
+  getMasteringPresetDefinition,
+  MASTERING_DJ_REVIEW_NOTICE,
+  MASTERING_NO_RIGHTS_NOTICE,
+  MASTERING_PRESET_DEFINITIONS,
+  MASTERING_PROTOTYPE_NOTICE,
+  masteringPanelIsLocked,
+  validateMasterWavRequest,
+  type MasteringPresetId,
+  type MasterWavResult,
+} from "../domain/masteringPresets.ts";
 import type { ExportWavResult, LoudnessTargetMode } from "../domain/localExport.ts";
 import {
   EXPORT_NOT_MASTERED_NOTICE,
@@ -99,6 +117,9 @@ export function ExportPrepPanel({
   const [exportLabel, setExportLabel] = useState("");
   const [fullExportLabel, setFullExportLabel] = useState("");
   const [mp3ExportLabel, setMp3ExportLabel] = useState("");
+  const [masteringPreset, setMasteringPreset] =
+    useState<MasteringPresetId>(DEFAULT_MASTERING_PRESET);
+  const [masterExportLabel, setMasterExportLabel] = useState("");
   const [mp3Bitrate, setMp3Bitrate] = useState<Mp3BitrateKbps>(320);
   const [sessionPrefs, setSessionPrefs] = useState<ExportSessionPreferences>(() =>
     loadExportSessionPreferences()
@@ -114,10 +135,13 @@ export function ExportPrepPanel({
   const [exportResult, setExportResult] = useState<ExportWavResult | null>(null);
   const [fullExportResult, setFullExportResult] = useState<FullLengthExportResult | null>(null);
   const [mp3ExportResult, setMp3ExportResult] = useState<Mp3ExportResult | null>(null);
+  const [masterResult, setMasterResult] = useState<MasterWavResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fullErrorMessage, setFullErrorMessage] = useState<string | null>(null);
   const [mp3ErrorMessage, setMp3ErrorMessage] = useState<string | null>(null);
+  const [masterErrorMessage, setMasterErrorMessage] = useState<string | null>(null);
   const [mp3Busy, setMp3Busy] = useState(false);
+  const [masterBusy, setMasterBusy] = useState(false);
   const [reExportBusy, setReExportBusy] = useState(false);
 
   const pitchTimePlan = buildPitchTimePlanForExport(
@@ -201,6 +225,9 @@ export function ExportPrepPanel({
   const wavAvailable = isWavExportAvailable(hasAnySource);
   const mp3Available = isMp3ExportAvailable(wavExports.length);
   const mp3Locked = mp3ExportPanelIsLocked(wavExports);
+  const masteringLocked = masteringPanelIsLocked(wavExports);
+  const masteringAvailable = isMasteringAvailable(wavExports.length);
+  const selectedPresetDef = getMasteringPresetDefinition(masteringPreset);
   const canReExport = canReExportWithCurrentSettings(
     sessionPrefs,
     wavExports.length > 0,
@@ -329,6 +356,55 @@ export function ExportPrepPanel({
         })
       );
     }
+    notifyArtifactRefresh();
+    onExportComplete?.();
+  }
+
+  async function handleRunMasteringPreset() {
+    if (!selectedWavExportId) {
+      setMasterErrorMessage("Select a WAV export artifact first.");
+      return;
+    }
+
+    const validationErrors = validateMasterWavRequest({
+      sourceWavExportArtifactId: selectedWavExportId,
+      preset: masteringPreset,
+      exportLabel: masterExportLabel.trim() || null,
+    });
+
+    if (validationErrors.length > 0) {
+      setMasterErrorMessage(validationErrors.join(" "));
+      return;
+    }
+
+    setMasterBusy(true);
+    setMasterErrorMessage(null);
+    setMasterResult(null);
+
+    const result = await localEngineClient.createMasterWav({
+      sourceWavExportArtifactId: selectedWavExportId,
+      preset: masteringPreset,
+      exportLabel: masterExportLabel.trim() || null,
+    });
+
+    setMasterBusy(false);
+
+    if (!result) {
+      setMasterErrorMessage("Local sidecar did not respond to mastering request.");
+      return;
+    }
+
+    if (!result.ok) {
+      setMasterErrorMessage(
+        result.validationErrors?.join(" ") ??
+          result.setupGuidance ??
+          result.message ??
+          "Mastering preset failed."
+      );
+      return;
+    }
+
+    setMasterResult(result);
     notifyArtifactRefresh();
     onExportComplete?.();
   }
@@ -793,6 +869,97 @@ export function ExportPrepPanel({
             )}
           </div>
 
+          <div className="export-prep-form export-prep-form-section export-prep-mastering">
+            <h4>Mastering presets (local prototype)</h4>
+            <p className="export-prep-not-mastered">{MASTERING_PROTOTYPE_NOTICE}</p>
+            <p className="export-prep-not-mastered">{MASTERING_DJ_REVIEW_NOTICE}</p>
+            <p className="export-prep-wav-only">{MASTERING_NO_RIGHTS_NOTICE}</p>
+
+            {masteringLocked ? (
+              <p className="export-prep-wav-only">
+                Create a local WAV export first to unlock mastering presets.
+              </p>
+            ) : (
+              <>
+                <label className="export-prep-field">
+                  <span>WAV export source</span>
+                  <select
+                    disabled={masterBusy || wavExports.length === 0}
+                    onChange={(event) => setSelectedWavExportId(event.target.value)}
+                    value={selectedWavExportId}
+                  >
+                    {wavExports.map((item) => (
+                      <option key={item.artifactId} value={item.artifactId}>
+                        {item.exportSubtype ?? "wav"} — {item.artifactId} (
+                        {item.durationSeconds?.toFixed(1) ?? "?"}s)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="export-prep-field">
+                  <span>Mastering preset</span>
+                  <select
+                    disabled={masterBusy}
+                    onChange={(event) =>
+                      setMasteringPreset(event.target.value as MasteringPresetId)
+                    }
+                    value={masteringPreset}
+                  >
+                    {MASTERING_PRESET_DEFINITIONS.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="export-prep-preset-description">{selectedPresetDef.description}</p>
+                <p className="export-prep-preset-targets">
+                  Target: {formatTargetLoudnessSummary(selectedPresetDef)}
+                </p>
+                <ul className="export-prep-warnings">
+                  {selectedPresetDef.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+                <label className="export-prep-field">
+                  <span>Optional label</span>
+                  <input
+                    disabled={masterBusy}
+                    maxLength={120}
+                    onChange={(event) => setMasterExportLabel(event.target.value)}
+                    placeholder="Mastering prototype label"
+                    type="text"
+                    value={masterExportLabel}
+                  />
+                </label>
+                <button
+                  className="export-prep-create-button export-prep-create-button-master"
+                  disabled={
+                    !masteringAvailable || !localStatus.online || masterBusy || !selectedWavExportId
+                  }
+                  onClick={() => void handleRunMasteringPreset()}
+                  type="button"
+                >
+                  {masterBusy ? (
+                    <>
+                      <LoaderCircle aria-hidden="true" className="spin-icon" size={16} />
+                      Running mastering preset…
+                    </>
+                  ) : (
+                    <>
+                      <Download aria-hidden="true" size={16} />
+                      Run mastering preset
+                    </>
+                  )}
+                </button>
+                {masterErrorMessage ? (
+                  <p className="export-prep-error">{masterErrorMessage}</p>
+                ) : null}
+                {masterResult?.ok ? <MasterResultBlock result={masterResult} /> : null}
+              </>
+            )}
+          </div>
+
           {sessionPrefs.lastSuccessfulExport ? (
             <div className="export-prep-session-summary">
               <h4>Last successful export</h4>
@@ -807,7 +974,7 @@ export function ExportPrepPanel({
               {canReExport ? (
                 <button
                   className="export-prep-reexport-button"
-                  disabled={reExportBusy || busy || fullBusy || mp3Busy || !localStatus.online}
+                  disabled={reExportBusy || busy || fullBusy || mp3Busy || masterBusy || !localStatus.online}
                   onClick={() => void handleReExportWithCurrentSettings()}
                   type="button"
                 >
@@ -834,6 +1001,8 @@ export function ExportPrepPanel({
               <span className="export-prep-card-status">Available above</span>
             ) : target.id === "mp3" && mp3Available ? (
               <span className="export-prep-card-status">Available above</span>
+            ) : target.id === "dj-preview-master" && masteringAvailable ? (
+              <span className="export-prep-card-status">Available above</span>
             ) : (
               <button className="disabled-action" disabled type="button">
                 {target.status === "locked" ? "Not implemented" : "Use export form"}
@@ -858,6 +1027,7 @@ export function ExportPrepPanel({
 
       <NoticeStrip
         text={
+          masterResult?.rightsNotice ??
           mp3ExportResult?.rightsNotice ??
           fullExportResult?.rightsNotice ??
           exportResult?.rightsNotice ??
@@ -896,6 +1066,46 @@ function ExportResultBlock({ result }: { result: ExportWavResult }) {
           <li key={warning}>{warning}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function MasterResultBlock({ result }: { result: MasterWavResult }) {
+  return (
+    <div className="export-prep-result export-prep-result-master">
+      <p>
+        Master artifact <strong>{result.masterArtifactId}</strong> · preset{" "}
+        {formatMasteringPresetName(result.preset)} · source WAV{" "}
+        {result.sourceWavExportArtifactId}
+      </p>
+      <p className="export-prep-readout-label">Before</p>
+      <p>{formatReadoutLoudnessLine(result.beforeReadout)}</p>
+      <p className="export-prep-readout-label">After</p>
+      <p>{formatReadoutLoudnessLine(result.afterReadout)}</p>
+      {result.loudnessGate ? (
+        <p className={`export-prep-loudness-gate export-prep-loudness-gate-${result.loudnessGate.status}`}>
+          Gate ({formatGateStatus(result.loudnessGate)}): {result.loudnessGate.message}
+        </p>
+      ) : null}
+      {result.playbackUrl ? (
+        <>
+          <audio controls preload="none" src={result.playbackUrl} />
+          <a className="export-prep-download-link" download href={result.playbackUrl}>
+            Download local master WAV
+          </a>
+        </>
+      ) : (
+        <p className="export-prep-wav-only">Measurement-only — no master audio file written.</p>
+      )}
+      <ul className="export-prep-warnings">
+        {formatMasteringWarnings(result).map((warning) => (
+          <li key={warning}>{warning}</li>
+        ))}
+      </ul>
+      <p className="export-prep-final-export">
+        finalExport: {String(result.finalExport)} · publicShare: {String(result.publicShare)} ·
+        masteringPrototype: {String(result.masteringPrototype)}
+      </p>
     </div>
   );
 }

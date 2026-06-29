@@ -4,7 +4,7 @@ import type {
   LoudnessReadout,
   PreviewArtifactSummary,
 } from "../../domain/previewArtifacts.ts";
-import { EXPORT_ARTIFACT_LABEL, PREVIEW_ARTIFACT_LABEL, formatTrackSlotLabel, isPreviewArtifactType } from "../../domain/previewArtifacts.ts";
+import { EXPORT_ARTIFACT_LABEL, MASTER_ARTIFACT_LABEL, PREVIEW_ARTIFACT_LABEL, formatTrackSlotLabel, isPreviewArtifactType } from "../../domain/previewArtifacts.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 import { findRegistryEntry } from "../previewArtifactRegistry.ts";
 import { DEFAULT_LOCAL_ENGINE_URL } from "./types.ts";
@@ -70,9 +70,11 @@ export function parseArtifactSummary(
     previewLabel:
       typeof record.preview_label === "string"
         ? record.preview_label
-        : record.artifact_type === "export"
-          ? EXPORT_ARTIFACT_LABEL
-          : PREVIEW_ARTIFACT_LABEL,
+        : record.artifact_type === "master"
+          ? MASTER_ARTIFACT_LABEL
+          : record.artifact_type === "export"
+            ? EXPORT_ARTIFACT_LABEL
+            : PREVIEW_ARTIFACT_LABEL,
     primaryFileName:
       typeof record.primary_file_name === "string" ? record.primary_file_name : "preview.wav",
     sourceTrackLabel: formatTrackSlotLabel(registryEntry?.sourceTrackSlot ?? null),
@@ -96,6 +98,8 @@ export function parseArtifactSummary(
       typeof record.source_wav_export_artifact_id === "string"
         ? record.source_wav_export_artifact_id
         : null,
+    masterPreset: typeof record.master_preset === "string" ? record.master_preset : null,
+    masteringPrototype: record.mastering_prototype === true,
   };
 }
 

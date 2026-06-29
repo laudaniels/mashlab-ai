@@ -1,4 +1,4 @@
-# Local WAV and MP3 Exports (Phase 13–15)
+# Local WAV, MP3, and Mastering Exports (Phase 13–16)
 
 MashLab AI / CyphaBlend AI supports **local WAV export** lanes and **MP3 reference export** from existing WAV exports. All exports are explicit, user-initiated, and rights-neutral.
 
@@ -9,11 +9,15 @@ MashLab AI / CyphaBlend AI supports **local WAV export** lanes and **MP3 referen
 | Preview-length copy | `POST /v1/export/wav` | Combined preview `preview.wav` | `preview-copy` |
 | Full-length re-render | `POST /v1/export/full-wav` | Stem artifacts + plan state | `full-wav` |
 | MP3 reference | `POST /v1/export/mp3` | Existing WAV export `export.wav` | `mp3` |
+| Mastering prototype | `POST /v1/master/wav` | Existing WAV export `export.wav` | preset id |
 
 Output:
 
-- WAV: `.work/artifacts/exports/{uuid}/export.wav` + `export.meta.json`
-- MP3: `.work/artifacts/exports/{uuid}/export.mp3` + `export.meta.json`
+- WAV export: `.work/artifacts/exports/{uuid}/export.wav` + `export.meta.json`
+- MP3 export: `.work/artifacts/exports/{uuid}/export.mp3` + `export.meta.json`
+- Master: `.work/artifacts/masters/{uuid}/master.wav` (when preset creates audio) + `master.meta.json`
+
+See `docs/MASTERING_PRESETS.md` for mastering preset details.
 
 ## Phase 15: MP3 Reference Export
 
@@ -151,8 +155,9 @@ Export artifacts in the browser show `export_subtype`:
 - `preview-copy` — copied from combined preview (`export / wav`)
 - `full-wav` — re-rendered from stem artifacts (`export / full-wav`)
 - `mp3` — encoded from WAV export (`export / mp3`)
+- `master / {preset}` — mastering prototype from WAV export
 
-Full-length exports include source vocal and instrumental stem artifact ids. MP3 exports include `source_wav_export_artifact_id`.
+Full-length exports include source vocal and instrumental stem artifact ids. MP3 exports include `source_wav_export_artifact_id`. Master artifacts include preset and source WAV export id.
 
 ## Export Panel
 
@@ -162,11 +167,12 @@ Sections:
 
 1. **Export from combined preview** — preview-length WAV copy (Phase 13)
 2. **Full-length render from stem artifacts** — re-run Rubber Band + FFmpeg mix without trim (Phase 14)
-3. **MP3 reference export** — unlocks when a WAV export exists; user selects WAV source + bitrate (Phase 15)
+3. **MP3 reference export** — unlocks when a WAV export exists (Phase 15)
+4. **Mastering presets** — unlocks when a WAV export exists (Phase 16)
 
 Full-length export requires readiness checklist: both stem artifacts, Rubber Band, FFmpeg, plan or confirmed neutral mode, rights acknowledgment.
 
-MP3 section requires an existing WAV export artifact. Stem package, mastering presets, and public sharing remain unavailable.
+MP3 and mastering sections require an existing WAV export artifact. Stem package and public sharing remain unavailable.
 
 ### Export session UX (Phase 15)
 
@@ -186,7 +192,8 @@ No raw audio is persisted. No accounts or cloud storage.
 .work/artifacts/combined-preview/{id}/preview.wav   # source (Phase 11)
 .work/artifacts/exports/{uuid}/export.wav           # WAV output (Phase 13–14)
 .work/artifacts/exports/{uuid}/export.mp3           # MP3 output (Phase 15)
-.work/artifacts/exports/{uuid}/export.meta.json     # source ids, label, mode, bitrate
+.work/artifacts/masters/{uuid}/master.wav         # Master output (Phase 16, when audio created)
+.work/artifacts/masters/{uuid}/master.meta.json
 ```
 
 ## Cleanup

@@ -264,6 +264,8 @@ class PreviewArtifactSummary(BaseModel):
     source_vocal_stem_artifact_id: str | None = None
     target_instrumental_stem_artifact_id: str | None = None
     source_wav_export_artifact_id: str | None = None
+    master_preset: str | None = None
+    mastering_prototype: bool = False
 
 
 class ArtifactListResponse(BaseModel):
@@ -365,6 +367,38 @@ class ExportMp3Response(BaseModel):
     loudness: LoudnessReadoutModel | None = None
     final_export: bool = False
     public_share: bool = False
+    rights_notice: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    export_label: str | None = None
+    validation_errors: list[str] | None = None
+    setup_guidance: str | None = None
+
+
+class MasterWavRequest(BaseModel):
+    source_wav_export_artifact_id: str
+    preset: str = "measurement_only"
+    export_label: str | None = None
+
+
+class MasterWavResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    master_artifact_id: str | None = None
+    source_wav_export_artifact_id: str | None = None
+    preset: str | None = None
+    artifact_url: str | None = None
+    download_url: str | None = None
+    before_readout: TechnicalReadoutModel | None = None
+    after_readout: TechnicalReadoutModel | None = None
+    target_integrated_lufs: float | None = None
+    target_true_peak_dbtp: float | None = None
+    loudness_gate: LoudnessGateModel | None = None
+    audio_created: bool = False
+    final_export: bool = False
+    public_share: bool = False
+    mastering_prototype: bool = False
     rights_notice: str | None = None
     warnings: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)

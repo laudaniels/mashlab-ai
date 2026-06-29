@@ -38,6 +38,7 @@ from rubber_band_processing import (
     PitchTimePreviewSuccess,
     process_pitch_time_preview,
 )
+from mastering_processing import MasterWavFailure, MasterWavSuccess, create_master_wav
 from mp3_export_processing import ExportMp3Failure, ExportMp3Success, create_mp3_export
 from export_processing import ExportWavFailure, ExportWavSuccess, create_wav_export
 from full_length_export_processing import (
@@ -57,6 +58,8 @@ from models import (
     FullExportInputSummaryModel,
     FullExportProcessingSummaryModel,
     LoudnessGateModel,
+    MasterWavRequest,
+    MasterWavResponse,
     ExportMp3Request,
     ExportMp3Response,
     ExportWavRequest,
@@ -506,6 +509,22 @@ def get_export_mp3_artifact(artifact_id: str) -> FileResponse:
     )
 
 
+@app.get("/v1/artifacts/masters/{artifact_id}/master")
+def get_master_artifact(artifact_id: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    artifact_path = config.WORK_DIR / "artifacts" / "masters" / artifact_id / "master.wav"
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail="Master artifact not found.")
+
+    return FileResponse(
+        path=artifact_path,
+        media_type="audio/wav",
+        filename=f"mashlab-master-{artifact_id}.wav",
+    )
+
+
 @app.post("/v1/export/wav", response_model=ExportWavResponse)
 def export_wav(request: ExportWavRequest) -> ExportWavResponse:
     result = create_wav_export(
@@ -601,6 +620,61 @@ def export_mp3(request: ExportMp3Request) -> ExportMp3Response:
         loudness=loudness_model,
         final_export=result.final_export,
         public_share=result.public_share,
+        rights_notice=result.rights_notice,
+        warnings=result.warnings,
+        limitations=result.limitations,
+        export_label=result.export_label,
+    )
+
+
+@app.post("/v1/master/wav", response_model=MasterWavResponse)
+def master_wav(request: MasterWavRequest) -> MasterWavResponse:
+    result = create_master_wav(
+        source_wav_export_artifact_id=request.source_wav_export_artifact_id,
+        preset=request.preset,
+        export_label=request.export_label,
+    )
+
+    if isinstance(result, MasterWavFailure):
+        return MasterWavResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            validation_errors=result.validation_errors,
+            setup_guidance=result.setup_guidance,
+            final_export=False,
+            public_share=False,
+            mastering_prototype=False,
+        )
+
+    gate = result.loudness_gate
+    gate_model = LoudnessGateModel(
+        status=gate.status,
+        message=gate.message,
+        integrated_lufs=gate.integrated_lufs,
+        true_peak_dbtp=gate.true_peak_dbtp,
+        target_integrated_lufs=gate.target_integrated_lufs,
+        target_true_peak_dbtp=gate.target_true_peak_dbtp,
+    )
+
+    return MasterWavResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        master_artifact_id=result.master_artifact_id,
+        source_wav_export_artifact_id=result.source_wav_export_artifact_id,
+        preset=result.preset,
+        artifact_url=result.artifact_url,
+        download_url=result.download_url,
+        before_readout=_technical_readout_model(result.before_readout),
+        after_readout=_technical_readout_model(result.after_readout),
+        target_integrated_lufs=result.target_integrated_lufs,
+        target_true_peak_dbtp=result.target_true_peak_dbtp,
+        loudness_gate=gate_model,
+        audio_created=result.audio_created,
+        final_export=result.final_export,
+        public_share=result.public_share,
+        mastering_prototype=result.mastering_prototype,
         rights_notice=result.rights_notice,
         warnings=result.warnings,
         limitations=result.limitations,
@@ -722,6 +796,8 @@ def list_artifacts() -> ArtifactListResponse:
                 source_vocal_stem_artifact_id=item.source_vocal_stem_artifact_id,
                 target_instrumental_stem_artifact_id=item.target_instrumental_stem_artifact_id,
                 source_wav_export_artifact_id=item.source_wav_export_artifact_id,
+                master_preset=item.master_preset,
+                mastering_prototype=item.mastering_prototype,
             )
             for item in artifacts
         ],
@@ -812,6 +888,24 @@ def clear_preview_artifacts(scope: str = "session") -> ArtifactDeleteResponse:
         status="deleted",
         message=f"Cleared {deleted_count} local session artifacts (previews and exports).",
         deleted_count=deleted_count,
+    )
+
+
+def _technical_readout_model(readout) -> TechnicalReadoutModel:
+    return TechnicalReadoutModel(
+        duration_seconds=readout.duration_seconds,
+        sample_rate=readout.sample_rate,
+        channel_count=readout.channel_count,
+        codec=readout.codec,
+        container=readout.container,
+        file_size_bytes=readout.file_size_bytes,
+        loudness=LoudnessReadoutModel(
+            integrated_lufs=readout.loudness.integrated_lufs,
+            true_peak_dbtp=readout.loudness.true_peak_dbtp,
+            peak_level_db=readout.loudness.peak_level_db,
+            status=readout.loudness.status,
+            message=readout.loudness.message,
+        ),
     )
 
 

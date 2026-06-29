@@ -309,6 +309,8 @@ class PreviewArtifactSummary(BaseModel):
     arrangement_phrase_basis: str | None = None
     arrangement_context_summary: str | None = None
     arrangement_export_context_mode: str | None = None
+    section_trimmed_export: bool = False
+    binding_freshness_at_export: str | None = None
 
 
 class PackageIncludedFileModel(BaseModel):
@@ -565,6 +567,92 @@ class FullWavExportResponse(BaseModel):
     loudness_gate: LoudnessGateModel | None = None
     final_export: bool = False
     public_share: bool = False
+    rights_notice: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    export_label: str | None = None
+    validation_errors: list[str] | None = None
+    setup_guidance: str | None = None
+
+
+class SectionExportInputSummaryModel(BaseModel):
+    mash_intent: str
+    source_vocal_stem_artifact_id: str
+    target_instrumental_stem_artifact_id: str
+    start_seconds: float
+    duration_seconds: float
+    start_seconds_unavailable: bool
+    tempo_ratio: float | None = None
+    pitch_shift_semitones: float
+    alignment_offset_ms: float
+    mix_settings: MixSettingsModel | None = None
+    binding_freshness_status: str
+    settings_mode: str
+
+
+class SectionExportProcessingSummaryModel(BaseModel):
+    method: str
+    section_trimmed: bool
+    start_seconds_used: float
+    duration_seconds_used: float
+    pitch_shift_semitones: float
+    alignment_offset_ms: float
+    mix_settings: MixSettingsModel | None = None
+    limiter_safety_applied: bool = False
+    clipping_guard_applied: bool = False
+
+
+class SectionWavExportRequest(BaseModel):
+    source_vocal_stem_artifact_id: str
+    target_instrumental_stem_artifact_id: str
+    mash_intent: str
+    tempo_ratio: float | None = None
+    source_bpm: float | None = None
+    target_bpm: float | None = None
+    pitch_shift_semitones: float = 0.0
+    alignment_offset_ms: float = 0.0
+    start_seconds: float | None = None
+    duration_seconds: float
+    start_seconds_unavailable: bool = False
+    confirm_advisory_section_export: bool = False
+    confirm_start_from_artifact_beginning: bool = False
+    confirm_stale_context: bool = False
+    binding_freshness_status: str = "unavailable"
+    settings_mode: str = "bound"
+    export_label: str | None = None
+    loudness_target_mode: str = "measurement_only"
+    neutral_processing: bool = False
+    confirm_neutral_settings: bool = False
+    vocal_gain_db: float = 0.0
+    instrumental_gain_db: float = 0.0
+    master_gain_db: float = 0.0
+    vocal_fade_in_ms: float = 0.0
+    vocal_fade_out_ms: float = 0.0
+    instrumental_fade_in_ms: float = 0.0
+    instrumental_fade_out_ms: float = 0.0
+    limiter_safety: bool = False
+    clipping_guard: bool = False
+    arrangement_context: dict | None = None
+
+
+class SectionWavExportResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    export_artifact_id: str | None = None
+    artifact_url: str | None = None
+    download_url: str | None = None
+    input_summary: SectionExportInputSummaryModel | None = None
+    processing_summary: SectionExportProcessingSummaryModel | None = None
+    file_size_bytes: int | None = None
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    codec: str | None = None
+    loudness: LoudnessReadoutModel | None = None
+    final_export: bool = False
+    public_share: bool = False
+    section_trimmed_export: bool = False
     rights_notice: str | None = None
     warnings: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)

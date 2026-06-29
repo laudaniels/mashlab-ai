@@ -12,7 +12,10 @@ import { requiredRightsNotice } from "../lib/legal.ts";
 
 export type BindingFreshnessStatus = "current" | "stale" | "partially_stale" | "unavailable";
 
-export type ArrangementExportContextMode = "preview_section" | "full_length_context_only";
+export type ArrangementExportContextMode =
+  | "preview_section"
+  | "full_length_context_only"
+  | "section_export";
 
 export const ARRANGEMENT_TRACEABILITY_NOTICE =
   "Advisory arrangement section — DJ review required. Sections do not grant rights.";
@@ -21,7 +24,7 @@ export const ARRANGEMENT_SECTIONS_ADVISORY_NOTICE =
   "Arrangement sections are advisory and do not grant rights.";
 
 export const FULL_LENGTH_ARRANGEMENT_CONTEXT_NOTICE =
-  "Arrangement context only — full-length render. Section-only export is not implemented.";
+  "Arrangement context only — full-length render. Use Section Window Export for advisory planning-window render.";
 
 export interface PitchTimePlanSnapshot {
   tempoPlanSummary: string;
@@ -456,7 +459,11 @@ function parseStartOffsetStatus(value: unknown): PreviewStartOffsetStatus {
 }
 
 function parseExportContextMode(value: unknown): ArrangementExportContextMode | null {
-  if (value === "preview_section" || value === "full_length_context_only") {
+  if (
+    value === "preview_section" ||
+    value === "full_length_context_only" ||
+    value === "section_export"
+  ) {
     return value;
   }
   return null;

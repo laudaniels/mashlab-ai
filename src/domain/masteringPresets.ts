@@ -260,6 +260,9 @@ export function formatArtifactTypeLabel(artifact: PreviewArtifactSummary): strin
     if (artifact.exportSubtype === "full-wav") {
       return "export / full-wav";
     }
+    if (artifact.exportSubtype === "section-wav" || artifact.sectionTrimmedExport) {
+      return "export / section-wav";
+    }
     if (artifact.exportSubtype === "preview-copy") {
       return "export / wav";
     }

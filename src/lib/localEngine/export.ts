@@ -7,6 +7,8 @@ import type {
   LoudnessGateDisplay,
 } from "../../domain/fullLengthExport.ts";
 import { DEFAULT_FULL_EXPORT_RIGHTS_NOTICE } from "../../domain/fullLengthExport.ts";
+import type { SectionExportResult } from "../../domain/sectionExport.ts";
+import { DEFAULT_SECTION_EXPORT_RIGHTS_NOTICE } from "../../domain/sectionExport.ts";
 import { parseMixSettings } from "../../domain/mixControls.ts";
 import type { LoudnessReadout } from "../../domain/previewArtifacts.ts";
 import { DEFAULT_LOCAL_ENGINE_URL } from "./types.ts";
@@ -202,6 +204,105 @@ function parseLoudnessGate(value: unknown): LoudnessGateDisplay | null {
     truePeakDbtp: parseNullableNumber(record.true_peak_dbtp),
     targetIntegratedLufs: parseNullableNumber(record.target_integrated_lufs) ?? -14,
     targetTruePeakDbtp: parseNullableNumber(record.target_true_peak_dbtp) ?? -1,
+  };
+}
+
+export function parseSectionWavExportResponse(
+  payload: unknown,
+  baseUrl: string = DEFAULT_LOCAL_ENGINE_URL
+): SectionExportResult | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const downloadPath =
+    typeof record.download_url === "string"
+      ? record.download_url
+      : typeof record.artifact_url === "string"
+        ? record.artifact_url
+        : null;
+
+  return {
+    ok: Boolean(record.ok),
+    status: typeof record.status === "string" ? record.status : "unknown",
+    message: typeof record.message === "string" ? record.message : "Unknown section export response.",
+    exportArtifactId:
+      typeof record.export_artifact_id === "string" ? record.export_artifact_id : null,
+    artifactUrl: typeof record.artifact_url === "string" ? record.artifact_url : null,
+    downloadUrl: downloadPath,
+    playbackUrl: downloadPath ? `${baseUrl}${downloadPath}` : null,
+    inputSummary: parseSectionInputSummary(record.input_summary),
+    processingSummary: parseSectionProcessingSummary(record.processing_summary),
+    fileSizeBytes: parseNullableNumber(record.file_size_bytes),
+    durationSeconds: parseNullableNumber(record.duration_seconds),
+    sampleRate: parseNullableNumber(record.sample_rate),
+    channelCount: parseNullableNumber(record.channel_count),
+    codec: typeof record.codec === "string" ? record.codec : null,
+    loudness: parseLoudnessReadout(record.loudness),
+    finalExport: record.final_export === true,
+    publicShare: record.public_share === true,
+    sectionTrimmedExport: record.section_trimmed_export === true,
+    rightsNotice:
+      typeof record.rights_notice === "string"
+        ? record.rights_notice
+        : DEFAULT_SECTION_EXPORT_RIGHTS_NOTICE,
+    warnings: parseStringArray(record.warnings),
+    limitations: parseStringArray(record.limitations),
+    exportLabel: typeof record.export_label === "string" ? record.export_label : null,
+    validationErrors: parseStringArrayOrNull(record.validation_errors),
+    setupGuidance: typeof record.setup_guidance === "string" ? record.setup_guidance : null,
+  };
+}
+
+function parseSectionInputSummary(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.source_vocal_stem_artifact_id !== "string") {
+    return null;
+  }
+  return {
+    mashIntent: typeof record.mash_intent === "string" ? record.mash_intent : "",
+    sourceVocalStemArtifactId: record.source_vocal_stem_artifact_id,
+    targetInstrumentalStemArtifactId:
+      typeof record.target_instrumental_stem_artifact_id === "string"
+        ? record.target_instrumental_stem_artifact_id
+        : "",
+    startSeconds: parseNullableNumber(record.start_seconds) ?? 0,
+    durationSeconds: parseNullableNumber(record.duration_seconds) ?? 0,
+    startSecondsUnavailable: record.start_seconds_unavailable === true,
+    tempoRatio: parseNullableNumber(record.tempo_ratio),
+    pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
+    alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
+    mixSettings: parseMixSettings(record.mix_settings),
+    bindingFreshnessStatus:
+      typeof record.binding_freshness_status === "string"
+        ? (record.binding_freshness_status as import("../../domain/arrangementSectionContext.ts").BindingFreshnessStatus)
+        : "unavailable",
+    settingsMode: record.settings_mode === "current" ? ("current" as const) : ("bound" as const),
+  };
+}
+
+function parseSectionProcessingSummary(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (record.section_trimmed !== true) {
+    return null;
+  }
+  return {
+    method: typeof record.method === "string" ? record.method : "",
+    sectionTrimmed: true as const,
+    startSecondsUsed: parseNullableNumber(record.start_seconds_used) ?? 0,
+    durationSecondsUsed: parseNullableNumber(record.duration_seconds_used) ?? 0,
+    pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
+    alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
+    mixSettings: parseMixSettings(record.mix_settings),
+    limiterSafetyApplied: record.limiter_safety_applied === true,
+    clippingGuardApplied: record.clipping_guard_applied === true,
   };
 }
 

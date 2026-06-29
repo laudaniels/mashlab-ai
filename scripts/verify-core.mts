@@ -3414,6 +3414,286 @@ describe("Arrangement traceability (Phase 22)", async () => {
   });
 });
 
+describe("Section window export + context diff guard", async () => {
+  const {
+    SECTION_EXPORT_SUBTYPE,
+    buildSectionExportReadiness,
+    formatSectionExportArtifactSummary,
+    isSectionExportReady,
+    sectionExportResultClaimsPublicShare,
+    validateSectionExportRequest,
+  } = await importSrc("src/domain/sectionExport.ts");
+  const {
+    buildArrangementContextDiff,
+    formatContextDiffSummary,
+    resolveSectionExportMixSettings,
+  } = await importSrc("src/domain/arrangementContextDiff.ts");
+  const { parseSectionWavExportResponse } = await importSrc("src/lib/localEngine/export.ts");
+  const { parseArtifactSummary } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const { createNeutralMixSettings } = await importSrc("src/domain/mixControls.ts");
+  const { bindSectionToPreviewSettings } = await importSrc(
+    "src/domain/arrangementSectionBinding.ts"
+  );
+  const { buildArrangementPlan, findArrangementSection } = await importSrc(
+    "src/domain/arrangementPlanning.ts"
+  );
+  const { buildSectionContextFromBinding } = await importSrc(
+    "src/domain/arrangementSectionContext.ts"
+  );
+  const { createSessionArtifactStore, createTrackArtifact } = await importSrc(
+    "src/domain/sessionArtifacts.ts"
+  );
+  const { buildBeatGridFromAnalysis } = await importSrc("src/domain/beatGrid.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+  const { isSectionExportArtifact } = await importSrc("src/domain/sectionExport.ts");
+
+  function buildStoreWithStems() {
+    const store = createSessionArtifactStore("section-export-session");
+    const beat = {
+      bpm: 128,
+      beatCount: 32,
+      beatTimes: Array.from({ length: 32 }, (_, index) => index * 0.46875),
+      bpmConfidence: 0.8,
+      downbeatStatus: "not_implemented" as const,
+      limitations: [],
+      method: "librosa",
+    };
+    const grid = buildBeatGridFromAnalysis(beat, { jobComplete: true, phraseLengthBars: 16 });
+    const trackA = createTrackArtifact({
+      sessionId: "section-export-session",
+      slotId: "trackA",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    const trackB = createTrackArtifact({
+      sessionId: "section-export-session",
+      slotId: "trackB",
+      file: new File(["b"], "b.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    store.tracks.trackA = {
+      ...trackA,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemA001", updatedAt: new Date().toISOString() },
+    };
+    store.tracks.trackB = {
+      ...trackB,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemB001", updatedAt: new Date().toISOString() },
+    };
+    return store;
+  }
+
+  it("blocks export when duration missing", () => {
+    const errors = validateSectionExportRequest({
+      sourceVocalStemArtifactId: "stemA001",
+      targetInstrumentalStemArtifactId: "stemB001",
+      mashIntent: "vocal_a_over_beat_b",
+      tempoRatio: 1,
+      sourceBpm: 120,
+      targetBpm: 128,
+      pitchShiftSemitones: 0,
+      alignmentOffsetMs: 0,
+      startSeconds: 0,
+      durationSeconds: 0,
+      startSecondsUnavailable: false,
+      confirmAdvisorySectionExport: true,
+      confirmStartFromArtifactBeginning: false,
+      confirmStaleContext: false,
+      loudnessTargetMode: "measurement_only",
+      neutralProcessing: true,
+      confirmNeutralSettings: true,
+      mixSettings: createNeutralMixSettings(),
+      arrangementContext: {} as import("../src/domain/arrangementSectionContext.ts").ArrangementSectionContext,
+      bindingFreshnessStatus: "current",
+      settingsMode: "bound",
+    });
+    assert.ok(errors.some((error) => error.includes("duration_seconds")));
+  });
+
+  it("requires start confirmation when start unavailable", () => {
+    const errors = validateSectionExportRequest({
+      sourceVocalStemArtifactId: "stemA001",
+      targetInstrumentalStemArtifactId: "stemB001",
+      mashIntent: "vocal_a_over_beat_b",
+      tempoRatio: 1,
+      sourceBpm: 120,
+      targetBpm: 128,
+      pitchShiftSemitones: 0,
+      alignmentOffsetMs: 0,
+      startSeconds: 0,
+      durationSeconds: 30,
+      startSecondsUnavailable: true,
+      confirmAdvisorySectionExport: true,
+      confirmStartFromArtifactBeginning: false,
+      confirmStaleContext: false,
+      loudnessTargetMode: "measurement_only",
+      neutralProcessing: true,
+      confirmNeutralSettings: true,
+      mixSettings: createNeutralMixSettings(),
+      arrangementContext: {} as import("../src/domain/arrangementSectionContext.ts").ArrangementSectionContext,
+      bindingFreshnessStatus: "current",
+      settingsMode: "bound",
+    });
+    assert.ok(errors.some((error) => error.includes("confirm_start_from_artifact_beginning")));
+  });
+
+  it("builds stale context diff with recommended actions", () => {
+    const store = buildStoreWithStems();
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const context = buildSectionContextFromBinding({
+      binding,
+      pitchTimePlanSnapshot: null,
+      artifactStore: store,
+    });
+    const diff = buildArrangementContextDiff({
+      binding,
+      context,
+      currentMashIntent: "vocal_b_over_beat_a",
+      currentMixSettings: binding.mixSettings,
+      currentDraftType: binding.draftType,
+      currentSectionId: binding.sectionId,
+      artifactStore: store,
+      currentPitchTime: null,
+    });
+    assert.equal(diff.status, "stale");
+    assert.equal(diff.requiresStaleConfirmation, true);
+    assert.ok(diff.recommendedActions.includes("re_apply_section"));
+    assert.ok(formatContextDiffSummary(diff).some((line) => line.includes("Mash intent")));
+  });
+
+  it("formats bound vs current mix settings resolution", () => {
+    const store = buildStoreWithStems();
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const current = { ...binding.mixSettings, vocalGainDb: 4 };
+    const boundMix = resolveSectionExportMixSettings({
+      mode: "bound",
+      binding,
+      currentMixSettings: current,
+    });
+    const currentMix = resolveSectionExportMixSettings({
+      mode: "current",
+      binding,
+      currentMixSettings: current,
+    });
+    assert.equal(boundMix.vocalGainDb, binding.mixSettings.vocalGainDb);
+    assert.equal(currentMix.vocalGainDb, 4);
+  });
+
+  it("parses section export response with finalExport and sectionTrimmedExport flags", () => {
+    const parsed = parseSectionWavExportResponse({
+      ok: true,
+      status: "ready",
+      message: "Section export ready.",
+      export_artifact_id: "abc123",
+      download_url: "/v1/artifacts/exports/abc123/section-export",
+      final_export: true,
+      public_share: false,
+      section_trimmed_export: true,
+      rights_notice: requiredRightsNotice,
+      warnings: [],
+      limitations: [],
+      input_summary: {
+        source_vocal_stem_artifact_id: "stemA001",
+        target_instrumental_stem_artifact_id: "stemB001",
+        start_seconds: 0,
+        duration_seconds: 30,
+        binding_freshness_status: "current",
+        settings_mode: "bound",
+      },
+      processing_summary: {
+        method: "ffmpeg-trim + rubberband-vocal + ffmpeg-section-mix",
+        section_trimmed: true,
+        start_seconds_used: 0,
+        duration_seconds_used: 30,
+      },
+    });
+    assert.ok(parsed);
+    assert.equal(parsed?.finalExport, true);
+    assert.equal(parsed?.publicShare, false);
+    assert.equal(parsed?.sectionTrimmedExport, true);
+    assert.equal(sectionExportResultClaimsPublicShare(parsed!), false);
+    assert.equal(parsed?.rightsNotice, requiredRightsNotice);
+  });
+
+  it("formats artifact browser section export without fake song-section labels", () => {
+    const lines = formatSectionExportArtifactSummary({
+      draftType: "club_edit",
+      sectionLabel: "Intro (heuristic 16 bars)",
+      startSeconds: 0,
+      durationSeconds: 30,
+      phraseBasis: "heuristic_phrase_markers",
+      bindingFreshnessStatus: "partially_stale",
+    });
+    assert.ok(lines.some((line) => line.includes("advisory planning window")));
+    assert.ok(!lines.some((line) => /verse|chorus|drop detected/i.test(line)));
+    const artifact = parseArtifactSummary(
+      {
+        artifact_id: "sec001",
+        artifact_type: "export",
+        status: "ready",
+        created_at: new Date().toISOString(),
+        duration_seconds: 30,
+        playback_urls: { primary: "/v1/artifacts/exports/sec001/section-export" },
+        preview_only: false,
+        final_export: true,
+        primary_file_name: "section-export.wav",
+        preview_label: "Section window export",
+        export_subtype: SECTION_EXPORT_SUBTYPE,
+        export_format: "wav",
+        public_share: false,
+        section_trimmed_export: true,
+        binding_freshness_at_export: "current",
+        arrangement_draft_type: "club_edit",
+        arrangement_section_label: "Intro (heuristic 16 bars)",
+        arrangement_duration_seconds: 30,
+        arrangement_phrase_basis: "heuristic_phrase_markers",
+        arrangement_export_context_mode: "section_export",
+      },
+      "http://127.0.0.1:8765"
+    );
+    assert.ok(artifact);
+    assert.equal(isSectionExportArtifact(artifact!), true);
+    assert.equal(artifact?.sectionTrimmedExport, true);
+    assert.equal(artifact?.publicShare, false);
+  });
+
+  it("readiness checklist requires stale confirmation when context stale", () => {
+    const items = buildSectionExportReadiness({
+      artifactStore: buildStoreWithStems(),
+      context: null,
+      binding: null,
+      sectionContext: null,
+      sidecarOnline: true,
+      rubberBandAvailable: true,
+      ffmpegAvailable: true,
+      rightsAcknowledged: true,
+      confirmAdvisorySectionExport: true,
+      confirmStartFromArtifactBeginning: true,
+      startSecondsUnavailable: false,
+      requiresStaleConfirmation: true,
+      confirmStaleContext: false,
+      durationSeconds: 30,
+    });
+    assert.equal(isSectionExportReady(items), false);
+    assert.ok(items.some((item) => item.id === "stale_confirm" && !item.ready));
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

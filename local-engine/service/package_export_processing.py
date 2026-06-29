@@ -25,6 +25,7 @@ from artifact_management import (
 )
 from combined_preview_processing import PREVIEW_META_FILE
 from arrangement_context import arrangement_traceability_lines
+from section_export_processing import SECTION_EXPORT_FILE_NAME
 from export_processing import EXPORT_FILE_NAME, EXPORT_MP3_FILE_NAME, RIGHTS_NOTICE
 
 PACKAGES_DIR = config.WORK_DIR / "artifacts" / "packages"
@@ -155,13 +156,24 @@ def resolve_packageable_files(artifact_id: str) -> tuple[list[tuple[Path, str]],
         subtype = meta.get("export_subtype") if meta else None
         export_format = meta.get("export_format") if meta else None
         wav = export_dir / EXPORT_FILE_NAME
+        section_wav = export_dir / SECTION_EXPORT_FILE_NAME
         mp3 = export_dir / EXPORT_MP3_FILE_NAME
         if mp3.is_file() or export_format == "mp3":
             if mp3.is_file():
                 return [(mp3, "exports/export.mp3")], "export", "mp3"
             return None
+        if section_wav.is_file() or subtype == "section-wav":
+            if section_wav.is_file():
+                return [(section_wav, "exports/export-section.wav")], "export", "section-wav"
+            return None
         if wav.is_file():
-            dest = "exports/export-full.wav" if subtype == "full-wav" else "exports/export.wav"
+            dest = (
+                "exports/export-section.wav"
+                if subtype == "section-wav"
+                else "exports/export-full.wav"
+                if subtype == "full-wav"
+                else "exports/export.wav"
+            )
             return [(wav, dest)], "export", subtype or "wav"
         return None
 

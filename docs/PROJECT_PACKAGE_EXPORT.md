@@ -53,6 +53,7 @@ Only existing local artifacts:
 | Stem preview | `vocals.wav`, `no_vocals.wav` → `stems/track-{a,b}-*.wav` |
 | Combined preview | `preview.wav` → `previews/combined-preview.wav` |
 | WAV export | `export.wav` → `exports/export.wav` or `exports/export-full.wav` |
+| Section window export (Phase 23) | `section-export.wav` → `exports/export-section.wav` |
 | MP3 export | `export.mp3` → `exports/export.mp3` |
 | Master (when audio exists) | `master.wav` → `exports/master.wav` |
 
@@ -83,6 +84,7 @@ ZIP download: `GET /v1/artifacts/packages/{id}/download`
 - `package_id`, `created_at`, `package_label`, `package_type`
 - `selected_artifact_ids`, artifact entries with readouts when available
 - `mix_settings` on combined preview and full export entries when present (Phase 18)
+- `arrangement_context` on preview, full, and **section window** exports when present (Phase 22–23), including `binding_freshness_status` at export time for section exports
 - `arrangement_context` per artifact entry when present (Phase 22) — advisory section traceability
 - `arrangement_contexts[]` top-level array when any selected artifact carries context
 - `included_files` with safe relative paths only

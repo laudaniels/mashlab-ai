@@ -10,6 +10,7 @@ import {
 import { formatArtifactTypeLabel, isMasterArtifact } from "../domain/masteringPresets.ts";
 import { formatPackageArtifactLabel, isPackageArtifact } from "../domain/projectPackage.ts";
 import { isMp3ExportArtifact } from "../domain/mp3Export.ts";
+import { formatSectionExportArtifactSummary, isSectionExportArtifact } from "../domain/sectionExport.ts";
 import { localEngineClient } from "../lib/localEngine/client.ts";
 import {
   clearPreviewArtifactRegistry,
@@ -227,7 +228,18 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                 ) : null}
                 {(() => {
                   const traceLines = formatArtifactArrangementTraceability(artifact);
-                  if (traceLines.length === 0) {
+                  const sectionLines = isSectionExportArtifact(artifact)
+                    ? formatSectionExportArtifactSummary({
+                        draftType: artifact.arrangementDraftType,
+                        sectionLabel: artifact.arrangementSectionLabel,
+                        startSeconds: artifact.arrangementPreviewStartSeconds,
+                        durationSeconds: artifact.arrangementDurationSeconds,
+                        phraseBasis: artifact.arrangementPhraseBasis,
+                        bindingFreshnessStatus: artifact.bindingFreshnessAtExport,
+                      })
+                    : [];
+                  const allLines = [...sectionLines, ...traceLines.filter((line) => !sectionLines.includes(line))];
+                  if (allLines.length === 0) {
                     return null;
                   }
                   return (
@@ -235,7 +247,7 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                       <dt>Arrangement traceability</dt>
                       <dd>
                         <ul className="preview-artifact-traceability">
-                          {traceLines.map((line) => (
+                          {allLines.map((line) => (
                             <li key={line}>{line}</li>
                           ))}
                         </ul>
@@ -283,7 +295,9 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                       <a className="preview-artifact-download" download href={artifact.playbackUrl}>
                         {isMp3ExportArtifact(artifact)
                           ? "Download local MP3 reference"
-                          : "Download local export WAV"}
+                          : isSectionExportArtifact(artifact)
+                            ? "Download section window WAV export"
+                            : "Download local export WAV"}
                       </a>
                     </>
                   ) : artifact.artifactType === "master" ? (

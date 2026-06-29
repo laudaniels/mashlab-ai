@@ -245,6 +245,9 @@ export function formatPackageableArtifactOption(artifact: PreviewArtifactSummary
     return `MP3 reference · ${artifact.artifactId}`;
   }
   if (artifact.artifactType === "export") {
+    if (artifact.exportSubtype === "section-wav" || artifact.sectionTrimmedExport) {
+      return `Section window WAV · ${artifact.artifactId}`;
+    }
     return `${artifact.exportSubtype === "full-wav" ? "Full WAV" : "WAV export"} · ${artifact.artifactId}`;
   }
   if (isMasterArtifact(artifact)) {

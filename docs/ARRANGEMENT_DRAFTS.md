@@ -193,6 +193,15 @@ Missing data is listed in `missingRequirements` — never fabricated.
 
 Arrangement planning is **frontend-only** in Phase 20. No sidecar endpoint accepts raw audio for arrangement. A future endpoint could accept **summaries only** and return planning-only JSON.
 
+## Phase 23: Section Window Export Handoff
+
+After binding a section (Phase 21) and traceability (Phase 22), users can export the **advisory planning window** from stem artifacts on the Export screen:
+
+- Requires section binding + duration
+- Context diff guard compares bound vs current session before export
+- Stale context requires explicit confirmation
+- Not detected song structure — see `docs/SECTION_EXPORTS.md`
+
 ## Tests
 
 `scripts/verify-core.mts` — `Arrangement draft intelligence` describe block:
@@ -209,5 +218,6 @@ Arrangement planning is **frontend-only** in Phase 20. No sidecar endpoint accep
 - `docs/PITCH_TIME_PLANNING.md` — tempo/key summaries
 - `docs/COMBINED_PREVIEW.md` — preview handoff after apply
 - `docs/LOCAL_EXPORTS.md` — export mode hints
+- `docs/SECTION_EXPORTS.md` — section window export (Phase 23)
 - `docs/QA_WORKFLOW_CHECKLIST.md` — manual verification
 - `docs/LEGAL_DOCTRINE.md` — rights doctrine

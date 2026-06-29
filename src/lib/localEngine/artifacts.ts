@@ -126,6 +126,11 @@ export function parseArtifactSummary(
       typeof record.arrangement_export_context_mode === "string"
         ? record.arrangement_export_context_mode
         : null,
+    sectionTrimmedExport: record.section_trimmed_export === true,
+    bindingFreshnessAtExport:
+      typeof record.binding_freshness_at_export === "string"
+        ? record.binding_freshness_at_export
+        : null,
   };
 }
 

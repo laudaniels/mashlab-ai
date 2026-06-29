@@ -48,6 +48,11 @@ from full_length_export_processing import (
     FullWavExportSuccess,
     create_full_wav_export,
 )
+from section_export_processing import (
+    SectionWavExportFailure,
+    SectionWavExportSuccess,
+    create_section_wav_export,
+)
 from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
@@ -57,6 +62,10 @@ from models import (
     CombinedPreviewResponse,
     FullWavExportRequest,
     FullWavExportResponse,
+    SectionExportInputSummaryModel,
+    SectionExportProcessingSummaryModel,
+    SectionWavExportRequest,
+    SectionWavExportResponse,
     FullExportInputSummaryModel,
     FullExportProcessingSummaryModel,
     LoudnessGateModel,
@@ -516,6 +525,24 @@ def get_export_artifact(artifact_id: str) -> FileResponse:
     )
 
 
+@app.get("/v1/artifacts/exports/{artifact_id}/section-export")
+def get_section_export_artifact(artifact_id: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    artifact_path = (
+        config.WORK_DIR / "artifacts" / "exports" / artifact_id / "section-export.wav"
+    )
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail="Section export artifact not found.")
+
+    return FileResponse(
+        path=artifact_path,
+        media_type="audio/wav",
+        filename=f"mashlab-section-export-{artifact_id}.wav",
+    )
+
+
 @app.get("/v1/artifacts/exports/{artifact_id}/export.mp3")
 def get_export_mp3_artifact(artifact_id: str) -> FileResponse:
     if not artifact_id.isalnum():
@@ -871,6 +898,108 @@ def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
     )
 
 
+@app.post("/v1/export/section-wav", response_model=SectionWavExportResponse)
+def export_section_wav(request: SectionWavExportRequest) -> SectionWavExportResponse:
+    result = create_section_wav_export(
+        source_vocal_stem_artifact_id=request.source_vocal_stem_artifact_id,
+        target_instrumental_stem_artifact_id=request.target_instrumental_stem_artifact_id,
+        mash_intent=request.mash_intent,
+        tempo_ratio=request.tempo_ratio,
+        source_bpm=request.source_bpm,
+        target_bpm=request.target_bpm,
+        pitch_shift_semitones=request.pitch_shift_semitones,
+        alignment_offset_ms=request.alignment_offset_ms,
+        start_seconds=request.start_seconds,
+        duration_seconds=request.duration_seconds,
+        start_seconds_unavailable=request.start_seconds_unavailable,
+        confirm_advisory_section_export=request.confirm_advisory_section_export,
+        confirm_start_from_artifact_beginning=request.confirm_start_from_artifact_beginning,
+        confirm_stale_context=request.confirm_stale_context,
+        binding_freshness_status=request.binding_freshness_status,
+        settings_mode=request.settings_mode,
+        export_label=request.export_label,
+        loudness_target_mode=request.loudness_target_mode,
+        neutral_processing=request.neutral_processing,
+        confirm_neutral_settings=request.confirm_neutral_settings,
+        vocal_gain_db=request.vocal_gain_db,
+        instrumental_gain_db=request.instrumental_gain_db,
+        master_gain_db=request.master_gain_db,
+        vocal_fade_in_ms=request.vocal_fade_in_ms,
+        vocal_fade_out_ms=request.vocal_fade_out_ms,
+        instrumental_fade_in_ms=request.instrumental_fade_in_ms,
+        instrumental_fade_out_ms=request.instrumental_fade_out_ms,
+        limiter_safety=request.limiter_safety,
+        clipping_guard=request.clipping_guard,
+        arrangement_context=request.arrangement_context,
+    )
+    if not result.ok:
+        return SectionWavExportResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            validation_errors=result.validation_errors,
+            setup_guidance=result.setup_guidance,
+            final_export=False,
+            public_share=False,
+            section_trimmed_export=False,
+        )
+
+    loudness_model = LoudnessReadoutModel(
+        integrated_lufs=result.loudness.integrated_lufs,
+        true_peak_dbtp=result.loudness.true_peak_dbtp,
+        peak_level_db=result.loudness.peak_level_db,
+        status=result.loudness.status,
+        message=result.loudness.message,
+    )
+
+    return SectionWavExportResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        export_artifact_id=result.export_artifact_id,
+        artifact_url=result.artifact_url,
+        download_url=result.download_url,
+        input_summary=SectionExportInputSummaryModel(
+            mash_intent=result.input_summary.mash_intent,
+            source_vocal_stem_artifact_id=result.input_summary.source_vocal_stem_artifact_id,
+            target_instrumental_stem_artifact_id=result.input_summary.target_instrumental_stem_artifact_id,
+            start_seconds=result.input_summary.start_seconds,
+            duration_seconds=result.input_summary.duration_seconds,
+            start_seconds_unavailable=result.input_summary.start_seconds_unavailable,
+            tempo_ratio=result.input_summary.tempo_ratio,
+            pitch_shift_semitones=result.input_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.input_summary.alignment_offset_ms,
+            mix_settings=_mix_settings_model(result.input_summary.mix_settings),
+            binding_freshness_status=result.input_summary.binding_freshness_status,
+            settings_mode=result.input_summary.settings_mode,
+        ),
+        processing_summary=SectionExportProcessingSummaryModel(
+            method=result.processing_summary.method,
+            section_trimmed=result.processing_summary.section_trimmed,
+            start_seconds_used=result.processing_summary.start_seconds_used,
+            duration_seconds_used=result.processing_summary.duration_seconds_used,
+            pitch_shift_semitones=result.processing_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.processing_summary.alignment_offset_ms,
+            mix_settings=_mix_settings_model(result.processing_summary.mix_settings),
+            limiter_safety_applied=result.processing_summary.limiter_safety_applied,
+            clipping_guard_applied=result.processing_summary.clipping_guard_applied,
+        ),
+        file_size_bytes=result.file_size_bytes,
+        duration_seconds=result.duration_seconds,
+        sample_rate=result.sample_rate,
+        channel_count=result.channel_count,
+        codec=result.codec,
+        loudness=loudness_model,
+        final_export=result.final_export,
+        public_share=result.public_share,
+        section_trimmed_export=result.section_trimmed_export,
+        rights_notice=result.rights_notice,
+        warnings=result.warnings,
+        limitations=result.limitations,
+        export_label=result.export_label,
+    )
+
+
 @app.get("/v1/artifacts", response_model=ArtifactListResponse)
 def list_artifacts() -> ArtifactListResponse:
     artifacts = list_preview_artifacts()
@@ -916,6 +1045,8 @@ def list_artifacts() -> ArtifactListResponse:
                 arrangement_phrase_basis=item.arrangement_phrase_basis,
                 arrangement_context_summary=item.arrangement_context_summary,
                 arrangement_export_context_mode=item.arrangement_export_context_mode,
+                section_trimmed_export=item.section_trimmed_export,
+                binding_freshness_at_export=item.binding_freshness_at_export,
             )
             for item in artifacts
         ],

@@ -10,7 +10,7 @@ import {
 } from "./stemPreview.ts";
 import { parseCombinedPreviewResponse } from "./combinedPreview.ts";
 import { parseMasterWavResponse } from "./mastering.ts";
-import { parseExportWavResponse, parseFullWavExportResponse, parseMp3ExportResponse } from "./export.ts";
+import { parseExportWavResponse, parseFullWavExportResponse, parseMp3ExportResponse, parseSectionWavExportResponse } from "./export.ts";
 import {
   parseArtifactDeleteResponse,
   parseArtifactListResponse,
@@ -54,6 +54,8 @@ import type { MasterWavRequestParams } from "../../domain/masteringPresets.ts";
 import type { MasterWavResult } from "../../domain/masteringPresets.ts";
 import type { Mp3ExportRequestParams } from "../../domain/mp3Export.ts";
 import type { Mp3ExportResult } from "../../domain/mp3Export.ts";
+import type { SectionExportRequestParams } from "../../domain/sectionExport.ts";
+import type { SectionExportResult } from "../../domain/sectionExport.ts";
 import type { PackageExportRequestParams } from "../../domain/projectPackage.ts";
 import type { PackageExportResult } from "../../domain/projectPackage.ts";
 import { parsePackageExportResponse } from "./package.ts";
@@ -307,6 +309,54 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseFullWavExportResponse(payload, this.baseUrl);
+  }
+
+  async createSectionWavExport(
+    params: SectionExportRequestParams
+  ): Promise<SectionExportResult | null> {
+    const body: Record<string, unknown> = {
+      source_vocal_stem_artifact_id: params.sourceVocalStemArtifactId,
+      target_instrumental_stem_artifact_id: params.targetInstrumentalStemArtifactId,
+      mash_intent: params.mashIntent,
+      tempo_ratio: params.tempoRatio,
+      source_bpm: params.sourceBpm,
+      target_bpm: params.targetBpm,
+      pitch_shift_semitones: params.pitchShiftSemitones,
+      alignment_offset_ms: params.alignmentOffsetMs,
+      start_seconds: params.startSeconds,
+      duration_seconds: params.durationSeconds,
+      start_seconds_unavailable: params.startSecondsUnavailable,
+      confirm_advisory_section_export: params.confirmAdvisorySectionExport,
+      confirm_start_from_artifact_beginning: params.confirmStartFromArtifactBeginning,
+      confirm_stale_context: params.confirmStaleContext,
+      binding_freshness_status: params.bindingFreshnessStatus,
+      settings_mode: params.settingsMode,
+      export_label: params.exportLabel ?? null,
+      loudness_target_mode: params.loudnessTargetMode,
+      neutral_processing: params.neutralProcessing,
+      confirm_neutral_settings: params.confirmNeutralSettings,
+      ...mixSettingsToRequestFields(params.mixSettings),
+    };
+    const contextPayload = serializeArrangementContextForApi(params.arrangementContext);
+    if (contextPayload) {
+      body.arrangement_context = contextPayload;
+    }
+
+    const response = await this.request("/v1/export/section-wav", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 8,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseSectionWavExportResponse(payload, this.baseUrl);
   }
 
   async createMp3Export(params: Mp3ExportRequestParams): Promise<Mp3ExportResult | null> {

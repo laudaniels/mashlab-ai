@@ -8,13 +8,18 @@ ALLOWED_DRAFT_TYPES = frozenset({"clean_blend", "club_edit", "creative_blend"})
 ALLOWED_PHRASE_BASIS = frozenset(
     {"detected_beats", "heuristic_phrase_markers", "dj_override", "unavailable"}
 )
-ALLOWED_EXPORT_CONTEXT_MODES = frozenset({"preview_section", "full_length_context_only"})
+ALLOWED_EXPORT_CONTEXT_MODES = frozenset(
+    {"preview_section", "full_length_context_only", "section_export"}
+)
 
 TRACEABILITY_NOTICE = (
     "Advisory arrangement section — DJ review required. Sections do not grant rights."
 )
 FULL_LENGTH_CONTEXT_NOTICE = (
-    "Arrangement context only — full-length render. Section-only export is not implemented."
+    "Arrangement context only — full-length render. Use section window export for planning-window render."
+)
+SECTION_EXPORT_NOTICE = (
+    "Advisory planning-window export — not detected song structure. DJ review required."
 )
 
 

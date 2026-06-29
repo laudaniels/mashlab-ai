@@ -124,6 +124,28 @@ import {
   formatBindingFreshnessLabel,
   FULL_LENGTH_ARRANGEMENT_CONTEXT_NOTICE,
 } from "../domain/arrangementSectionContext.ts";
+import {
+  buildArrangementContextDiff,
+  formatContextDiffSummary,
+  resolveSectionExportMixSettings,
+  type SectionExportSettingsMode,
+} from "../domain/arrangementContextDiff.ts";
+import {
+  buildSectionExportReadiness,
+  buildSectionExportRequestParams,
+  formatSectionExportArtifactSummary,
+  formatSectionExportReadinessChecklist,
+  isSectionExportReady,
+  resolveSectionExportContext,
+  SECTION_EXPORT_ADVISORY_COPY,
+  SECTION_EXPORT_NOTICE,
+  SECTION_START_UNAVAILABLE_NOTICE,
+  sectionExportLoudnessModeLabel,
+  validateSectionExportRequest,
+  type SectionExportLoudnessMode,
+  type SectionExportResult,
+} from "../domain/sectionExport.ts";
+import { formatPhraseBasisSourceLabel } from "../domain/arrangementSectionBinding.ts";
 
 interface ExportPrepPanelProps {
   artifactStore: SessionArtifactStore;
@@ -190,6 +212,16 @@ export function ExportPrepPanel({
   const [packageResult, setPackageResult] = useState<PackageExportResult | null>(null);
   const [packageErrorMessage, setPackageErrorMessage] = useState<string | null>(null);
   const [appliedDraftExportNotice, setAppliedDraftExportNotice] = useState<string | null>(null);
+  const [sectionExportLabel, setSectionExportLabel] = useState("");
+  const [sectionLoudnessMode, setSectionLoudnessMode] =
+    useState<SectionExportLoudnessMode>("measurement_only");
+  const [sectionSettingsMode, setSectionSettingsMode] = useState<SectionExportSettingsMode>("bound");
+  const [confirmAdvisorySectionExport, setConfirmAdvisorySectionExport] = useState(false);
+  const [confirmStartFromArtifactBeginning, setConfirmStartFromArtifactBeginning] = useState(false);
+  const [confirmStaleContext, setConfirmStaleContext] = useState(false);
+  const [sectionBusy, setSectionBusy] = useState(false);
+  const [sectionExportResult, setSectionExportResult] = useState<SectionExportResult | null>(null);
+  const [sectionErrorMessage, setSectionErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const applied = loadAppliedDraftSettings();
@@ -261,6 +293,54 @@ export function ExportPrepPanel({
   });
 
   const fullLengthReady = isFullLengthExportReady(readinessItems);
+
+  const contextDiff = useMemo(
+    () =>
+      buildArrangementContextDiff({
+        binding: sectionBinding,
+        context: sectionContext,
+        currentMashIntent: mashIntent,
+        currentMixSettings: mixSettings,
+        currentDraftType: loadSelectedDraftType(),
+        currentSectionId: loadSelectedArrangementSection()?.sectionId ?? null,
+        artifactStore,
+        currentPitchTime: buildPitchTimePlanSnapshot(pitchTimePlan?.directions[0] ?? null),
+      }),
+    [sectionBinding, sectionContext, mashIntent, mixSettings, artifactStore, pitchTimePlan]
+  );
+
+  const sectionExportContext = resolveSectionExportContext(
+    artifactStore,
+    mashIntent,
+    pitchTimePlan?.directions ?? []
+  );
+
+  const sectionStartSecondsUnavailable =
+    sectionBinding !== null &&
+    (sectionBinding.previewStartSeconds === null ||
+      sectionBinding.startOffsetStatus === "pending_unavailable");
+
+  const sectionStartSeconds = sectionBinding?.previewStartSeconds ?? 0;
+  const sectionDurationSeconds = sectionBinding?.previewDurationSeconds ?? null;
+
+  const sectionReadinessItems = buildSectionExportReadiness({
+    artifactStore,
+    context: sectionExportContext,
+    binding: sectionBinding,
+    sectionContext,
+    sidecarOnline: localStatus.online,
+    rubberBandAvailable,
+    ffmpegAvailable,
+    rightsAcknowledged,
+    confirmAdvisorySectionExport,
+    confirmStartFromArtifactBeginning,
+    startSecondsUnavailable: sectionStartSecondsUnavailable,
+    requiresStaleConfirmation: contextDiff.requiresStaleConfirmation,
+    confirmStaleContext,
+    durationSeconds: sectionDurationSeconds,
+  });
+
+  const sectionExportReady = isSectionExportReady(sectionReadinessItems);
 
   const refreshSources = useCallback(async () => {
     if (!localStatus.online) {
@@ -729,6 +809,70 @@ export function ExportPrepPanel({
     onExportComplete?.();
   }
 
+  async function handleCreateSectionExport() {
+    if (!sectionBinding || !sectionContext || !sectionExportContext) {
+      setSectionErrorMessage("Apply a draft section on Drafts and bind preview settings first.");
+      return;
+    }
+
+    if (sectionDurationSeconds === null || sectionDurationSeconds <= 0) {
+      setSectionErrorMessage("Section duration unavailable — cannot export.");
+      return;
+    }
+
+    const exportMixSettings = resolveSectionExportMixSettings({
+      mode: sectionSettingsMode,
+      binding: sectionBinding,
+      currentMixSettings: mixSettings,
+    });
+
+    const params = buildSectionExportRequestParams({
+      context: sectionExportContext,
+      binding: sectionBinding,
+      sectionContext,
+      mixSettings: exportMixSettings,
+      settingsMode: sectionSettingsMode,
+      bindingFreshnessStatus: contextDiff.status,
+      startSeconds: sectionStartSeconds,
+      startSecondsUnavailable: sectionStartSecondsUnavailable,
+      confirmAdvisorySectionExport,
+      confirmStartFromArtifactBeginning,
+      confirmStaleContext,
+      loudnessTargetMode: sectionLoudnessMode,
+      neutralProcessing: useNeutralProcessing,
+      confirmNeutralSettings,
+      exportLabel: sectionExportLabel.trim() || null,
+    });
+
+    const validationErrors = validateSectionExportRequest(params);
+    if (validationErrors.length > 0) {
+      setSectionErrorMessage(validationErrors.join(" "));
+      return;
+    }
+
+    setSectionBusy(true);
+    setSectionErrorMessage(null);
+    setSectionExportResult(null);
+
+    const result = await localEngineClient.createSectionWavExport(params);
+
+    setSectionBusy(false);
+
+    if (!result) {
+      setSectionErrorMessage("Local sidecar did not respond to section export request.");
+      return;
+    }
+
+    if (!result.ok) {
+      setSectionErrorMessage(result.validationErrors?.join(" ") ?? result.message ?? "Section export failed.");
+      return;
+    }
+
+    setSectionExportResult(result);
+    notifyArtifactRefresh();
+    onExportComplete?.();
+  }
+
   return (
     <section className="export-prep-panel" aria-label="Export and mastering preparation">
       <div className="export-prep-header">
@@ -853,10 +997,196 @@ export function ExportPrepPanel({
           </div>
 
           <MixControlsPanel
-            disabled={fullBusy || busy || mp3Busy || masterBusy || packageBusy}
+            disabled={fullBusy || busy || mp3Busy || masterBusy || packageBusy || sectionBusy}
             onChange={setMixSettings}
             settings={mixSettings}
           />
+
+          <div className="export-prep-form export-prep-form-section export-prep-section-window">
+            <h4>Section Window Export</h4>
+            <p className="export-prep-not-mastered">{SECTION_EXPORT_NOTICE}</p>
+            <p className="export-prep-wav-only">{SECTION_EXPORT_ADVISORY_COPY}</p>
+
+            {sectionBinding && sectionContext ? (
+              <>
+                <p className="export-prep-source-summary">
+                  {sectionContext.draftType.replace(/_/g, " ")} · {sectionBinding.sectionLabel} ·{" "}
+                  {formatPhraseBasisSourceLabel(sectionContext.phraseBasis)} ·{" "}
+                  {sectionContext.sourceLabel}
+                </p>
+                <p className="export-prep-source-summary">
+                  Start:{" "}
+                  {sectionStartSecondsUnavailable
+                    ? "unavailable (artifact start if confirmed)"
+                    : `${sectionStartSeconds.toFixed(1)}s`}{" "}
+                  · Duration: {sectionDurationSeconds ?? "—"}s · Context:{" "}
+                  {formatBindingFreshnessLabel(contextDiff.status)}
+                </p>
+                {sectionStartSecondsUnavailable ? (
+                  <p className="export-prep-wav-only">{SECTION_START_UNAVAILABLE_NOTICE}</p>
+                ) : null}
+              </>
+            ) : (
+              <p className="export-prep-wav-only">
+                No section binding — apply a draft section on Drafts first.
+              </p>
+            )}
+
+            {contextDiff.fields.length > 0 ? (
+              <ul className="export-prep-readiness-list export-prep-context-diff">
+                {formatContextDiffSummary(contextDiff).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+                <li>
+                  Recommended: {contextDiff.recommendedActions.map((a) => a.replace(/_/g, " ")).join(" · ")}
+                </li>
+              </ul>
+            ) : (
+              <p className="export-prep-source-summary">{contextDiff.summary}</p>
+            )}
+
+            <fieldset className="export-prep-loudness-mode">
+              <legend>Export settings source</legend>
+              <label>
+                <input
+                  checked={sectionSettingsMode === "bound"}
+                  disabled={sectionBusy}
+                  name="section-settings-mode"
+                  onChange={() => setSectionSettingsMode("bound")}
+                  type="radio"
+                />
+                Proceed with bound settings (from section binding)
+              </label>
+              <label>
+                <input
+                  checked={sectionSettingsMode === "current"}
+                  disabled={sectionBusy}
+                  name="section-settings-mode"
+                  onChange={() => setSectionSettingsMode("current")}
+                  type="radio"
+                />
+                Proceed with current session settings
+              </label>
+            </fieldset>
+
+            <ul className="export-prep-readiness-list">
+              {formatSectionExportReadinessChecklist(sectionReadinessItems).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+
+            <label className="export-prep-neutral-toggle">
+              <input
+                checked={confirmAdvisorySectionExport}
+                disabled={sectionBusy}
+                onChange={(event) => setConfirmAdvisorySectionExport(event.target.checked)}
+                type="checkbox"
+              />
+              I confirm this exports an advisory planning window only (not detected song structure)
+            </label>
+
+            {sectionStartSecondsUnavailable ? (
+              <label className="export-prep-neutral-toggle">
+                <input
+                  checked={confirmStartFromArtifactBeginning}
+                  disabled={sectionBusy}
+                  onChange={(event) => setConfirmStartFromArtifactBeginning(event.target.checked)}
+                  type="checkbox"
+                />
+                Start from beginning of stem artifacts (section start unavailable)
+              </label>
+            ) : null}
+
+            {contextDiff.requiresStaleConfirmation ? (
+              <label className="export-prep-neutral-toggle">
+                <input
+                  checked={confirmStaleContext}
+                  disabled={sectionBusy}
+                  onChange={(event) => setConfirmStaleContext(event.target.checked)}
+                  type="checkbox"
+                />
+                I confirm export despite stale or partially stale arrangement context
+              </label>
+            ) : null}
+
+            <label className="export-prep-neutral-toggle">
+              <input
+                checked={rightsAcknowledged}
+                disabled={sectionBusy}
+                onChange={(event) => setRightsAcknowledged(event.target.checked)}
+                type="checkbox"
+              />
+              I acknowledge the rights notice — I supply audio I am authorized to use
+            </label>
+
+            <label className="export-prep-field">
+              <span>Optional export label</span>
+              <input
+                disabled={sectionBusy}
+                maxLength={120}
+                onChange={(event) => setSectionExportLabel(event.target.value)}
+                placeholder="Section window export"
+                type="text"
+                value={sectionExportLabel}
+              />
+            </label>
+
+            <fieldset className="export-prep-loudness-mode">
+              <legend>Loudness handling</legend>
+              <label>
+                <input
+                  checked={sectionLoudnessMode === "measurement_only"}
+                  disabled={sectionBusy}
+                  name="section-loudness-mode"
+                  onChange={() => setSectionLoudnessMode("measurement_only")}
+                  type="radio"
+                />
+                {sectionExportLoudnessModeLabel("measurement_only")}
+              </label>
+              <label>
+                <input
+                  checked={sectionLoudnessMode === "normalize_section"}
+                  disabled={sectionBusy}
+                  name="section-loudness-mode"
+                  onChange={() => setSectionLoudnessMode("normalize_section")}
+                  type="radio"
+                />
+                {sectionExportLoudnessModeLabel("normalize_section")}
+              </label>
+            </fieldset>
+
+            <button
+              className="export-prep-create-button export-prep-create-button-section"
+              disabled={
+                !hasStemSource ||
+                !localStatus.online ||
+                sectionBusy ||
+                !sectionExportReady ||
+                !sectionBinding ||
+                !sectionContext
+              }
+              onClick={() => void handleCreateSectionExport()}
+              type="button"
+            >
+              {sectionBusy ? (
+                <>
+                  <LoaderCircle aria-hidden="true" className="spin-icon" size={16} />
+                  Creating section WAV export…
+                </>
+              ) : (
+                <>
+                  <Download aria-hidden="true" size={16} />
+                  Create section WAV export
+                </>
+              )}
+            </button>
+
+            {sectionErrorMessage ? <p className="export-prep-error">{sectionErrorMessage}</p> : null}
+
+            {sectionExportResult?.ok ? (
+              <SectionExportResultBlock result={sectionExportResult} />
+            ) : null}
+          </div>
 
           <div className="export-prep-form export-prep-form-section export-prep-full-length">
             <h4>Full-length render from stem artifacts</h4>
@@ -1453,6 +1783,56 @@ function Mp3ExportResultBlock({ result }: { result: Mp3ExportResult }) {
       </ul>
       <p className="export-prep-final-export">
         finalExport: {String(result.finalExport)} · publicShare: {String(result.publicShare)}
+      </p>
+    </div>
+  );
+}
+
+function SectionExportResultBlock({ result }: { result: SectionExportResult }) {
+  const summaryLines = formatSectionExportArtifactSummary({
+    draftType: null,
+    sectionLabel: null,
+    startSeconds: result.inputSummary?.startSeconds ?? null,
+    durationSeconds: result.inputSummary?.durationSeconds ?? null,
+    phraseBasis: null,
+    bindingFreshnessStatus: result.inputSummary?.bindingFreshnessStatus ?? null,
+  });
+
+  return (
+    <div className="export-prep-result export-prep-result-section">
+      <p>
+        Section window export <strong>{result.exportArtifactId}</strong> rendered from stem artifacts.
+      </p>
+      <ul className="export-prep-warnings">
+        {summaryLines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <TechnicalSummary
+        codec={result.codec}
+        sampleRate={result.sampleRate}
+        channelCount={result.channelCount}
+        durationSeconds={result.durationSeconds}
+        fileSizeBytes={result.fileSizeBytes}
+        loudness={result.loudness}
+      />
+      {result.playbackUrl ? (
+        <>
+          <audio controls preload="none" src={result.playbackUrl} />
+          <a className="export-prep-download-link" download href={result.playbackUrl}>
+            Download section window WAV export
+          </a>
+        </>
+      ) : null}
+      <ul className="export-prep-warnings">
+        {[...result.warnings, ...result.limitations].map((warning) => (
+          <li key={warning}>{warning}</li>
+        ))}
+      </ul>
+      <p className="export-prep-rights-note">{result.rightsNotice}</p>
+      <p className="export-prep-final-export">
+        finalExport: {String(result.finalExport)} · publicShare: {String(result.publicShare)} ·
+        sectionTrimmedExport: {String(result.sectionTrimmedExport)}
       </p>
     </div>
   );

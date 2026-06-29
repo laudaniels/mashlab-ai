@@ -78,6 +78,8 @@ export interface PreviewArtifactSummary {
   arrangementPhraseBasis: string | null;
   arrangementContextSummary: string | null;
   arrangementExportContextMode: string | null;
+  sectionTrimmedExport: boolean;
+  bindingFreshnessAtExport: string | null;
 }
 
 export interface LoudnessReadout {
@@ -174,6 +176,13 @@ export function formatArtifactArrangementTraceability(
       : []),
     ...(artifact.arrangementExportContextMode === "full_length_context_only"
       ? ["Arrangement context only — full-length render."]
+      : []),
+    ...(artifact.arrangementExportContextMode === "section_export" ||
+    artifact.sectionTrimmedExport
+      ? ["Section window export — advisory planning window only."]
+      : []),
+    ...(artifact.bindingFreshnessAtExport
+      ? [`Context at export: ${artifact.bindingFreshnessAtExport.replace(/_/g, " ")}`]
       : []),
     "Arrangement sections are advisory and do not grant rights.",
   ];

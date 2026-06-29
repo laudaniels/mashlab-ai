@@ -74,6 +74,18 @@ If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for th
 - [ ] Package manifest / technical report include arrangement contexts when present
 - [ ] No verse/chorus/drop detection claims in labels or metadata
 
+### 5d. Section window export (Phase 23)
+- [ ] Export screen shows **Section Window Export** with draft type, section label, start/duration, phrase basis
+- [ ] Context diff summary shows when bound vs current session differs
+- [ ] Readiness checklist: stems, Rubber Band, FFmpeg, duration, rights, advisory confirm
+- [ ] Stale context requires explicit confirmation before export
+- [ ] Unavailable start requires "start from artifact beginning" confirmation
+- [ ] Missing duration blocks export with actionable error
+- [ ] Output: `section-export.wav` under `.work/artifacts/exports/{id}/`
+- [ ] Artifact browser shows `export / section-wav` with traceability
+- [ ] `finalExport: true`, `publicShare: false`, `sectionTrimmedExport: true`
+- [ ] Package manifest includes section export arrangement context when selected
+
 ### 6. Combined preview
 - [ ] Requires stem previews for both tracks (or documented neutral path)
 - [ ] Rubber Band + FFmpeg required

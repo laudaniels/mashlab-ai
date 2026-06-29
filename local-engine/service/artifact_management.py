@@ -89,6 +89,8 @@ class PreviewArtifactEntry:
     arrangement_phrase_basis: str | None = None
     arrangement_context_summary: str | None = None
     arrangement_export_context_mode: str | None = None
+    section_trimmed_export: bool = False
+    binding_freshness_at_export: str | None = None
 
 
 @dataclass
@@ -324,8 +326,16 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
             if not child.is_dir() or not is_valid_artifact_id(child.name):
                 continue
             export_wav = child / "export.wav"
+            section_export_wav = child / "section-export.wav"
             export_mp3 = child / "export.mp3"
-            primary_file = export_wav if export_wav.exists() else export_mp3 if export_mp3.exists() else None
+            if section_export_wav.exists():
+                primary_file = section_export_wav
+            elif export_wav.exists():
+                primary_file = export_wav
+            elif export_mp3.exists():
+                primary_file = export_mp3
+            else:
+                primary_file = None
             if primary_file is None:
                 continue
             meta = _read_export_meta(child)
@@ -348,13 +358,23 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     target_instrumental_id = meta["target_instrumental_stem_artifact_id"]
                 if isinstance(meta.get("source_wav_export_artifact_id"), str):
                     source_wav_id = meta["source_wav_export_artifact_id"]
-            if export_mp3.exists():
+            if primary_file == export_mp3:
                 label = MP3_EXPORT_ARTIFACT_LABEL
                 playback = f"/v1/artifacts/exports/{child.name}/export.mp3"
                 if export_subtype is None:
                     export_subtype = "mp3"
                 if export_format is None:
                     export_format = "mp3"
+            elif primary_file == section_export_wav:
+                label = (
+                    "Section window export — advisory planning window only. "
+                    "No public distribution rights granted."
+                )
+                playback = f"/v1/artifacts/exports/{child.name}/section-export"
+                if export_subtype is None:
+                    export_subtype = "section-wav"
+                if export_format is None:
+                    export_format = "wav"
             else:
                 label = EXPORT_ARTIFACT_LABEL
                 playback = f"/v1/artifacts/exports/{child.name}/export"
@@ -384,6 +404,12 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     target_instrumental_stem_artifact_id=target_instrumental_id,
                     source_wav_export_artifact_id=source_wav_id,
                     mix_summary=_mix_summary_from_meta(meta),
+                    section_trimmed_export=bool(meta and meta.get("section_trimmed_export") is True),
+                    binding_freshness_at_export=(
+                        meta.get("binding_freshness_status")
+                        if meta and isinstance(meta.get("binding_freshness_status"), str)
+                        else None
+                    ),
                     **_arrangement_list_fields_from_meta(meta),
                 )
             )
@@ -774,7 +800,9 @@ def _arrangement_list_fields_from_meta(meta: dict | None) -> dict[str, object]:
     return {
         "arrangement_draft_type": ctx.get("draft_type"),
         "arrangement_section_label": ctx.get("section_label"),
-        "arrangement_preview_start_seconds": ctx.get("preview_start_seconds"),
+        "arrangement_preview_start_seconds": ctx.get("preview_start_seconds")
+        if ctx.get("preview_start_seconds") is not None
+        else meta.get("start_seconds_used"),
         "arrangement_duration_seconds": ctx.get("duration_seconds"),
         "arrangement_phrase_basis": ctx.get("phrase_basis"),
         "arrangement_context_summary": arrangement_summary_from_context(ctx),

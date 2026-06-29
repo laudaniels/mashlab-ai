@@ -8,6 +8,7 @@ MashLab AI / CyphaBlend AI supports **local WAV export** lanes, **MP3 reference 
 |------|----------|--------|---------|
 | Preview-length copy | `POST /v1/export/wav` | Combined preview `preview.wav` | `preview-copy` |
 | Full-length re-render | `POST /v1/export/full-wav` | Stem artifacts + plan state | `full-wav` |
+| Section window (Phase 23) | `POST /v1/export/section-wav` | Stem artifacts + bound section window | `section-wav` |
 | MP3 reference | `POST /v1/export/mp3` | Existing WAV export `export.wav` | `mp3` |
 | Mastering prototype | `POST /v1/master/wav` | Existing WAV export `export.wav` | preset id |
 | Project package | `POST /v1/export/package` | Selected local artifacts | `folder` or `zip` |
@@ -15,11 +16,12 @@ MashLab AI / CyphaBlend AI supports **local WAV export** lanes, **MP3 reference 
 Output:
 
 - WAV export: `.work/artifacts/exports/{uuid}/export.wav` + `export.meta.json`
+- Section window export: `.work/artifacts/exports/{uuid}/section-export.wav` + `export.meta.json`
 - MP3 export: `.work/artifacts/exports/{uuid}/export.mp3` + `export.meta.json`
 - Master: `.work/artifacts/masters/{uuid}/master.wav` (when preset creates audio) + `master.meta.json`
 - Package: `.work/artifacts/packages/{uuid}/MashLab_Project_{label}/` + optional `mashlab-package.zip`
 
-See `docs/MASTERING_PRESETS.md` and `docs/PROJECT_PACKAGE_EXPORT.md` for details.
+See `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, and `docs/SECTION_EXPORTS.md` for details.
 
 ## Phase 15: MP3 Reference Export
 

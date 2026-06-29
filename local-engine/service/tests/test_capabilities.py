@@ -19,6 +19,12 @@ class CapabilityDetectionTests(unittest.TestCase):
         assert capability is not None
         self.assertEqual(capability.status, "available")
 
+    def test_demucs_capability_reports_status(self) -> None:
+        capability = get_capability("demucs")
+        self.assertIsNotNone(capability)
+        assert capability is not None
+        self.assertIn(capability.status, {"available", "missing"})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,11 @@ import {
   parsePitchTimePreviewResponse,
 } from "./pitchTimePreview.ts";
 import {
+  buildStemPreviewFormData,
+  parseStemPreviewResponse,
+} from "./stemPreview.ts";
+import { parseCombinedPreviewResponse } from "./combinedPreview.ts";
+import {
   getCachedBeatAnalysis,
   getCachedKeyAnalysis,
   setCachedBeatAnalysis,
@@ -26,6 +31,10 @@ import {
 } from "./types.ts";
 import type { PitchTimePreviewRequestParams } from "../../domain/pitchTimePreview.ts";
 import type { PitchTimePreviewResult } from "../../domain/pitchTimePreview.ts";
+import type { StemPreviewRequestParams } from "../../domain/stemPreview.ts";
+import type { StemPreviewResult } from "../../domain/stemPreview.ts";
+import type { CombinedPreviewRequestParams } from "../../domain/combinedPreview.ts";
+import type { CombinedPreviewResult } from "../../domain/combinedPreview.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -162,6 +171,58 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parsePitchTimePreviewResponse(payload, this.baseUrl);
+  }
+
+  async processStemPreview(
+    file: File,
+    params: StemPreviewRequestParams
+  ): Promise<StemPreviewResult | null> {
+    const formData = buildStemPreviewFormData(file, params);
+
+    const response = await this.request("/v1/process/stem-preview", {
+      method: "POST",
+      body: formData,
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseStemPreviewResponse(payload, this.baseUrl);
+  }
+
+  async processCombinedPreview(
+    params: CombinedPreviewRequestParams
+  ): Promise<CombinedPreviewResult | null> {
+    const response = await this.request("/v1/process/combined-preview", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        mash_intent: params.mashIntent,
+        source_vocal_artifact_id: params.sourceVocalArtifactId,
+        target_instrumental_artifact_id: params.targetInstrumentalArtifactId,
+        tempo_ratio: params.tempoRatio,
+        source_bpm: params.sourceBpm,
+        target_bpm: params.targetBpm,
+        pitch_shift_semitones: params.pitchShiftSemitones,
+        alignment_offset_ms: params.alignmentOffsetMs,
+        max_preview_seconds: params.maxPreviewSeconds,
+        formant_preservation: params.formantPreservation,
+        neutral_processing: params.neutralProcessing,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseCombinedPreviewResponse(payload, this.baseUrl);
   }
 
   private async requestBeatAnalysis(file: File): Promise<BeatAnalysisResponse | null> {

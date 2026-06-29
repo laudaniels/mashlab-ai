@@ -14,6 +14,7 @@ export interface PersistedTrackSnapshot {
   inspectionId: string | null;
   overrides: TrackDjOverrides;
   beatBpm: number | null;
+  stemPreviewArtifactId: string | null;
   keySummary: {
     key: string | null;
     mode: "major" | "minor" | "unknown";
@@ -114,6 +115,12 @@ export function applyPersistedOverrides(
     nextTracks[slotId] = {
       ...artifact,
       overrides: persisted.overrides,
+      stemPreview: persisted.stemPreviewArtifactId
+        ? {
+            artifactId: persisted.stemPreviewArtifactId,
+            updatedAt: artifact.stemPreview?.updatedAt ?? new Date().toISOString(),
+          }
+        : artifact.stemPreview,
     };
   }
 
@@ -135,6 +142,7 @@ function serializeTrackSnapshot(
     inspectionId: artifact.inspectionId,
     overrides: artifact.overrides,
     beatBpm: artifact.beatAnalysis?.bpm ?? artifact.overrides.bpm ?? null,
+    stemPreviewArtifactId: artifact.stemPreview?.artifactId ?? null,
     keySummary: artifact.effectiveKeyProfile
       ? {
           key: artifact.effectiveKeyProfile.key,

@@ -1,0 +1,5 @@
+# Optional stem separation dependencies for Demucs preview lane.
+# Install after base service requirements:
+#   pip install -r requirements-stems.txt
+demucs>=4.0.0
+torch

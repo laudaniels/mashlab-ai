@@ -89,7 +89,7 @@ export function PitchTimePlanPanel({
             </option>
           ))}
         </select>
-        <span className="pitch-time-intent-note">{intentLabel(intent)} · stem separation not implemented</span>
+        <span className="pitch-time-intent-note">{intentLabel(intent)} · use stem preview for vocal/instrumental split</span>
       </div>
 
       <p className="pitch-time-rubberband-note">{plan.rubberBandMessage}</p>

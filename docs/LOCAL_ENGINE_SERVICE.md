@@ -79,10 +79,17 @@ Suggested install guidance:
 | `POST /v1/plan/pitch-time` | Planning-only tempo/key strategy from JSON summaries (no audio) |
 | `POST /v1/process/pitch-time-preview` | **Rubber Band preview clip** from multipart upload (user-initiated) |
 | `GET /v1/artifacts/pitch-time-preview/{id}` | Serve processed preview WAV from local workspace |
+| `POST /v1/process/stem-preview` | **Demucs two-stem preview** (vocals + no_vocals, user-initiated) |
+| `GET /v1/artifacts/stems/{id}/vocals` | Serve vocals stem preview WAV |
+| `GET /v1/artifacts/stems/{id}/no_vocals` | Serve instrumental (no_vocals) stem preview WAV |
+| `POST /v1/process/combined-preview` | **Combined vocal-over-instrumental preview** (Rubber Band + FFmpeg mix) |
+| `GET /v1/artifacts/combined-preview/{id}/preview` | Serve combined preview WAV |
 
-Rubber Band is detected via `rubberband`, `rubberband-cli`, `rubberband.exe`, or `rubberband-cli.exe` on PATH. Status is `available` or `missing`. Browser-only planning works when Rubber Band is absent; preview processing requires Rubber Band and FFmpeg.
+Rubber Band is detected via `rubberband`, `rubberband-cli`, `rubberband.exe`, or `rubberband-cli.exe` on PATH. Status is `available` or `missing`. Browser-only planning works when Rubber Band is absent; pitch/time and combined preview processing require Rubber Band and FFmpeg.
 
-Preview artifacts are stored under `.work/artifacts/pitch-time-preview/`. Raw uploads are not kept beyond temp processing. See `docs/RUBBER_BAND_PROCESSING.md`.
+Demucs readiness requires both the `demucs` Python package and `torch`. First run may download model weights locally. See `docs/STEM_SEPARATION.md`.
+
+Preview artifacts are stored under `.work/artifacts/pitch-time-preview/`, `.work/artifacts/stems/{uuid}/`, and `.work/artifacts/combined-preview/{uuid}/`. Raw uploads are not kept beyond temp processing. See `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, and `docs/COMBINED_PREVIEW.md`.
 
 ## Planned Engine Integrations (Future Lanes)
 

@@ -1200,6 +1200,357 @@ describe("Pitch/time preview processing", async () => {
   });
 });
 
+describe("Stem preview processing", async () => {
+  const {
+    STEM_PREVIEW_ONLY_NOTICE,
+    STEM_PROCESSED_LABEL,
+    buildStemPreviewRequestParams,
+    isStemPreviewReady,
+    stemPreviewClaimsStudioQuality,
+    formatStemPreviewStatusMessage,
+  } = await importSrc("src/domain/stemPreview.ts");
+  const {
+    parseStemPreviewResponse,
+    stemPreviewFailureIsMissingDependency,
+    stemPreviewResponseIsProcessed,
+    validateStemPreviewRequestParams,
+  } = await importSrc("src/lib/localEngine/stemPreview.ts");
+  const { isDemucsAvailable, demucsCapabilitySummary } = await importSrc(
+    "src/lib/localEngine/capabilities.ts"
+  );
+  const { stubStemEngine } = await importSrc("src/engines/stubEngines.ts");
+
+  it("validates stem preview request parameters", () => {
+    const errors = validateStemPreviewRequestParams({
+      splitMode: "vocals_no_vocals",
+      maxPreviewSeconds: 60,
+      trackSlotId: "trackA",
+      fileName: "a.wav",
+    });
+    assert.equal(errors.length, 0);
+
+    const invalid = validateStemPreviewRequestParams({
+      splitMode: "vocals_no_vocals",
+      maxPreviewSeconds: 500,
+      trackSlotId: "trackA",
+      fileName: "a.wav",
+    });
+    assert.ok(invalid.some((error: string) => error.includes("max_preview_seconds")));
+  });
+
+  it("requires sidecar, Demucs, and track file before stem preview is ready", () => {
+    const file = new File(["a"], "a.wav", { type: "audio/wav" });
+    const ready = isStemPreviewReady({
+      sidecarOnline: true,
+      demucsAvailable: true,
+      trackFile: file,
+    });
+    const missingDemucs = isStemPreviewReady({
+      sidecarOnline: true,
+      demucsAvailable: false,
+      trackFile: file,
+    });
+
+    assert.equal(ready.ready, true);
+    assert.equal(missingDemucs.ready, false);
+  });
+
+  it("parses missing Demucs stem preview responses", () => {
+    const parsed = parseStemPreviewResponse({
+      ok: false,
+      status: "missing_dependency",
+      message: "Demucs and PyTorch are not installed.",
+      setup_guidance: "pip install demucs torch",
+      limitations: [STEM_PREVIEW_ONLY_NOTICE],
+    });
+
+    assert.ok(parsed);
+    assert.equal(stemPreviewFailureIsMissingDependency(parsed!), true);
+  });
+
+  it("parses processed stem preview responses with two playback URLs", () => {
+    const parsed = parseStemPreviewResponse(
+      {
+        ok: true,
+        status: "preview_complete",
+        message: "Vocal/instrumental stem preview processed locally.",
+        method: "demucs-two-stems-vocals",
+        audio_processed: true,
+        artifact_id: "abc123",
+        vocals: {
+          file_name: "vocals.wav",
+          artifact_url: "/v1/artifacts/stems/abc123/vocals",
+        },
+        no_vocals: {
+          file_name: "no_vocals.wav",
+          artifact_url: "/v1/artifacts/stems/abc123/no_vocals",
+        },
+        limitations: [STEM_PREVIEW_ONLY_NOTICE],
+        warnings: ["Demucs preview output is not studio-quality."],
+      },
+      "http://127.0.0.1:47831"
+    );
+
+    assert.ok(parsed);
+    assert.equal(stemPreviewResponseIsProcessed(parsed!), true);
+    assert.equal(parsed?.vocals?.playbackUrl, "http://127.0.0.1:47831/v1/artifacts/stems/abc123/vocals");
+    assert.equal(
+      parsed?.noVocals?.playbackUrl,
+      "http://127.0.0.1:47831/v1/artifacts/stems/abc123/no_vocals"
+    );
+    assert.equal(stemPreviewClaimsStudioQuality(parsed!), false);
+    assert.match(STEM_PREVIEW_ONLY_NOTICE, /not studio-quality/i);
+    assert.match(formatStemPreviewStatusMessage(parsed!), /Processed stem preview/i);
+  });
+
+  it("builds stem preview request params for one track", () => {
+    const params = buildStemPreviewRequestParams(
+      "trackA",
+      new File(["a"], "a.wav", { type: "audio/wav" })
+    );
+    assert.equal(params.splitMode, "vocals_no_vocals");
+    assert.equal(params.maxPreviewSeconds, 60);
+  });
+
+  it("does not auto-process stem separation through job queue stub", async () => {
+    const result = await stubStemEngine.analyze({
+      id: "inspection-stem",
+      fileName: "a.wav",
+      fileType: "audio/wav",
+      fileSizeBytes: 1024,
+      durationSeconds: 60,
+      sampleRate: 44100,
+      channelCount: 2,
+      waveformPeaks: [],
+      decoded: true,
+      notes: [],
+    });
+
+    assert.equal(result.state, "idle");
+    assert.equal(result.status, "engine-pending");
+  });
+
+  it("reports Demucs availability from capabilities", () => {
+    assert.equal(
+      isDemucsAvailable([
+        { id: "demucs", label: "Demucs", status: "available", message: "ok", version: null },
+      ]),
+      true
+    );
+    const summary = demucsCapabilitySummary([
+      { id: "demucs", label: "Demucs", status: "missing", message: "missing", version: null },
+    ]);
+    assert.equal(summary.status, "missing");
+  });
+
+  it("does not claim final export in stem preview model strings", () => {
+    assert.match(STEM_PROCESSED_LABEL, /preview/i);
+    assert.doesNotMatch(STEM_PREVIEW_ONLY_NOTICE, /finished mashup/i);
+  });
+});
+
+describe("Combined preview processing", async () => {
+  const {
+    COMBINED_PREVIEW_ONLY_NOTICE,
+    MISSING_STEM_ARTIFACTS_MESSAGE,
+    buildCombinedPreviewRequestParams,
+    combinedPreviewFinalExportIsFalse,
+    isCombinedPreviewReady,
+    resolveCombinedPreviewDirections,
+  } = await importSrc("src/domain/combinedPreview.ts");
+  const {
+    parseCombinedPreviewResponse,
+    combinedPreviewFailureIsMissingArtifact,
+    combinedPreviewFailureIsMissingDependency,
+    validateCombinedPreviewRequestParams,
+  } = await importSrc("src/lib/localEngine/combinedPreview.ts");
+  const { isRubberBandAvailable } = await importSrc("src/lib/localEngine/capabilities.ts");
+  const { buildPitchTimePlan, buildTrackPlanningInput } = await importSrc(
+    "src/domain/pitchTimePlanning.ts"
+  );
+  const {
+    createSessionArtifactStore,
+    updateTrackStemPreviewArtifact,
+    createTrackArtifact,
+  } = await importSrc("src/domain/sessionArtifacts.ts");
+
+  const sampleDirection = {
+    intentLabel: "Vocal A over Beat B",
+    vocalTrackLabel: "Track A",
+    instrumentalTrackLabel: "Track B",
+    sourceBpm: 120,
+    targetBpm: 128,
+    bpmDifference: 8,
+    tempoStretchRatio: 1.067,
+    tempoStretchPercent: 6.7,
+    tempoDirection: "speed_up" as const,
+    tempoPlanSummary: "Planning only",
+    sourceKeyLabel: "8A",
+    targetKeyLabel: "8B",
+    sourceCamelot: "8A",
+    targetCamelot: "8B",
+    suggestedPitchShiftSemitones: 1,
+    safeRangeWarning: null,
+    formantPreservationNote: "Use formants",
+    vocalAdjustmentNote: "Vocal note",
+    instrumentalAdjustmentNote: "Instrumental note",
+    bpmSource: "detected" as const,
+    keySource: "detected" as const,
+    camelotSource: "detected" as const,
+    limitations: [],
+    djReviewRequired: true as const,
+  };
+
+  it("maps mash intent to vocal and instrumental stem artifact slots", () => {
+    const store = createSessionArtifactStore("combined-session");
+    store.tracks.trackA = updateTrackStemPreviewArtifact(
+      createTrackArtifact({
+        sessionId: "combined-session",
+        slotId: "trackA",
+        file: new File(["a"], "a.wav", { type: "audio/wav" }),
+        inspection: null,
+      }),
+      "artifacttracka"
+    );
+    store.tracks.trackB = updateTrackStemPreviewArtifact(
+      createTrackArtifact({
+        sessionId: "combined-session",
+        slotId: "trackB",
+        file: new File(["b"], "b.wav", { type: "audio/wav" }),
+        inspection: null,
+      }),
+      "artifacttrackb"
+    );
+
+    const plan = buildPitchTimePlan({
+      trackA: buildTrackPlanningInput(store, "trackA", "Track A"),
+      trackB: buildTrackPlanningInput(store, "trackB", "Track B"),
+      intent: "vocal_a_over_beat_b",
+    });
+
+    const directions = resolveCombinedPreviewDirections(store, "vocal_a_over_beat_b", plan.directions);
+    assert.equal(directions[0]?.mashIntent, "vocal_a_over_beat_b");
+    assert.equal(directions[0]?.sourceVocalArtifactId, "artifacttracka");
+    assert.equal(directions[0]?.targetInstrumentalArtifactId, "artifacttrackb");
+
+    const reverse = resolveCombinedPreviewDirections(store, "vocal_b_over_beat_a", plan.directions);
+    assert.equal(reverse[0]?.mashIntent, "vocal_b_over_beat_a");
+    assert.equal(reverse[0]?.sourceVocalArtifactId, "artifacttrackb");
+    assert.equal(reverse[0]?.targetInstrumentalArtifactId, "artifacttracka");
+  });
+
+  it("requires stem previews for both tracks before combined preview is ready", () => {
+    const context = {
+      mashIntent: "vocal_a_over_beat_b" as const,
+      intentLabel: "Vocal A over Beat B",
+      direction: sampleDirection,
+      sourceVocalSlotId: "trackA" as const,
+      targetInstrumentalSlotId: "trackB" as const,
+      sourceVocalArtifactId: null,
+      targetInstrumentalArtifactId: null,
+      alignmentOffsetMs: 0,
+    };
+
+    const readiness = isCombinedPreviewReady({
+      sidecarOnline: true,
+      rubberBandAvailable: true,
+      context,
+      useNeutralProcessing: false,
+    });
+
+    assert.equal(readiness.ready, false);
+    assert.equal(readiness.reason, MISSING_STEM_ARTIFACTS_MESSAGE);
+  });
+
+  it("parses missing artifact and missing dependency combined preview responses", () => {
+    const missingArtifact = parseCombinedPreviewResponse({
+      ok: false,
+      status: "missing_artifact",
+      message: MISSING_STEM_ARTIFACTS_MESSAGE,
+      final_export: false,
+    });
+    const missingDependency = parseCombinedPreviewResponse({
+      ok: false,
+      status: "missing_dependency",
+      message: "Rubber Band CLI is not available.",
+      final_export: false,
+    });
+
+    assert.ok(missingArtifact);
+    assert.ok(missingDependency);
+    assert.equal(combinedPreviewFailureIsMissingArtifact(missingArtifact!), true);
+    assert.equal(combinedPreviewFailureIsMissingDependency(missingDependency!), true);
+    assert.equal(combinedPreviewFinalExportIsFalse(missingArtifact!), true);
+  });
+
+  it("parses successful combined preview with finalExport false", () => {
+    const parsed = parseCombinedPreviewResponse(
+      {
+        ok: true,
+        status: "preview_complete",
+        message: "Combined preview processed locally.",
+        audio_processed: true,
+        final_export: false,
+        artifact_url: "/v1/artifacts/combined-preview/abc123/preview",
+      },
+      "http://127.0.0.1:47831"
+    );
+
+    assert.ok(parsed);
+    assert.equal(parsed?.finalExport, false);
+    assert.equal(combinedPreviewFinalExportIsFalse(parsed!), true);
+    assert.match(COMBINED_PREVIEW_ONLY_NOTICE, /not a final export/i);
+  });
+
+  it("builds combined preview request params from direction context", () => {
+    const params = buildCombinedPreviewRequestParams(
+      {
+        mashIntent: "vocal_a_over_beat_b",
+        intentLabel: "Vocal A over Beat B",
+        direction: sampleDirection,
+        sourceVocalSlotId: "trackA",
+        targetInstrumentalSlotId: "trackB",
+        sourceVocalArtifactId: "aaa111",
+        targetInstrumentalArtifactId: "bbb222",
+        alignmentOffsetMs: 120,
+      },
+      false
+    );
+
+    assert.equal(params.mashIntent, "vocal_a_over_beat_b");
+    assert.equal(params.sourceVocalArtifactId, "aaa111");
+    assert.equal(params.targetInstrumentalArtifactId, "bbb222");
+    assert.equal(validateCombinedPreviewRequestParams(params).length, 0);
+  });
+
+  it("does not auto-process combined preview through arrangement stub", async () => {
+    const { stubArrangementEngine } = await importSrc("src/engines/stubEngines.ts");
+    const result = await stubArrangementEngine.analyze({
+      id: "inspection-arr",
+      fileName: "a.wav",
+      fileType: "audio/wav",
+      fileSizeBytes: 1024,
+      durationSeconds: 60,
+      sampleRate: 44100,
+      channelCount: 2,
+      waveformPeaks: [],
+      decoded: true,
+      notes: [],
+    });
+    assert.equal(result.state, "idle");
+    assert.equal(result.status, "engine-pending");
+  });
+
+  it("reports Rubber Band availability for combined preview lane", () => {
+    assert.equal(
+      isRubberBandAvailable([
+        { id: "rubberband", label: "Rubber Band CLI", status: "available", message: "ok", version: null },
+      ]),
+      true
+    );
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

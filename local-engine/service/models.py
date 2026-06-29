@@ -155,3 +155,87 @@ class PitchTimePreviewResponse(BaseModel):
     limitations: list[str] = Field(default_factory=list)
     setup_guidance: str | None = None
     validation_errors: list[str] | None = None
+
+
+class StemArtifactSummaryModel(BaseModel):
+    file_name: str
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    artifact_url: str
+
+
+class StemPreviewInputSummary(BaseModel):
+    file_name: str
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    split_mode: str
+    max_preview_seconds: int | None = None
+
+
+class StemPreviewResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    method: str | None = None
+    audio_processed: bool = False
+    artifact_id: str | None = None
+    input_summary: StemPreviewInputSummary | None = None
+    vocals: StemArtifactSummaryModel | None = None
+    no_vocals: StemArtifactSummaryModel | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    setup_guidance: str | None = None
+    validation_errors: list[str] | None = None
+
+
+class CombinedPreviewRequest(BaseModel):
+    mash_intent: Literal["vocal_a_over_beat_b", "vocal_b_over_beat_a"]
+    source_vocal_artifact_id: str = Field(min_length=1)
+    target_instrumental_artifact_id: str = Field(min_length=1)
+    tempo_ratio: float | None = None
+    source_bpm: float | None = None
+    target_bpm: float | None = None
+    pitch_shift_semitones: float = 0
+    alignment_offset_ms: float = 0
+    max_preview_seconds: int = 30
+    formant_preservation: bool = True
+    neutral_processing: bool = False
+
+
+class CombinedPreviewInputSummaryModel(BaseModel):
+    mash_intent: str
+    source_vocal_artifact_id: str
+    target_instrumental_artifact_id: str
+    tempo_ratio: float | None = None
+    pitch_shift_semitones: float = 0
+    alignment_offset_ms: float = 0
+    max_preview_seconds: int = 30
+    neutral_processing: bool = False
+
+
+class CombinedPreviewProcessingSummaryModel(BaseModel):
+    method: str
+    vocal_rubberband_ratio: float | None = None
+    pitch_shift_semitones: float = 0
+    alignment_offset_ms: float = 0
+    max_preview_seconds: int = 30
+
+
+class CombinedPreviewResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    method: str | None = None
+    audio_processed: bool = False
+    final_export: bool = False
+    artifact_id: str | None = None
+    artifact_url: str | None = None
+    input_summary: CombinedPreviewInputSummaryModel | None = None
+    processing_summary: CombinedPreviewProcessingSummaryModel | None = None
+    output_duration_seconds: float | None = None
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    setup_guidance: str | None = None
+    validation_errors: list[str] | None = None

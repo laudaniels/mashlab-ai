@@ -136,3 +136,4 @@ Fix: Upload a common local audio format (WAV, MP3, FLAC, etc.) that FFmpeg can d
 
 - `docs/PITCH_TIME_PLANNING.md` — planning model and mash intent
 - `docs/LOCAL_ENGINE_SERVICE.md` — sidecar overview and endpoints
+- `docs/COMBINED_PREVIEW.md` — Rubber Band vocal adjustment inside combined vocal-over-instrumental preview

@@ -43,7 +43,9 @@ import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
 import { MashupPlanningPanel } from "./components/MashupPlanningPanel";
+import { CombinedPreviewPanel } from "./components/CombinedPreviewPanel";
 import { PitchTimePlanPanel } from "./components/PitchTimePlanPanel";
+import { StemPreviewPanel } from "./components/StemPreviewPanel";
 import { TimelineAlignmentPanel } from "./components/TimelineAlignmentPanel";
 import { TrackOverridePanel } from "./components/TrackOverridePanel";
 import type { MashTrackJob } from "./domain/jobs.ts";
@@ -56,6 +58,7 @@ import {
   resolvePlanningBpm,
   syncTrackArtifactFromJob,
   updateTrackArtifactOverrides,
+  updateTrackStemPreviewArtifact,
   type SessionArtifactStore,
 } from "./domain/sessionArtifacts.ts";
 import type { TrackDjOverrides } from "./domain/trackOverrides.ts";
@@ -260,6 +263,23 @@ function App() {
         tracks: {
           ...current.tracks,
           [slotId]: clearTrackArtifactOverrides(artifact),
+        },
+      };
+    });
+  }
+
+  function updateStemPreviewArtifact(slotId: SlotId, artifactId: string) {
+    setArtifactStore((current) => {
+      const artifact = current.tracks[slotId];
+      if (!artifact) {
+        return current;
+      }
+
+      return {
+        ...current,
+        tracks: {
+          ...current.tracks,
+          [slotId]: updateTrackStemPreviewArtifact(artifact, artifactId),
         },
       };
     });
@@ -562,17 +582,21 @@ function App() {
             <ScreenTitle
               eyebrow="Stem separation"
               icon={Layers3}
-              title="Separation Queue Placeholder"
-              subtitle="The adapter lane is planned for Demucs / HTDemucs first, with MDX-Net and UVR-style options later."
+              title="Vocal / Instrumental Preview"
+              subtitle="User-initiated Demucs two-stem preview on one uploaded track. Not studio-quality output. Full mashup rendering remains future work."
             />
-            <div className="stem-board">
+            <StemPreviewPanel
+              onStemPreviewComplete={updateStemPreviewArtifact}
+              tracks={readyTracks}
+            />
+            <div className="stem-board stem-board-reference">
               {["Vocals", "Drums", "Bass", "Other"].map((stem, index) => (
-                <div className="stem-lane" key={stem}>
+                <div className="stem-lane stem-lane-reference" key={stem}>
                   <div className="stem-icon">
                     <Scissors aria-hidden="true" size={18} />
                   </div>
                   <h3>{stem}</h3>
-                  <p>Engine pending</p>
+                  <p>{stem === "Vocals" ? "Preview lane above" : "Future 4-stem lane"}</p>
                   <div className="stem-bars" aria-hidden="true">
                     <span style={{ height: `${40 + index * 8}%` }} />
                     <span style={{ height: `${64 - index * 6}%` }} />
@@ -637,6 +661,7 @@ function App() {
             ) : null}
             {readyTracks.length === 2 ? (
               <>
+                <CombinedPreviewPanel artifactStore={artifactStore} intent={mashIntent} />
                 <MashupPlanningPanel artifactStore={artifactStore} />
                 <PitchTimePlanPanel
                   artifactStore={artifactStore}

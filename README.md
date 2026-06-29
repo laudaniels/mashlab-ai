@@ -33,13 +33,15 @@ Implemented:
 - Pitch/time planning panel with mash intent selector (planning only).
 - Rubber Band CLI capability detection in local sidecar.
 - **Rubber Band pitch/time preview processing** (user-initiated, short clips only).
-- SessionStorage persistence for DJ overrides and mash intent (no raw audio).
+- **Demucs vocal/instrumental stem preview** (user-initiated, two-stem mode, one track at a time).
+- **Combined vocal-over-instrumental preview** (Rubber Band vocal + FFmpeg mix; requires stem previews first).
+- SessionStorage persistence for DJ overrides, mash intent, and stem preview artifact refs (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:
 
 - True downbeat/phrase detection (BeatNet+ / Essentia upgrade path documented).
-- Stem separation, full layered mashup render, AI arrangement, vocal cleanup, mastering, or final export rendering.
+- Full-song stem separation (4-stem drums/bass/other), final export/mastering, AI arrangement, vocal cleanup, or public sharing.
 
 ## Legal Notice
 
@@ -69,7 +71,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, preview processing, session artifacts, and timeline alignment.
+See `local-engine/service/README.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, planning behavior, preview processing, stem preview separation, combined preview, session artifacts, and timeline alignment.
 
 ## Quality Commands
 

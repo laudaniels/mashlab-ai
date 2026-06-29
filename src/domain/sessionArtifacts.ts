@@ -24,6 +24,11 @@ export interface FileIdentity {
   lastModified: number;
 }
 
+export interface StemPreviewArtifactRef {
+  artifactId: string;
+  updatedAt: string;
+}
+
 export interface TrackSessionArtifact {
   version: number;
   sessionId: string;
@@ -38,6 +43,7 @@ export interface TrackSessionArtifact {
   effectiveBeatGrid: BeatGridModel | null;
   effectiveKeyProfile: EffectiveKeyProfile | null;
   overrides: TrackDjOverrides;
+  stemPreview: StemPreviewArtifactRef | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,6 +95,7 @@ export function createTrackArtifact(params: {
     effectiveBeatGrid: null,
     effectiveKeyProfile: null,
     overrides: emptyTrackDjOverrides(),
+    stemPreview: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -136,6 +143,19 @@ export function clearTrackArtifactOverrides(artifact: TrackSessionArtifact): Tra
   return rebuildTrackArtifact({
     ...artifact,
     overrides: emptyTrackDjOverrides(),
+  });
+}
+
+export function updateTrackStemPreviewArtifact(
+  artifact: TrackSessionArtifact,
+  artifactId: string
+): TrackSessionArtifact {
+  return rebuildTrackArtifact({
+    ...artifact,
+    stemPreview: {
+      artifactId,
+      updatedAt: new Date().toISOString(),
+    },
   });
 }
 

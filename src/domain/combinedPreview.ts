@@ -1,0 +1,199 @@
+import type { MashIntent, PitchTimeDirectionPlan } from "./pitchTimePlanning.ts";
+import { resolveIntentDirectionPairs, buildTrackPlanningInput } from "./pitchTimePlanning.ts";
+import type { SessionArtifactStore } from "./sessionArtifacts.ts";
+import type { SlotId } from "./types.ts";
+
+export const COMBINED_PREVIEW_ONLY_NOTICE =
+  "Preview only — not a final export. No mastering, no final arrangement, no distribution rights granted.";
+
+export const COMBINED_PREVIEW_PROCESSED_LABEL =
+  "Combined vocal-over-instrumental preview — DJ review required.";
+
+export const MISSING_STEM_ARTIFACTS_MESSAGE = "Create stem previews for both tracks first.";
+
+export type CombinedMashIntent = "vocal_a_over_beat_b" | "vocal_b_over_beat_a";
+
+export interface CombinedPreviewDirectionContext {
+  mashIntent: CombinedMashIntent;
+  intentLabel: string;
+  direction: PitchTimeDirectionPlan;
+  sourceVocalSlotId: SlotId;
+  targetInstrumentalSlotId: SlotId;
+  sourceVocalArtifactId: string | null;
+  targetInstrumentalArtifactId: string | null;
+  alignmentOffsetMs: number;
+}
+
+export interface CombinedPreviewRequestParams {
+  mashIntent: CombinedMashIntent;
+  sourceVocalArtifactId: string;
+  targetInstrumentalArtifactId: string;
+  tempoRatio: number | null;
+  sourceBpm: number | null;
+  targetBpm: number | null;
+  pitchShiftSemitones: number;
+  alignmentOffsetMs: number;
+  maxPreviewSeconds: number;
+  formantPreservation: boolean;
+  neutralProcessing: boolean;
+}
+
+export interface CombinedPreviewProcessingSummary {
+  method: string;
+  vocalRubberbandRatio: number | null;
+  pitchShiftSemitones: number;
+  alignmentOffsetMs: number;
+  maxPreviewSeconds: number;
+}
+
+export interface CombinedPreviewInputSummary {
+  mashIntent: string;
+  sourceVocalArtifactId: string;
+  targetInstrumentalArtifactId: string;
+  tempoRatio: number | null;
+  pitchShiftSemitones: number;
+  alignmentOffsetMs: number;
+  maxPreviewSeconds: number;
+  neutralProcessing: boolean;
+}
+
+export interface CombinedPreviewResult {
+  ok: boolean;
+  status: string;
+  message: string;
+  method: string | null;
+  audioProcessed: boolean;
+  finalExport: boolean;
+  artifactId: string | null;
+  artifactUrl: string | null;
+  artifactPlaybackUrl: string | null;
+  inputSummary: CombinedPreviewInputSummary | null;
+  processingSummary: CombinedPreviewProcessingSummary | null;
+  outputDurationSeconds: number | null;
+  warnings: string[];
+  limitations: string[];
+  setupGuidance: string | null;
+  validationErrors: string[];
+  isPreviewOnly: true;
+}
+
+export function resolveCombinedPreviewDirections(
+  artifactStore: SessionArtifactStore,
+  intent: MashIntent,
+  directions: PitchTimeDirectionPlan[]
+): CombinedPreviewDirectionContext[] {
+  const trackA = buildTrackPlanningInput(artifactStore, "trackA", "Track A");
+  const trackB = buildTrackPlanningInput(artifactStore, "trackB", "Track B");
+  const pairs = resolveIntentDirectionPairs(intent, trackA, trackB);
+
+  return pairs.map((pair, index) => {
+    const direction = directions[index] ?? directions[0]!;
+    const mashIntent = pairToCombinedIntent(pair.intentLabel);
+    const sourceVocalSlotId = pair.vocal.slotId;
+    const targetInstrumentalSlotId = pair.instrumental.slotId;
+
+    return {
+      mashIntent,
+      intentLabel: pair.intentLabel,
+      direction,
+      sourceVocalSlotId,
+      targetInstrumentalSlotId,
+      sourceVocalArtifactId:
+        artifactStore.tracks[sourceVocalSlotId]?.stemPreview?.artifactId ?? null,
+      targetInstrumentalArtifactId:
+        artifactStore.tracks[targetInstrumentalSlotId]?.stemPreview?.artifactId ?? null,
+      alignmentOffsetMs: resolveAlignmentOffsetMs(
+        artifactStore,
+        sourceVocalSlotId,
+        targetInstrumentalSlotId
+      ),
+    };
+  });
+}
+
+export function isCombinedPreviewReady(params: {
+  sidecarOnline: boolean;
+  rubberBandAvailable: boolean;
+  context: CombinedPreviewDirectionContext;
+  useNeutralProcessing: boolean;
+}): { ready: boolean; reason: string } {
+  if (!params.sidecarOnline) {
+    return { ready: false, reason: "Local sidecar offline." };
+  }
+
+  if (!params.rubberBandAvailable) {
+    return { ready: false, reason: "Rubber Band CLI is not available on PATH." };
+  }
+
+  if (!params.context.sourceVocalArtifactId || !params.context.targetInstrumentalArtifactId) {
+    return { ready: false, reason: MISSING_STEM_ARTIFACTS_MESSAGE };
+  }
+
+  const direction = params.context.direction;
+  const hasBpm =
+    direction.sourceBpm !== null &&
+    direction.targetBpm !== null &&
+    direction.tempoStretchRatio !== null;
+  const hasPitch = direction.suggestedPitchShiftSemitones !== null;
+
+  if (!params.useNeutralProcessing && !hasBpm && !hasPitch) {
+    return {
+      ready: false,
+      reason:
+        "Pitch/time values are unknown. Enable neutral processing or add BPM/key overrides.",
+    };
+  }
+
+  return { ready: true, reason: "Ready for user-initiated combined preview." };
+}
+
+export function buildCombinedPreviewRequestParams(
+  context: CombinedPreviewDirectionContext,
+  useNeutralProcessing: boolean
+): CombinedPreviewRequestParams {
+  const direction = context.direction;
+
+  return {
+    mashIntent: context.mashIntent,
+    sourceVocalArtifactId: context.sourceVocalArtifactId!,
+    targetInstrumentalArtifactId: context.targetInstrumentalArtifactId!,
+    tempoRatio: useNeutralProcessing ? 1 : direction.tempoStretchRatio,
+    sourceBpm: direction.sourceBpm,
+    targetBpm: direction.targetBpm,
+    pitchShiftSemitones: useNeutralProcessing ? 0 : (direction.suggestedPitchShiftSemitones ?? 0),
+    alignmentOffsetMs: context.alignmentOffsetMs,
+    maxPreviewSeconds: 30,
+    formantPreservation: true,
+    neutralProcessing: useNeutralProcessing,
+  };
+}
+
+export function combinedPreviewFinalExportIsFalse(result: CombinedPreviewResult): boolean {
+  return result.finalExport === false;
+}
+
+export function formatCombinedPreviewStatusMessage(result: CombinedPreviewResult): string {
+  if (!result.ok) {
+    return result.message;
+  }
+
+  return `${COMBINED_PREVIEW_PROCESSED_LABEL} ${result.message}`;
+}
+
+function pairToCombinedIntent(intentLabel: string): CombinedMashIntent {
+  if (intentLabel.includes("Vocal B")) {
+    return "vocal_b_over_beat_a";
+  }
+
+  return "vocal_a_over_beat_b";
+}
+
+function resolveAlignmentOffsetMs(
+  artifactStore: SessionArtifactStore,
+  sourceSlotId: SlotId,
+  targetSlotId: SlotId
+): number {
+  const sourceOffset = artifactStore.tracks[sourceSlotId]?.overrides.alignmentOffsetSeconds ?? 0;
+  const targetOffset = artifactStore.tracks[targetSlotId]?.overrides.alignmentOffsetSeconds ?? 0;
+  return Math.round((sourceOffset - targetOffset) * 1000);
+}

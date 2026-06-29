@@ -87,6 +87,28 @@ export function isRubberBandAvailable(capabilities: ServiceCapability[]): boolea
   return findCapability(capabilities, "rubberband")?.status === "available";
 }
 
+export function isDemucsAvailable(capabilities: ServiceCapability[]): boolean {
+  return findCapability(capabilities, "demucs")?.status === "available";
+}
+
+export function demucsCapabilitySummary(capabilities: ServiceCapability[]): {
+  status: ServiceCapability["status"] | "unknown";
+  message: string;
+} {
+  const demucs = findCapability(capabilities, "demucs");
+  if (!demucs) {
+    return {
+      status: "unknown",
+      message: "Demucs readiness unknown. Stem preview remains disabled until the sidecar reports status.",
+    };
+  }
+
+  return {
+    status: demucs.status,
+    message: demucs.message,
+  };
+}
+
 export function rubberBandCapabilitySummary(capabilities: ServiceCapability[]): {
   status: ServiceCapability["status"] | "unknown";
   message: string;

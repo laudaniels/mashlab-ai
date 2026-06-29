@@ -101,6 +101,57 @@ def _optional_python_package(
     )
 
 
+def is_demucs_ready() -> bool:
+    demucs_available, _ = _import_available("demucs")
+    torch_available, _ = _import_available("torch")
+    return demucs_available and torch_available
+
+
+def _demucs_capability() -> ServiceCapability:
+    demucs_available, demucs_version = _import_available("demucs")
+    torch_available, torch_version = _import_available("torch")
+
+    if demucs_available and torch_available:
+        return ServiceCapability(
+            id="demucs",
+            label="Demucs",
+            status="available",
+            message=(
+                "Demucs and PyTorch are installed. User-initiated vocal/instrumental "
+                "stem preview separation is available. First run may download model weights."
+            ),
+            version=demucs_version,
+        )
+
+    if demucs_available and not torch_available:
+        return ServiceCapability(
+            id="demucs",
+            label="Demucs",
+            status="missing",
+            message="Demucs is installed but PyTorch is missing. Install torch to enable stem preview.",
+            version=demucs_version,
+        )
+
+    if torch_available and not demucs_available:
+        return ServiceCapability(
+            id="demucs",
+            label="Demucs",
+            status="missing",
+            message="PyTorch is installed but Demucs is missing. pip install demucs to enable stem preview.",
+            version=torch_version,
+        )
+
+    return ServiceCapability(
+        id="demucs",
+        label="Demucs",
+        status="missing",
+        message=(
+            "Demucs and PyTorch are not installed in this service environment. "
+            "Install both for local stem preview separation."
+        ),
+    )
+
+
 def detect_capabilities() -> list[ServiceCapability]:
     return [
         _python_capability(),
@@ -108,8 +159,8 @@ def detect_capabilities() -> list[ServiceCapability]:
         _binary_capability("ffprobe", "ffprobe", ["ffprobe"]),
         _optional_python_package("librosa", "librosa", "librosa"),
         _optional_python_package("essentia", "Essentia", "essentia", planned=True),
-        _optional_python_package("torch", "PyTorch", "torch", planned=True),
-        _optional_python_package("demucs", "Demucs", "demucs", planned=True),
+        _optional_python_package("torch", "PyTorch", "torch"),
+        _demucs_capability(),
         _rubberband_capability(),
     ]
 

@@ -13,6 +13,17 @@ from jobs import complete_metadata_job, create_job, fail_job, get_job, update_jo
 from key_analysis import analyze_key_file
 from metadata import analyze_metadata_file
 from pitch_time_planning import PitchTimePlanRequest, PitchTimePlanResponse, build_pitch_time_plan
+from combined_preview_processing import (
+    CombinedPreviewFailure,
+    CombinedPreviewSuccess,
+    process_combined_preview,
+)
+from demucs_processing import (
+    DEFAULT_MAX_PREVIEW_SECONDS as STEM_DEFAULT_MAX_PREVIEW_SECONDS,
+    StemPreviewFailure,
+    StemPreviewSuccess,
+    process_stem_preview,
+)
 from rubber_band_processing import (
     DEFAULT_MAX_PREVIEW_SECONDS,
     PitchTimePreviewFailure,
@@ -22,6 +33,10 @@ from rubber_band_processing import (
 from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
+    CombinedPreviewInputSummaryModel,
+    CombinedPreviewProcessingSummaryModel,
+    CombinedPreviewRequest,
+    CombinedPreviewResponse,
     CreateJobRequest,
     HealthResponse,
     JobResponse,
@@ -30,6 +45,9 @@ from models import (
     PitchTimePreviewInputSummary,
     PitchTimePreviewOutputSummary,
     PitchTimePreviewResponse,
+    StemArtifactSummaryModel,
+    StemPreviewInputSummary,
+    StemPreviewResponse,
 )
 from uploads import cleanup_path, save_upload
 
@@ -249,6 +267,174 @@ def get_pitch_time_preview_artifact(artifact_id: str) -> FileResponse:
     artifact_path = config.WORK_DIR / "artifacts" / "pitch-time-preview" / f"{artifact_id}.wav"
     if not artifact_path.exists():
         raise HTTPException(status_code=404, detail="Preview artifact not found.")
+
+    return FileResponse(
+        path=artifact_path,
+        media_type="audio/wav",
+        filename=artifact_path.name,
+    )
+
+
+@app.post("/v1/process/stem-preview", response_model=StemPreviewResponse)
+async def process_stem_preview_endpoint(
+    file: UploadFile = File(...),
+    split_mode: str = Form(default="vocals_no_vocals"),
+    max_preview_seconds: int | None = Form(default=STEM_DEFAULT_MAX_PREVIEW_SECONDS),
+) -> StemPreviewResponse:
+    temp_path, filename = await save_upload(file, "stem-preview")
+
+    try:
+        result = process_stem_preview(
+            temp_path,
+            filename,
+            split_mode=split_mode,
+            max_preview_seconds=max_preview_seconds,
+        )
+    finally:
+        cleanup_path(temp_path)
+
+    if isinstance(result, StemPreviewFailure):
+        return StemPreviewResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            setup_guidance=result.setup_guidance,
+            validation_errors=result.validation_errors,
+            limitations=[
+                "Preview only — not studio-quality stem separation, final mashup, or export.",
+            ],
+        )
+
+    return StemPreviewResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        method=result.method,
+        audio_processed=result.audio_processed,
+        artifact_id=result.artifact_id,
+        input_summary=StemPreviewInputSummary(
+            file_name=result.input_summary.file_name,
+            duration_seconds=result.input_summary.duration_seconds,
+            sample_rate=result.input_summary.sample_rate,
+            channel_count=result.input_summary.channel_count,
+            split_mode=result.input_summary.split_mode,
+            max_preview_seconds=result.input_summary.max_preview_seconds,
+        ),
+        vocals=StemArtifactSummaryModel(
+            file_name=result.vocals.file_name,
+            duration_seconds=result.vocals.duration_seconds,
+            sample_rate=result.vocals.sample_rate,
+            channel_count=result.vocals.channel_count,
+            artifact_url=result.vocals.artifact_url,
+        ),
+        no_vocals=StemArtifactSummaryModel(
+            file_name=result.no_vocals.file_name,
+            duration_seconds=result.no_vocals.duration_seconds,
+            sample_rate=result.no_vocals.sample_rate,
+            channel_count=result.no_vocals.channel_count,
+            artifact_url=result.no_vocals.artifact_url,
+        ),
+        warnings=result.warnings,
+        limitations=result.limitations,
+    )
+
+
+@app.get("/v1/artifacts/stems/{artifact_id}/vocals")
+def get_stem_preview_vocals(artifact_id: str) -> FileResponse:
+    return _stem_artifact_response(artifact_id, "vocals.wav", "vocals")
+
+
+@app.get("/v1/artifacts/stems/{artifact_id}/no_vocals")
+def get_stem_preview_no_vocals(artifact_id: str) -> FileResponse:
+    return _stem_artifact_response(artifact_id, "no_vocals.wav", "no_vocals")
+
+
+def _stem_artifact_response(artifact_id: str, file_name: str, label: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    artifact_path = config.WORK_DIR / "artifacts" / "stems" / artifact_id / file_name
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail=f"{label} stem preview artifact not found.")
+
+    return FileResponse(
+        path=artifact_path,
+        media_type="audio/wav",
+        filename=artifact_path.name,
+    )
+
+
+@app.post("/v1/process/combined-preview", response_model=CombinedPreviewResponse)
+def process_combined_preview_endpoint(
+    request: CombinedPreviewRequest,
+) -> CombinedPreviewResponse:
+    result = process_combined_preview(
+        mash_intent=request.mash_intent,
+        source_vocal_artifact_id=request.source_vocal_artifact_id,
+        target_instrumental_artifact_id=request.target_instrumental_artifact_id,
+        tempo_ratio=request.tempo_ratio,
+        source_bpm=request.source_bpm,
+        target_bpm=request.target_bpm,
+        pitch_shift_semitones=request.pitch_shift_semitones,
+        alignment_offset_ms=request.alignment_offset_ms,
+        max_preview_seconds=request.max_preview_seconds,
+        formant_preservation=request.formant_preservation,
+        neutral_processing=request.neutral_processing,
+    )
+
+    if isinstance(result, CombinedPreviewFailure):
+        return CombinedPreviewResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            final_export=False,
+            setup_guidance=result.setup_guidance,
+            validation_errors=result.validation_errors,
+            limitations=[
+                "Preview only — not a final export, mastered mashup, or distribution-ready mix.",
+            ],
+        )
+
+    return CombinedPreviewResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        method=result.method,
+        audio_processed=result.audio_processed,
+        final_export=result.final_export,
+        artifact_id=result.artifact_id,
+        artifact_url=result.artifact_url,
+        input_summary=CombinedPreviewInputSummaryModel(
+            mash_intent=result.input_summary.mash_intent,
+            source_vocal_artifact_id=result.input_summary.source_vocal_artifact_id,
+            target_instrumental_artifact_id=result.input_summary.target_instrumental_artifact_id,
+            tempo_ratio=result.input_summary.tempo_ratio,
+            pitch_shift_semitones=result.input_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.input_summary.alignment_offset_ms,
+            max_preview_seconds=result.input_summary.max_preview_seconds,
+            neutral_processing=result.input_summary.neutral_processing,
+        ),
+        processing_summary=CombinedPreviewProcessingSummaryModel(
+            method=result.processing_summary.method,
+            vocal_rubberband_ratio=result.processing_summary.vocal_rubberband_ratio,
+            pitch_shift_semitones=result.processing_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.processing_summary.alignment_offset_ms,
+            max_preview_seconds=result.processing_summary.max_preview_seconds,
+        ),
+        output_duration_seconds=result.output_duration_seconds,
+        warnings=result.warnings,
+        limitations=result.limitations,
+    )
+
+
+@app.get("/v1/artifacts/combined-preview/{artifact_id}/preview")
+def get_combined_preview_artifact(artifact_id: str) -> FileResponse:
+    if not artifact_id.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid artifact id.")
+
+    artifact_path = config.WORK_DIR / "artifacts" / "combined-preview" / artifact_id / "preview.wav"
+    if not artifact_path.exists():
+        raise HTTPException(status_code=404, detail="Combined preview artifact not found.")
 
     return FileResponse(
         path=artifact_path,

@@ -10,6 +10,11 @@ import {
 } from "./stemPreview.ts";
 import { parseCombinedPreviewResponse } from "./combinedPreview.ts";
 import {
+  parseArtifactDeleteResponse,
+  parseArtifactListResponse,
+  parseArtifactMetadataResponse,
+} from "./artifacts.ts";
+import {
   getCachedBeatAnalysis,
   getCachedKeyAnalysis,
   setCachedBeatAnalysis,
@@ -35,6 +40,7 @@ import type { StemPreviewRequestParams } from "../../domain/stemPreview.ts";
 import type { StemPreviewResult } from "../../domain/stemPreview.ts";
 import type { CombinedPreviewRequestParams } from "../../domain/combinedPreview.ts";
 import type { CombinedPreviewResult } from "../../domain/combinedPreview.ts";
+import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -223,6 +229,52 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseCombinedPreviewResponse(payload, this.baseUrl);
+  }
+
+  async listArtifacts(registry: PreviewArtifactRegistryEntry[] = []) {
+    const response = await this.request("/v1/artifacts");
+    if (!response) {
+      return [];
+    }
+
+    const payload = await response.json();
+    return parseArtifactListResponse(payload, this.baseUrl, registry);
+  }
+
+  async getArtifactMetadata(artifactId: string) {
+    const response = await this.request(`/v1/artifacts/${encodeURIComponent(artifactId)}/metadata`, {
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 3,
+    });
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseArtifactMetadataResponse(payload, this.baseUrl);
+  }
+
+  async deleteArtifact(artifactId: string) {
+    const response = await this.request(`/v1/artifacts/${encodeURIComponent(artifactId)}`, {
+      method: "DELETE",
+    });
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseArtifactDeleteResponse(payload);
+  }
+
+  async clearPreviewArtifacts() {
+    const response = await this.request("/v1/artifacts?scope=session", {
+      method: "DELETE",
+    });
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseArtifactDeleteResponse(payload);
   }
 
   private async requestBeatAnalysis(file: File): Promise<BeatAnalysisResponse | null> {

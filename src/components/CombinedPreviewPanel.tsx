@@ -2,11 +2,15 @@ import { AlertTriangle, Headphones, LoaderCircle, PlayCircle, Sparkles } from "l
 import { useState } from "react";
 import {
   buildCombinedPreviewRequestParams,
+  COMBINED_PREVIEW_DEFAULT_SECONDS,
+  COMBINED_PREVIEW_DURATION_OPTIONS,
   COMBINED_PREVIEW_ONLY_NOTICE,
   COMBINED_PREVIEW_PROCESSED_LABEL,
+  combinedPreviewDurationWarning,
   formatCombinedPreviewStatusMessage,
   isCombinedPreviewReady,
   resolveCombinedPreviewDirections,
+  validateCombinedPreviewDuration,
   type CombinedPreviewResult,
 } from "../domain/combinedPreview.ts";
 import {
@@ -27,9 +31,20 @@ import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 interface CombinedPreviewPanelProps {
   artifactStore: SessionArtifactStore;
   intent: MashIntent;
+  onCombinedPreviewComplete?: (params: {
+    artifactId: string;
+    mashIntent: string;
+    sourceTrackSlot: "trackA" | "trackB";
+    targetTrackSlot: "trackA" | "trackB";
+    label: string;
+  }) => void;
 }
 
-export function CombinedPreviewPanel({ artifactStore, intent }: CombinedPreviewPanelProps) {
+export function CombinedPreviewPanel({
+  artifactStore,
+  intent,
+  onCombinedPreviewComplete,
+}: CombinedPreviewPanelProps) {
   const { status: localStatus } = useLocalEngineStatus();
   const rubberBand = rubberBandCapabilitySummary(localStatus.capabilities);
   const rubberBandAvailable = isRubberBandAvailable(localStatus.capabilities);
@@ -43,6 +58,8 @@ export function CombinedPreviewPanel({ artifactStore, intent }: CombinedPreviewP
   });
 
   const [useNeutralProcessing, setUseNeutralProcessing] = useState(false);
+  const [previewDurationSeconds, setPreviewDurationSeconds] = useState(COMBINED_PREVIEW_DEFAULT_SECONDS);
+  const [customDurationSeconds, setCustomDurationSeconds] = useState(String(COMBINED_PREVIEW_DEFAULT_SECONDS));
   const [processingKey, setProcessingKey] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, CombinedPreviewResult | null>>({});
 
@@ -95,8 +112,16 @@ export function CombinedPreviewPanel({ artifactStore, intent }: CombinedPreviewP
       return;
     }
 
-    const params = buildCombinedPreviewRequestParams(context, useNeutralProcessing);
-    const validationErrors = validateCombinedPreviewRequestParams(params);
+    const params = buildCombinedPreviewRequestParams(
+      context,
+      useNeutralProcessing,
+      previewDurationSeconds
+    );
+    const durationErrors = validateCombinedPreviewDuration(previewDurationSeconds);
+    const validationErrors = [
+      ...validateCombinedPreviewRequestParams(params),
+      ...durationErrors,
+    ];
     if (validationErrors.length > 0) {
       setResults((current) => ({
         ...current,
@@ -126,29 +151,41 @@ export function CombinedPreviewPanel({ artifactStore, intent }: CombinedPreviewP
     setProcessingKey(contextKey);
     const result = await localEngineClient.processCombinedPreview(params);
     setProcessingKey(null);
+    const resolved =
+      result ??
+      ({
+        ok: false,
+        status: "request_failed",
+        message: "Combined preview request failed. Check that the local sidecar is running.",
+        method: null,
+        audioProcessed: false,
+        finalExport: false,
+        artifactId: null,
+        artifactUrl: null,
+        artifactPlaybackUrl: null,
+        inputSummary: null,
+        processingSummary: null,
+        outputDurationSeconds: null,
+        warnings: [],
+        limitations: [COMBINED_PREVIEW_ONLY_NOTICE],
+        setupGuidance: null,
+        validationErrors: [],
+        isPreviewOnly: true,
+      } satisfies CombinedPreviewResult);
+
+    if (resolved.ok && resolved.artifactId) {
+      onCombinedPreviewComplete?.({
+        artifactId: resolved.artifactId,
+        mashIntent: context.mashIntent,
+        sourceTrackSlot: context.sourceVocalSlotId,
+        targetTrackSlot: context.targetInstrumentalSlotId,
+        label: context.intentLabel,
+      });
+    }
+
     setResults((current) => ({
       ...current,
-      [contextKey]:
-        result ??
-        ({
-          ok: false,
-          status: "request_failed",
-          message: "Combined preview request failed. Check that the local sidecar is running.",
-          method: null,
-          audioProcessed: false,
-          finalExport: false,
-          artifactId: null,
-          artifactUrl: null,
-          artifactPlaybackUrl: null,
-          inputSummary: null,
-          processingSummary: null,
-          outputDurationSeconds: null,
-          warnings: [],
-          limitations: [COMBINED_PREVIEW_ONLY_NOTICE],
-          setupGuidance: null,
-          validationErrors: [],
-          isPreviewOnly: true,
-        } satisfies CombinedPreviewResult),
+      [contextKey]: resolved,
     }));
   }
 
@@ -177,6 +214,48 @@ export function CombinedPreviewPanel({ artifactStore, intent }: CombinedPreviewP
         />
         Use neutral pitch/time (1.0 ratio, 0 semitones) when BPM/key data is missing
       </label>
+
+      <div className="combined-preview-duration-row">
+        <span className="combined-preview-duration-label">Preview duration</span>
+        <div className="combined-preview-duration-options">
+          {COMBINED_PREVIEW_DURATION_OPTIONS.map((seconds) => (
+            <button
+              className={`combined-preview-duration-button ${
+                previewDurationSeconds === seconds ? "active" : ""
+              }`}
+              key={seconds}
+              onClick={() => {
+                setPreviewDurationSeconds(seconds);
+                setCustomDurationSeconds(String(seconds));
+              }}
+              type="button"
+            >
+              {seconds}s
+            </button>
+          ))}
+        </div>
+        <label className="combined-preview-custom-duration">
+          Custom (max 60s)
+          <input
+            max={60}
+            min={1}
+            onChange={(event) => {
+              const next = Number(event.currentTarget.value);
+              setCustomDurationSeconds(event.currentTarget.value);
+              if (Number.isFinite(next)) {
+                setPreviewDurationSeconds(next);
+              }
+            }}
+            type="number"
+            value={customDurationSeconds}
+          />
+        </label>
+        {combinedPreviewDurationWarning(previewDurationSeconds) ? (
+          <p className="combined-preview-duration-warning">
+            {combinedPreviewDurationWarning(previewDurationSeconds)}
+          </p>
+        ) : null}
+      </div>
 
       <div className="combined-preview-grid">
         {directions.map((context) => {

@@ -11,6 +11,12 @@ export const COMBINED_PREVIEW_PROCESSED_LABEL =
 
 export const MISSING_STEM_ARTIFACTS_MESSAGE = "Create stem previews for both tracks first.";
 
+export const COMBINED_PREVIEW_DURATION_OPTIONS = [15, 30, 60] as const;
+export const COMBINED_PREVIEW_DEFAULT_SECONDS = 30;
+export const COMBINED_PREVIEW_MAX_SECONDS = 60;
+
+export type CombinedPreviewDurationOption = (typeof COMBINED_PREVIEW_DURATION_OPTIONS)[number];
+
 export type CombinedMashIntent = "vocal_a_over_beat_b" | "vocal_b_over_beat_a";
 
 export interface CombinedPreviewDirectionContext {
@@ -149,7 +155,8 @@ export function isCombinedPreviewReady(params: {
 
 export function buildCombinedPreviewRequestParams(
   context: CombinedPreviewDirectionContext,
-  useNeutralProcessing: boolean
+  useNeutralProcessing: boolean,
+  maxPreviewSeconds: number = COMBINED_PREVIEW_DEFAULT_SECONDS
 ): CombinedPreviewRequestParams {
   const direction = context.direction;
 
@@ -162,10 +169,28 @@ export function buildCombinedPreviewRequestParams(
     targetBpm: direction.targetBpm,
     pitchShiftSemitones: useNeutralProcessing ? 0 : (direction.suggestedPitchShiftSemitones ?? 0),
     alignmentOffsetMs: context.alignmentOffsetMs,
-    maxPreviewSeconds: 30,
+    maxPreviewSeconds,
     formantPreservation: true,
     neutralProcessing: useNeutralProcessing,
   };
+}
+
+export function validateCombinedPreviewDuration(seconds: number): string[] {
+  const errors: string[] = [];
+  if (!Number.isFinite(seconds) || seconds < 1 || seconds > COMBINED_PREVIEW_MAX_SECONDS) {
+    errors.push(`max_preview_seconds must be between 1 and ${COMBINED_PREVIEW_MAX_SECONDS}.`);
+  }
+  return errors;
+}
+
+export function combinedPreviewDurationWarning(seconds: number): string | null {
+  if (seconds >= 60) {
+    return "Longer previews may take significantly more time to process locally.";
+  }
+  if (seconds >= 45) {
+    return "Preview length above 45 seconds may increase Rubber Band + FFmpeg processing time.";
+  }
+  return null;
 }
 
 export function combinedPreviewFinalExportIsFalse(result: CombinedPreviewResult): boolean {

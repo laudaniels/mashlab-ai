@@ -13,6 +13,14 @@ from jobs import complete_metadata_job, create_job, fail_job, get_job, update_jo
 from key_analysis import analyze_key_file
 from metadata import analyze_metadata_file
 from pitch_time_planning import PitchTimePlanRequest, PitchTimePlanResponse, build_pitch_time_plan
+from artifact_management import (
+    ArtifactOperationFailure,
+    ArtifactMetadataSuccess,
+    clear_all_preview_artifacts,
+    delete_preview_artifact,
+    get_artifact_metadata,
+    list_preview_artifacts,
+)
 from combined_preview_processing import (
     CombinedPreviewFailure,
     CombinedPreviewSuccess,
@@ -37,6 +45,13 @@ from models import (
     CombinedPreviewProcessingSummaryModel,
     CombinedPreviewRequest,
     CombinedPreviewResponse,
+    ArtifactDeleteResponse,
+    ArtifactListResponse,
+    ArtifactMetadataResponse,
+    ArtifactPlaybackUrlsModel,
+    LoudnessReadoutModel,
+    PreviewArtifactSummary,
+    TechnicalReadoutModel,
     CreateJobRequest,
     HealthResponse,
     JobResponse,
@@ -440,6 +455,117 @@ def get_combined_preview_artifact(artifact_id: str) -> FileResponse:
         path=artifact_path,
         media_type="audio/wav",
         filename=artifact_path.name,
+    )
+
+
+@app.get("/v1/artifacts", response_model=ArtifactListResponse)
+def list_artifacts() -> ArtifactListResponse:
+    artifacts = list_preview_artifacts()
+    return ArtifactListResponse(
+        ok=True,
+        status="ready",
+        message="Local preview artifacts listed. Preview only — not final exports.",
+        artifacts=[
+            PreviewArtifactSummary(
+                artifact_id=item.artifact_id,
+                artifact_type=item.artifact_type,
+                status=item.status,
+                created_at=item.created_at,
+                duration_seconds=item.duration_seconds,
+                playback_urls=ArtifactPlaybackUrlsModel(
+                    primary=item.playback_urls.primary,
+                    vocals=item.playback_urls.vocals,
+                    no_vocals=item.playback_urls.no_vocals,
+                ),
+                preview_only=item.preview_only,
+                final_export=item.final_export,
+                primary_file_name=item.primary_file_name,
+            )
+            for item in artifacts
+        ],
+    )
+
+
+@app.get("/v1/artifacts/{artifact_id}/metadata", response_model=ArtifactMetadataResponse)
+def read_artifact_metadata(artifact_id: str) -> ArtifactMetadataResponse:
+    result = get_artifact_metadata(artifact_id)
+    if isinstance(result, ArtifactOperationFailure):
+        return ArtifactMetadataResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            final_export=False,
+        )
+
+    return ArtifactMetadataResponse(
+        ok=True,
+        status=result.status,
+        message="Preview artifact metadata returned. Not a final export.",
+        artifact_id=result.artifact_id,
+        artifact_type=result.artifact_type,
+        preview_only=result.preview_only,
+        final_export=result.final_export,
+        playback_url=result.playback_url,
+        technical=TechnicalReadoutModel(
+            duration_seconds=result.technical.duration_seconds,
+            sample_rate=result.technical.sample_rate,
+            channel_count=result.technical.channel_count,
+            codec=result.technical.codec,
+            container=result.technical.container,
+            file_size_bytes=result.technical.file_size_bytes,
+            loudness=LoudnessReadoutModel(
+                integrated_lufs=result.technical.loudness.integrated_lufs,
+                true_peak_dbtp=result.technical.loudness.true_peak_dbtp,
+                peak_level_db=result.technical.loudness.peak_level_db,
+                status=result.technical.loudness.status,
+                message=result.technical.loudness.message,
+            ),
+        ),
+    )
+
+
+@app.delete("/v1/artifacts/{artifact_id}", response_model=ArtifactDeleteResponse)
+def delete_artifact(artifact_id: str) -> ArtifactDeleteResponse:
+    ok, status, message = delete_preview_artifact(artifact_id)
+    if not ok:
+        return ArtifactDeleteResponse(
+            ok=False,
+            status=status,
+            message=message or "Could not delete preview artifact.",
+            artifact_id=artifact_id,
+        )
+
+    return ArtifactDeleteResponse(
+        ok=True,
+        status=status,
+        message="Preview artifact deleted from local workspace.",
+        artifact_id=artifact_id,
+    )
+
+
+@app.delete("/v1/artifacts", response_model=ArtifactDeleteResponse)
+def clear_preview_artifacts(scope: str = "session") -> ArtifactDeleteResponse:
+    if scope != "session":
+        return ArtifactDeleteResponse(
+            ok=False,
+            status="validation_error",
+            message="Only scope=session is supported for preview artifact cleanup.",
+        )
+
+    deleted_count, errors = clear_all_preview_artifacts()
+    if errors:
+        return ArtifactDeleteResponse(
+            ok=False,
+            status="processing_failed",
+            message=f"Deleted {deleted_count} artifacts with errors: {'; '.join(errors[:3])}",
+            deleted_count=deleted_count,
+        )
+
+    return ArtifactDeleteResponse(
+        ok=True,
+        status="deleted",
+        message=f"Cleared {deleted_count} local preview artifacts.",
+        deleted_count=deleted_count,
     )
 
 

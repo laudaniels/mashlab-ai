@@ -239,3 +239,67 @@ class CombinedPreviewResponse(BaseModel):
     limitations: list[str] = Field(default_factory=list)
     setup_guidance: str | None = None
     validation_errors: list[str] | None = None
+
+
+class ArtifactPlaybackUrlsModel(BaseModel):
+    primary: str | None = None
+    vocals: str | None = None
+    no_vocals: str | None = None
+
+
+class PreviewArtifactSummary(BaseModel):
+    artifact_id: str
+    artifact_type: str
+    status: str
+    created_at: str
+    duration_seconds: float | None = None
+    playback_urls: ArtifactPlaybackUrlsModel
+    preview_only: bool = True
+    final_export: bool = False
+    primary_file_name: str
+    preview_label: str = "Preview only — not a final export or master."
+
+
+class ArtifactListResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    artifacts: list[PreviewArtifactSummary] = Field(default_factory=list)
+
+
+class LoudnessReadoutModel(BaseModel):
+    integrated_lufs: float | None = None
+    true_peak_dbtp: float | None = None
+    peak_level_db: float | None = None
+    status: str
+    message: str
+
+
+class TechnicalReadoutModel(BaseModel):
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channel_count: int | None = None
+    codec: str | None = None
+    container: str | None = None
+    file_size_bytes: int | None = None
+    loudness: LoudnessReadoutModel
+
+
+class ArtifactMetadataResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    artifact_id: str | None = None
+    artifact_type: str | None = None
+    preview_only: bool = True
+    final_export: bool = False
+    playback_url: str | None = None
+    technical: TechnicalReadoutModel | None = None
+
+
+class ArtifactDeleteResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    artifact_id: str | None = None
+    deleted_count: int | None = None

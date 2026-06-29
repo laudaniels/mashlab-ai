@@ -40,9 +40,12 @@ import {
   validateAudioFile,
 } from "./lib/audioMetadata";
 import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
+import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
 import { MashupPlanningPanel } from "./components/MashupPlanningPanel";
+import { ExportPrepPanel } from "./components/ExportPrepPanel";
+import { PreviewArtifactBrowser } from "./components/PreviewArtifactBrowser";
 import { CombinedPreviewPanel } from "./components/CombinedPreviewPanel";
 import { PitchTimePlanPanel } from "./components/PitchTimePlanPanel";
 import { StemPreviewPanel } from "./components/StemPreviewPanel";
@@ -62,7 +65,10 @@ import {
   type SessionArtifactStore,
 } from "./domain/sessionArtifacts.ts";
 import type { TrackDjOverrides } from "./domain/trackOverrides.ts";
-import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
+import { buildRegistryEntry } from "./domain/previewArtifacts.ts";
+import {
+  upsertPreviewArtifactRegistryEntry,
+} from "./lib/previewArtifactRegistry.ts";
 import {
   applyPersistedOverrides,
   clearSessionSnapshot,
@@ -283,6 +289,34 @@ function App() {
         },
       };
     });
+
+    upsertPreviewArtifactRegistryEntry(
+      buildRegistryEntry({
+        artifactId,
+        artifactType: "stem",
+        sourceTrackSlot: slotId,
+        label: `${trackLabels[slotId]} stem preview`,
+      })
+    );
+  }
+
+  function registerCombinedPreviewArtifact(params: {
+    artifactId: string;
+    mashIntent: string;
+    sourceTrackSlot: SlotId;
+    targetTrackSlot: SlotId;
+    label: string;
+  }) {
+    upsertPreviewArtifactRegistryEntry(
+      buildRegistryEntry({
+        artifactId: params.artifactId,
+        artifactType: "combined-preview",
+        sourceTrackSlot: params.sourceTrackSlot,
+        targetTrackSlot: params.targetTrackSlot,
+        mashIntent: params.mashIntent,
+        label: params.label,
+      })
+    );
   }
 
   async function handleFileChange(slotId: SlotId, event: ChangeEvent<HTMLInputElement>) {
@@ -661,7 +695,11 @@ function App() {
             ) : null}
             {readyTracks.length === 2 ? (
               <>
-                <CombinedPreviewPanel artifactStore={artifactStore} intent={mashIntent} />
+                <CombinedPreviewPanel
+                  artifactStore={artifactStore}
+                  intent={mashIntent}
+                  onCombinedPreviewComplete={registerCombinedPreviewArtifact}
+                />
                 <MashupPlanningPanel artifactStore={artifactStore} />
                 <PitchTimePlanPanel
                   artifactStore={artifactStore}
@@ -679,26 +717,11 @@ function App() {
             <ScreenTitle
               eyebrow="Export panel"
               icon={Download}
-              title="DJ-Safe Export Targets"
-              subtitle="Export stays locked until real rendering, loudness, and true peak checks are implemented."
+              title="Preview Session and Export Prep"
+              subtitle="Manage local preview artifacts and review locked export/mastering targets."
             />
-            <div className="export-grid">
-              {[
-                ["WAV master", "Primary professional export path"],
-                ["MP3 reference", "Optional compressed review render"],
-                ["Stem package", "Future separated-stem delivery"],
-              ].map(([name, description]) => (
-                <div className="export-option" key={name}>
-                  <Download aria-hidden="true" size={18} />
-                  <div>
-                    <h3>{name}</h3>
-                    <p>{description}</p>
-                  </div>
-                  <StatusText>Engine pending</StatusText>
-                </div>
-              ))}
-            </div>
-            <NoticeStrip icon={AlertTriangle} text={requiredRightsNotice} />
+            <PreviewArtifactBrowser />
+            <ExportPrepPanel />
           </section>
         );
       case "rights":

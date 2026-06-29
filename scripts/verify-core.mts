@@ -1551,6 +1551,124 @@ describe("Combined preview processing", async () => {
   });
 });
 
+describe("Preview session management", async () => {
+  const {
+    PREVIEW_ARTIFACT_LABEL,
+    buildRegistryEntry,
+    previewArtifactClaimsFinalExport,
+  } = await importSrc("src/domain/previewArtifacts.ts");
+  const {
+    parseArtifactDeleteResponse,
+    parseArtifactListResponse,
+    parseArtifactMetadataResponse,
+    validateCleanupArtifactId,
+  } = await importSrc("src/lib/localEngine/artifacts.ts");
+  const {
+    EXPORT_PREP_LOCKED_NOTICE,
+    exportPanelClaimsFinalMaster,
+    exportPanelIsLocked,
+  } = await importSrc("src/domain/exportPrep.ts");
+  const {
+    COMBINED_PREVIEW_MAX_SECONDS,
+    combinedPreviewDurationWarning,
+    validateCombinedPreviewDuration,
+  } = await importSrc("src/domain/combinedPreview.ts");
+
+  it("parses preview artifact list with preview-only labeling", () => {
+    const parsed = parseArtifactListResponse({
+      ok: true,
+      status: "ready",
+      artifacts: [
+        {
+          artifact_id: "abc123",
+          artifact_type: "combined-preview",
+          status: "ready",
+          created_at: "2026-01-01T00:00:00.000Z",
+          duration_seconds: 30,
+          playback_urls: { primary: "/v1/artifacts/combined-preview/abc123/preview" },
+          preview_only: true,
+          final_export: false,
+          primary_file_name: "preview.wav",
+        },
+      ],
+    }, "http://127.0.0.1:47831");
+
+    assert.equal(parsed.length, 1);
+    assert.equal(parsed[0]?.finalExport, false);
+    assert.equal(previewArtifactClaimsFinalExport(parsed[0]!), false);
+    assert.match(PREVIEW_ARTIFACT_LABEL, /not a final export/i);
+  });
+
+  it("parses artifact metadata loudness readout without faking values", () => {
+    const parsed = parseArtifactMetadataResponse({
+      ok: true,
+      status: "ready",
+      artifact_id: "abc123",
+      artifact_type: "combined-preview",
+      preview_only: true,
+      final_export: false,
+      technical: {
+        duration_seconds: 30,
+        sample_rate: 44100,
+        channel_count: 2,
+        codec: "pcm_s16le",
+        container: "WAV",
+        file_size_bytes: 1024,
+        loudness: {
+          integrated_lufs: null,
+          true_peak_dbtp: null,
+          peak_level_db: -3.2,
+          status: "partial",
+          message: "Integrated LUFS could not be measured.",
+        },
+      },
+    });
+
+    assert.ok(parsed?.technical);
+    assert.equal(parsed?.technical?.loudness.integratedLufs, null);
+    assert.equal(parsed?.technical?.loudness.status, "partial");
+    assert.equal(parsed?.finalExport, false);
+  });
+
+  it("validates cleanup artifact id and delete response parsing", () => {
+    assert.ok(validateCleanupArtifactId("../bad").length > 0);
+    assert.equal(validateCleanupArtifactId("abc123").length, 0);
+
+    const deleted = parseArtifactDeleteResponse({
+      ok: true,
+      status: "deleted",
+      message: "Preview artifact deleted.",
+      artifact_id: "abc123",
+    });
+    assert.equal(deleted?.ok, true);
+  });
+
+  it("validates combined preview duration limits", () => {
+    assert.equal(validateCombinedPreviewDuration(30).length, 0);
+    assert.ok(validateCombinedPreviewDuration(90).length > 0);
+    assert.equal(COMBINED_PREVIEW_MAX_SECONDS, 60);
+    assert.match(combinedPreviewDurationWarning(60) ?? "", /more time/i);
+  });
+
+  it("locked export panel does not claim final master export", () => {
+    assert.equal(exportPanelIsLocked(), true);
+    assert.equal(exportPanelClaimsFinalMaster(), false);
+    assert.match(EXPORT_PREP_LOCKED_NOTICE, /Export is not implemented yet/i);
+    assert.match(EXPORT_PREP_LOCKED_NOTICE, /not final masters/i);
+  });
+
+  it("builds preview registry entries with finalExport false", () => {
+    const entry = buildRegistryEntry({
+      artifactId: "stem123",
+      artifactType: "stem",
+      sourceTrackSlot: "trackA",
+      label: "Track A stem preview",
+    });
+    assert.equal(entry.finalExport, false);
+    assert.equal(entry.isPreviewOnly, true);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

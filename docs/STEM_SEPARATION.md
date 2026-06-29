@@ -130,5 +130,6 @@ Model weight download and CPU/GPU inference can take several minutes on first pr
 ## Related Docs
 
 - `docs/LOCAL_ENGINE_SERVICE.md`
+- `docs/PREVIEW_SESSION_MANAGEMENT.md`
 - `docs/RUBBER_BAND_PROCESSING.md`
 - `docs/COMBINED_PREVIEW.md` — vocal-over-instrumental mix using stem artifacts

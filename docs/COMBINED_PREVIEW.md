@@ -90,12 +90,25 @@ The **Combined Preview** panel lives on the **Timeline / Arrangement preview** s
 - **Create combined preview** button (user-initiated only)
 - Single audio player for the mixed preview WAV
 
+## Preview Duration (Phase 12)
+
+Combined preview duration is user-selectable:
+
+- **15 seconds** — quick check
+- **30 seconds** — default
+- **60 seconds** — longer listen; shows processing cost warning
+- **Custom** — up to server max (60s); validated client and server side
+
+Stem preview max duration remains separate (180s cap for Demucs lane).
+
+Generated artifacts appear in the **Preview artifact browser** with cleanup and technical readout.
+
 ## Privacy and Rights
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 
 ## Related Docs
 
+- `docs/PREVIEW_SESSION_MANAGEMENT.md`
 - `docs/STEM_SEPARATION.md`
 - `docs/RUBBER_BAND_PROCESSING.md`
-- `docs/PITCH_TIME_PLANNING.md`

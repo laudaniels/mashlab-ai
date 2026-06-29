@@ -24,6 +24,7 @@ from artifact_management import (
     _resolve_under,
 )
 from combined_preview_processing import PREVIEW_META_FILE
+from arrangement_context import arrangement_traceability_lines
 from export_processing import EXPORT_FILE_NAME, EXPORT_MP3_FILE_NAME, RIGHTS_NOTICE
 
 PACKAGES_DIR = config.WORK_DIR / "artifacts" / "packages"
@@ -206,14 +207,6 @@ def _collect_manifest_entry(artifact_id: str, artifact_type: str, subtype: str |
     else:
         entry["loudness_summary"] = {"status": "not_available", "message": "Readout unavailable."}
 
-    if artifact_type == "export":
-        export_dir = _resolve_under(EXPORTS_DIR, artifact_id)
-        if export_dir:
-            meta = _read_export_meta(export_dir)
-            if meta:
-                entry["export_format"] = meta.get("export_format")
-                entry["export_subtype"] = meta.get("export_subtype")
-                _attach_mix_settings(entry, meta)
     if artifact_type == "combined-preview":
         combined_dir = _resolve_under(COMBINED_DIR, artifact_id)
         if combined_dir:
@@ -223,8 +216,24 @@ def _collect_manifest_entry(artifact_id: str, artifact_type: str, subtype: str |
                     meta = json.loads(meta_path.read_text(encoding="utf-8"))
                     if isinstance(meta, dict):
                         _attach_mix_settings(entry, meta)
+                        ctx = meta.get("arrangement_context")
+                        if isinstance(ctx, dict):
+                            entry["arrangement_context"] = ctx
                 except (OSError, json.JSONDecodeError):
                     pass
+    if artifact_type == "export":
+        export_dir = _resolve_under(EXPORTS_DIR, artifact_id)
+        if export_dir:
+            meta = _read_export_meta(export_dir)
+            if meta:
+                if "export_format" not in entry:
+                    entry["export_format"] = meta.get("export_format")
+                if "export_subtype" not in entry or entry.get("export_subtype") is None:
+                    entry["export_subtype"] = meta.get("export_subtype")
+                _attach_mix_settings(entry, meta)
+                ctx = meta.get("arrangement_context")
+                if isinstance(ctx, dict):
+                    entry["arrangement_context"] = ctx
     if artifact_type == "master":
         master_dir = _resolve_under(MASTERS_DIR, artifact_id)
         if master_dir:
@@ -256,18 +265,31 @@ def build_technical_report(selected_ids: list[str]) -> dict:
         _files, artifact_type, subtype = resolved
         artifacts.append(_collect_manifest_entry(artifact_id, artifact_type, subtype))
 
+    arrangement_contexts = [
+        item["arrangement_context"]
+        for item in artifacts
+        if isinstance(item.get("arrangement_context"), dict)
+    ]
+
     return {
         "generated_at": datetime.now(tz=UTC).isoformat(),
         "artifact_count": len(artifacts),
         "artifacts": artifacts,
+        "arrangement_contexts": arrangement_contexts,
         "planning_summaries": {
             "bpm_key": "not_available",
             "pitch_time_plan": "not_available",
+            "arrangement_sections": (
+                "advisory_only — DJ review required; no verse/chorus/drop detection"
+                if arrangement_contexts
+                else "not_available"
+            ),
             "message": "Session planning data is not bundled in this phase — artifact readouts only.",
         },
         "warnings": [
             "Technical report includes available artifact readouts only.",
             "Missing values are reported as not_available — not fabricated.",
+            "Arrangement sections are advisory and do not grant distribution rights.",
         ],
         "dependency_notes": [
             "Package excludes raw uploads.",
@@ -296,6 +318,16 @@ def build_technical_report_markdown(report: dict) -> str:
             f"True peak: {loudness.get('true_peak_dbtp', 'not_available')} dBTP "
             f"({loudness.get('status', 'not_available')})"
         )
+        ctx = item.get("arrangement_context")
+        if isinstance(ctx, dict):
+            for trace_line in arrangement_traceability_lines(ctx):
+                lines.append(f"- Arrangement: {trace_line}")
+        lines.append("")
+    if report.get("arrangement_contexts"):
+        lines.append("## Arrangement traceability")
+        lines.append("- Advisory sections only — DJ review required.")
+        lines.append("- No true verse/chorus/drop detection.")
+        lines.append("- Arrangement sections do not grant rights.")
         lines.append("")
     lines.append("## Planning summaries")
     planning = report.get("planning_summaries") or {}
@@ -437,6 +469,11 @@ def create_project_package(
         "package_type": package_type,
         "selected_artifact_ids": unique_ids,
         "artifacts": manifest_entries,
+        "arrangement_contexts": [
+            entry["arrangement_context"]
+            for entry in manifest_entries
+            if isinstance(entry.get("arrangement_context"), dict)
+        ],
         "included_files": [
             {
                 "artifact_id": item.artifact_id,

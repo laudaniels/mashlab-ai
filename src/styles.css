@@ -1404,6 +1404,44 @@ audio {
 .arrangement-plan-applied,
 .arrangement-plan-applied-note,
 .arrangement-plan-binding-note,
+.arrangement-traceability-summary,
+.arrangement-advisory-notice,
+.arrangement-binding-freshness {
+  font-size: 0.875rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.arrangement-binding-freshness-current {
+  color: var(--success, #22c55e);
+}
+
+.arrangement-binding-freshness-stale,
+.arrangement-binding-freshness-partially_stale {
+  color: var(--warning, #f59e0b);
+}
+
+.combined-preview-stale-binding,
+.export-prep-stale-binding {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  color: var(--warning, #f59e0b);
+  font-size: 0.875rem;
+}
+
+.combined-preview-advisory,
+.export-prep-advisory,
+.export-prep-traceability,
+.export-prep-full-length-context {
+  font-size: 0.875rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.preview-artifact-traceability {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.85rem;
+}
 .combined-preview-applied-draft,
 .combined-preview-offset-note {
   color: #86efac;

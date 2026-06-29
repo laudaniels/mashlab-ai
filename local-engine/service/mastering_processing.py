@@ -17,7 +17,14 @@ from artifact_management import (
     _resolve_under,
 )
 import config
-from export_processing import EXPORTS_DIR, EXPORT_MP3_FILE_NAME, RIGHTS_NOTICE, find_wav_export_path
+from arrangement_context import inherit_arrangement_context, merge_arrangement_context_into_meta
+from export_processing import (
+    EXPORTS_DIR,
+    EXPORT_MP3_FILE_NAME,
+    RIGHTS_NOTICE,
+    find_wav_export_path,
+    read_export_meta,
+)
 from mastering_presets import (
     ALLOWED_MASTERING_PRESETS,
     get_mastering_preset,
@@ -144,6 +151,8 @@ def create_master_wav(
         )
 
     before_readout = analyze_technical_readout(source_path)
+    source_export_dir = _resolve_under(EXPORTS_DIR, source_wav_export_artifact_id)
+    source_meta = read_export_meta(source_export_dir) if source_export_dir else None
 
     master_id = uuid.uuid4().hex
     master_dir = _resolve_under(MASTERS_DIR, master_id)
@@ -248,6 +257,8 @@ def create_master_wav(
         "final_export": True,
         "mastering_prototype": True,
     }
+    inherited_context = inherit_arrangement_context(source_meta)
+    merge_arrangement_context_into_meta(meta, inherited_context)
     (master_dir / META_FILE_NAME).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
     return MasterWavSuccess(

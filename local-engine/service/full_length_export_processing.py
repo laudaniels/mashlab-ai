@@ -25,7 +25,12 @@ from mix_settings import (
     mix_settings_to_dict,
     validate_mix_settings,
 )
-from export_processing import EXPORTS_DIR, EXPORT_FILE_NAME, META_FILE_NAME, RIGHTS_NOTICE
+from export_processing import EXPORTS_DIR, EXPORT_FILE_NAME, META_FILE_NAME, RIGHTS_NOTICE, read_export_meta
+from arrangement_context import (
+    FULL_LENGTH_CONTEXT_NOTICE,
+    merge_arrangement_context_into_meta,
+    validate_arrangement_context,
+)
 from loudness_gate import evaluate_loudness_gate
 from rubber_band_processing import (
     build_rubberband_command,
@@ -141,6 +146,7 @@ def create_full_wav_export(
     instrumental_fade_out_ms: float = 0.0,
     limiter_safety: bool = False,
     clipping_guard: bool = False,
+    arrangement_context: dict | None = None,
 ) -> FullWavExportResult:
     errors: list[str] = []
 
@@ -379,6 +385,19 @@ def create_full_wav_export(
             "public_share": False,
             "final_export": True,
         }
+        validated_context, context_errors = validate_arrangement_context(arrangement_context)
+        if context_errors:
+            return FullWavExportFailure(
+                ok=False,
+                status="validation_error",
+                message="Full-length export arrangement context failed validation.",
+                validation_errors=context_errors,
+            )
+        if validated_context is not None:
+            full_context = dict(validated_context)
+            full_context["export_context_mode"] = "full_length_context_only"
+            merge_arrangement_context_into_meta(meta, full_context)
+            limitations.append(FULL_LENGTH_CONTEXT_NOTICE)
         (export_dir / META_FILE_NAME).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
         technical = analyze_technical_readout(export_path)

@@ -430,6 +430,7 @@ def process_combined_preview_endpoint(
         instrumental_fade_out_ms=request.instrumental_fade_out_ms,
         limiter_safety=request.limiter_safety,
         clipping_guard=request.clipping_guard,
+        arrangement_context=request.arrangement_context,
     )
 
     if isinstance(result, CombinedPreviewFailure):
@@ -621,6 +622,7 @@ def export_wav(request: ExportWavRequest) -> ExportWavResponse:
         export_format=request.export_format,
         export_label=request.export_label,
         loudness_target_mode=request.loudness_target_mode,
+        arrangement_context=request.arrangement_context,
     )
 
     if isinstance(result, ExportWavFailure):
@@ -796,9 +798,9 @@ def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
         instrumental_fade_out_ms=request.instrumental_fade_out_ms,
         limiter_safety=request.limiter_safety,
         clipping_guard=request.clipping_guard,
+        arrangement_context=request.arrangement_context,
     )
-
-    if isinstance(result, FullWavExportFailure):
+    if not result.ok:
         return FullWavExportResponse(
             ok=False,
             status=result.status,
@@ -907,6 +909,13 @@ def list_artifacts() -> ArtifactListResponse:
                 selected_artifact_ids=item.selected_artifact_ids,
                 public_share=item.public_share,
                 mix_summary=item.mix_summary,
+                arrangement_draft_type=item.arrangement_draft_type,
+                arrangement_section_label=item.arrangement_section_label,
+                arrangement_preview_start_seconds=item.arrangement_preview_start_seconds,
+                arrangement_duration_seconds=item.arrangement_duration_seconds,
+                arrangement_phrase_basis=item.arrangement_phrase_basis,
+                arrangement_context_summary=item.arrangement_context_summary,
+                arrangement_export_context_mode=item.arrangement_export_context_mode,
             )
             for item in artifacts
         ],

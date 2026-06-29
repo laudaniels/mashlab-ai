@@ -1,5 +1,5 @@
 import { AlertTriangle, Download, LoaderCircle, Lock, Unlock } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   buildPitchTimePlanForExport,
   buildFullLengthExportReadiness,
@@ -109,7 +109,21 @@ import {
 } from "../lib/localEngine/capabilities.ts";
 import { localEngineClient } from "../lib/localEngine/client.ts";
 import { loadPreviewArtifactRegistry } from "../lib/previewArtifactRegistry.ts";
-import { loadAppliedDraftSettings } from "../lib/arrangementDraftSession.ts";
+import {
+  loadAppliedDraftSettings,
+  loadArrangementSectionContext,
+  loadSectionPreviewBinding,
+  loadSelectedArrangementSection,
+  loadSelectedDraftType,
+} from "../lib/arrangementDraftSession.ts";
+import {
+  ARRANGEMENT_SECTIONS_ADVISORY_NOTICE,
+  buildPitchTimePlanSnapshot,
+  evaluateBindingFreshness,
+  formatArrangementContextSummary,
+  formatBindingFreshnessLabel,
+  FULL_LENGTH_ARRANGEMENT_CONTEXT_NOTICE,
+} from "../domain/arrangementSectionContext.ts";
 
 interface ExportPrepPanelProps {
   artifactStore: SessionArtifactStore;
@@ -203,6 +217,31 @@ export function ExportPrepPanel({
     rubberBandReadinessFromCapabilityStatus(rubberBand.status),
     rubberBand.message
   );
+
+  const sectionBinding = loadSectionPreviewBinding();
+  const sectionContext = loadArrangementSectionContext();
+  const bindingFreshness = useMemo(
+    () =>
+      evaluateBindingFreshness({
+        binding: sectionBinding,
+        context: sectionContext,
+        currentMashIntent: mashIntent,
+        currentMixSettings: mixSettings,
+        currentDraftType: loadSelectedDraftType(),
+        currentSectionId: loadSelectedArrangementSection()?.sectionId ?? null,
+        artifactStore,
+        currentPitchTime: buildPitchTimePlanSnapshot(pitchTimePlan?.directions[0] ?? null),
+      }),
+    [sectionBinding, sectionContext, mashIntent, mixSettings, artifactStore, pitchTimePlan]
+  );
+  const previewExportContext =
+    sectionContext && bindingFreshness.status !== "unavailable"
+      ? { ...sectionContext, exportContextMode: "preview_section" as const }
+      : null;
+  const fullLengthExportContext =
+    sectionContext && bindingFreshness.status !== "unavailable"
+      ? { ...sectionContext, exportContextMode: "full_length_context_only" as const }
+      : null;
 
   const fullContext = resolveFullLengthExportContext(
     artifactStore,
@@ -322,6 +361,7 @@ export function ExportPrepPanel({
       sourceCombinedPreviewArtifactId: selectedSourceId,
       exportLabel: exportLabel.trim() || null,
       loudnessTargetMode: loudnessMode,
+      arrangementContext: previewExportContext,
     });
 
     setBusy(false);
@@ -549,6 +589,7 @@ export function ExportPrepPanel({
         sourceCombinedPreviewArtifactId: last.sourceArtifactId,
         exportLabel: exportLabel.trim() || null,
         loudnessTargetMode: sessionPrefs.lastPreviewLoudnessMode,
+        arrangementContext: previewExportContext,
       });
 
       setBusy(false);
@@ -629,7 +670,8 @@ export function ExportPrepPanel({
       confirmNeutralSettings,
       fullLoudnessMode,
       mixSettings,
-      fullExportLabel.trim() || null
+      fullExportLabel.trim() || null,
+      fullLengthExportContext
     );
 
     const validationErrors = validateFullLengthExportRequest(params);
@@ -701,6 +743,21 @@ export function ExportPrepPanel({
           {appliedDraftExportNotice ? (
             <p className="arrangement-plan-applied-note">{appliedDraftExportNotice}</p>
           ) : null}
+          {sectionContext ? (
+            <p className="export-prep-traceability">
+              Arrangement traceability: {formatArrangementContextSummary(sectionContext)}
+            </p>
+          ) : null}
+          {bindingFreshness.status !== "current" && bindingFreshness.status !== "unavailable" ? (
+            <p className="export-prep-stale-binding" role="status">
+              <AlertTriangle aria-hidden="true" size={16} />
+              {formatBindingFreshnessLabel(bindingFreshness.status)} — {bindingFreshness.summary}
+            </p>
+          ) : null}
+          {fullLengthExportContext ? (
+            <p className="export-prep-full-length-context">{FULL_LENGTH_ARRANGEMENT_CONTEXT_NOTICE}</p>
+          ) : null}
+          <p className="export-prep-advisory">{ARRANGEMENT_SECTIONS_ADVISORY_NOTICE}</p>
         </div>
         <span className={`planning-badge ${locked ? "planning-badge-risky" : "planning-badge-ready"}`}>
           {locked ? "Locked" : "WAV export available"}

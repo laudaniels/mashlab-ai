@@ -110,6 +110,22 @@ export function parseArtifactSummary(
     selectedArtifactIds: parseStringArrayOrNull(record.selected_artifact_ids),
     publicShare: record.public_share === true,
     mixSummary: typeof record.mix_summary === "string" ? record.mix_summary : null,
+    arrangementDraftType:
+      typeof record.arrangement_draft_type === "string" ? record.arrangement_draft_type : null,
+    arrangementSectionLabel:
+      typeof record.arrangement_section_label === "string" ? record.arrangement_section_label : null,
+    arrangementPreviewStartSeconds: parseNullableNumber(record.arrangement_preview_start_seconds),
+    arrangementDurationSeconds: parseNullableNumber(record.arrangement_duration_seconds),
+    arrangementPhraseBasis:
+      typeof record.arrangement_phrase_basis === "string" ? record.arrangement_phrase_basis : null,
+    arrangementContextSummary:
+      typeof record.arrangement_context_summary === "string"
+        ? record.arrangement_context_summary
+        : null,
+    arrangementExportContextMode:
+      typeof record.arrangement_export_context_mode === "string"
+        ? record.arrangement_export_context_mode
+        : null,
   };
 }
 

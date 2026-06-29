@@ -19,19 +19,32 @@ import {
   type AppScreenId,
 } from "../domain/arrangementSectionBinding.ts";
 import {
+  ARRANGEMENT_SECTIONS_ADVISORY_NOTICE,
+  buildPitchTimePlanSnapshot,
+  buildSectionContextFromBinding,
+  evaluateBindingFreshness,
+  formatArrangementContextSummary,
+  formatBindingFreshnessLabel,
+} from "../domain/arrangementSectionContext.ts";
+import {
+  buildPitchTimePlanFromArtifacts,
   rubberBandReadinessFromCapabilityStatus,
   type MashIntent,
 } from "../domain/pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
 import {
   loadAppliedDraftSettings,
+  loadArrangementSectionContext,
+  loadSectionPreviewBinding,
   loadSelectedArrangementSection,
   loadSelectedDraftType,
   saveAppliedDraftSettings,
+  saveArrangementSectionContext,
   saveSectionPreviewBinding,
   saveSelectedArrangementSection,
   saveSelectedDraftType,
 } from "../lib/arrangementDraftSession.ts";
+import { loadMixSettings } from "../lib/mixSession.ts";
 import {
   isDemucsAvailable,
   isFfmpegAvailable,
@@ -110,8 +123,42 @@ export function ArrangementPlanPanel({
   );
 
   const applied = loadAppliedDraftSettings();
+  const sectionBinding = loadSectionPreviewBinding();
+  const sectionContext = loadArrangementSectionContext();
   const selectedSection =
     plan && selectedSectionId ? findArrangementSection(plan, selectedSectionId) : null;
+
+  const bindingFreshness = useMemo(() => {
+    if (!plan) {
+      return null;
+    }
+    const pitchPlan = buildPitchTimePlanFromArtifacts({
+      artifactStore,
+      intent: mashIntent,
+      rubberBandStatus,
+      rubberBandMessage: rubberBand.message,
+    });
+    return evaluateBindingFreshness({
+      binding: sectionBinding,
+      context: sectionContext,
+      currentMashIntent: mashIntent,
+      currentMixSettings: loadMixSettings(),
+      currentDraftType: draftType,
+      currentSectionId: selectedSectionId,
+      artifactStore,
+      currentPitchTime: buildPitchTimePlanSnapshot(pitchPlan?.directions[0] ?? null),
+    });
+  }, [
+    plan,
+    artifactStore,
+    mashIntent,
+    rubberBand.message,
+    rubberBandStatus,
+    sectionBinding,
+    sectionContext,
+    draftType,
+    selectedSectionId,
+  ]);
 
   if (!plan) {
     return (
@@ -151,7 +198,20 @@ export function ArrangementPlanPanel({
 
     const targetBpm = resolveTargetBedBpm(artifactStore, plan!);
     const binding = bindSectionToPreviewSettings(plan!, selectedSection, targetBpm);
+    const pitchPlan = buildPitchTimePlanFromArtifacts({
+      artifactStore,
+      intent: binding.mashIntent,
+      rubberBandStatus,
+      rubberBandMessage: rubberBand.message,
+    });
+    const context = buildSectionContextFromBinding({
+      binding,
+      pitchTimePlanSnapshot: buildPitchTimePlanSnapshot(pitchPlan?.directions[0] ?? null),
+      artifactStore,
+      exportContextMode: "preview_section",
+    });
     saveSectionPreviewBinding(binding);
+    saveArrangementSectionContext(context);
     saveAppliedDraftSettings({
       draftType: plan!.draftType,
       mashIntent: binding.mashIntent,
@@ -244,6 +304,20 @@ export function ArrangementPlanPanel({
           <div className="arrangement-selected-section">
             <strong>Selected:</strong> {selectedSection.label} · basis:{" "}
             {selectedSection.basis.replace(/_/g, " ")} · DJ review required
+            {sectionContext ? (
+              <p className="arrangement-traceability-summary">
+                {formatArrangementContextSummary(sectionContext)}
+              </p>
+            ) : null}
+            {bindingFreshness && sectionBinding ? (
+              <p
+                className={`arrangement-binding-freshness arrangement-binding-freshness-${bindingFreshness.status}`}
+              >
+                Binding status: {formatBindingFreshnessLabel(bindingFreshness.status)} —{" "}
+                {bindingFreshness.summary}
+              </p>
+            ) : null}
+            <p className="arrangement-advisory-notice">{ARRANGEMENT_SECTIONS_ADVISORY_NOTICE}</p>
           </div>
         ) : (
           <p className="arrangement-plan-note">Select an advisory section to bind preview settings.</p>
@@ -318,7 +392,9 @@ export function ArrangementPlanPanel({
           type="button"
         >
           <Sparkles aria-hidden="true" size={16} />
-          Apply section to preview settings
+          {bindingFreshness?.status === "stale" || bindingFreshness?.status === "partially_stale"
+            ? "Re-apply section to preview settings"
+            : "Apply section to preview settings"}
         </button>
       </div>
 

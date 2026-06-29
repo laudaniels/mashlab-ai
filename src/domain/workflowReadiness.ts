@@ -48,6 +48,7 @@ export interface WorkflowReadinessInput {
   arrangementDraftSelected?: boolean;
   arrangementDraftApplied?: boolean;
   arrangementSectionBound?: boolean;
+  arrangementBindingStale?: boolean;
 }
 
 export function emptyWorkflowArtifactCounts(): WorkflowArtifactCounts {
@@ -241,12 +242,20 @@ export function buildWorkflowReadiness(input: WorkflowReadinessInput): WorkflowS
     {
       id: "arrangement_preview_binding",
       label: "Section preview binding",
-      status: input.arrangementSectionBound ? "complete" : loaded === 2 ? "pending" : "blocked",
-      detail: input.arrangementSectionBound
-        ? "Arrangement section configured for combined preview — no auto-processing."
-        : loaded === 2
-          ? "Optional — select an advisory section and apply to preview settings."
-          : "Load both tracks first.",
+      status: input.arrangementBindingStale
+        ? "partial"
+        : input.arrangementSectionBound
+          ? "complete"
+          : loaded === 2
+            ? "pending"
+            : "blocked",
+      detail: input.arrangementBindingStale
+        ? "Section binding is stale — re-apply draft settings on Drafts before preview or export."
+        : input.arrangementSectionBound
+          ? "Arrangement section configured for combined preview — no auto-processing."
+          : loaded === 2
+            ? "Optional — select an advisory section and apply to preview settings."
+            : "Load both tracks first.",
     },
     {
       id: "stems_available",

@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from artifact_management import analyze_technical_readout, is_valid_artifact_id, _resolve_under
+from arrangement_context import inherit_arrangement_context, merge_arrangement_context_into_meta
 from export_processing import (
     EXPORTS_DIR,
     META_FILE_NAME,
@@ -202,6 +203,8 @@ def create_mp3_export(
         "public_share": False,
         "final_export": True,
     }
+    inherited_context = inherit_arrangement_context(source_meta)
+    merge_arrangement_context_into_meta(meta, inherited_context)
     (export_dir / META_FILE_NAME).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
     technical = analyze_technical_readout(export_path)

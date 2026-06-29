@@ -71,6 +71,13 @@ export interface PreviewArtifactSummary {
   selectedArtifactIds: string[] | null;
   publicShare: boolean;
   mixSummary: string | null;
+  arrangementDraftType: string | null;
+  arrangementSectionLabel: string | null;
+  arrangementPreviewStartSeconds: number | null;
+  arrangementDurationSeconds: number | null;
+  arrangementPhraseBasis: string | null;
+  arrangementContextSummary: string | null;
+  arrangementExportContextMode: string | null;
 }
 
 export interface LoudnessReadout {
@@ -143,6 +150,33 @@ export function formatTrackSlotLabel(slotId: SlotId | null): string | null {
     return "Track B";
   }
   return null;
+}
+
+export function formatArtifactArrangementTraceability(
+  artifact: PreviewArtifactSummary
+): string[] {
+  if (!artifact.arrangementSectionLabel && !artifact.arrangementContextSummary) {
+    return [];
+  }
+
+  return [
+    artifact.arrangementContextSummary ??
+      `${artifact.arrangementDraftType?.replace(/_/g, " ") ?? "Draft"} · ${artifact.arrangementSectionLabel} · advisory arrangement section — DJ review required`,
+    ...(artifact.arrangementDurationSeconds !== null
+      ? [`Duration: ${artifact.arrangementDurationSeconds}s`]
+      : []),
+    ...(artifact.arrangementPreviewStartSeconds !== null &&
+    artifact.arrangementPreviewStartSeconds > 0
+      ? [`Preview start offset: ${artifact.arrangementPreviewStartSeconds.toFixed(1)}s`]
+      : []),
+    ...(artifact.arrangementPhraseBasis
+      ? [`Phrase basis: ${artifact.arrangementPhraseBasis.replace(/_/g, " ")}`]
+      : []),
+    ...(artifact.arrangementExportContextMode === "full_length_context_only"
+      ? ["Arrangement context only — full-length render."]
+      : []),
+    "Arrangement sections are advisory and do not grant rights.",
+  ];
 }
 
 export function buildRegistryEntry(params: {

@@ -45,6 +45,7 @@ import { serializeCombinedPreviewRequestBody } from "../../domain/combinedPrevie
 import type { CombinedPreviewResult } from "../../domain/combinedPreview.ts";
 import type { PreviewArtifactRegistryEntry } from "../../domain/previewArtifacts.ts";
 import type { ExportWavRequestParams } from "../../domain/localExport.ts";
+import { serializeArrangementContextForApi } from "../../domain/arrangementSectionContext.ts";
 import type { ExportWavResult } from "../../domain/localExport.ts";
 import type { FullLengthExportRequestParams } from "../../domain/fullLengthExport.ts";
 import { mixSettingsToRequestFields } from "../../domain/mixControls.ts";
@@ -235,17 +236,23 @@ export class LocalEngineClient {
   }
 
   async createWavExport(params: ExportWavRequestParams): Promise<ExportWavResult | null> {
+    const body: Record<string, unknown> = {
+      source_combined_preview_artifact_id: params.sourceCombinedPreviewArtifactId,
+      export_format: "wav",
+      export_label: params.exportLabel ?? null,
+      loudness_target_mode: params.loudnessTargetMode,
+    };
+    const context = serializeArrangementContextForApi(params.arrangementContext ?? null);
+    if (context) {
+      body.arrangement_context = context;
+    }
+
     const response = await this.request("/v1/export/wav", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        source_combined_preview_artifact_id: params.sourceCombinedPreviewArtifactId,
-        export_format: "wav",
-        export_label: params.exportLabel ?? null,
-        loudness_target_mode: params.loudnessTargetMode,
-      }),
+      body: JSON.stringify(body),
       timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
     });
 
@@ -260,26 +267,37 @@ export class LocalEngineClient {
   async createFullWavExport(
     params: FullLengthExportRequestParams
   ): Promise<FullLengthExportResult | null> {
+    const body: Record<string, unknown> = {
+      source_vocal_stem_artifact_id: params.sourceVocalStemArtifactId,
+      target_instrumental_stem_artifact_id: params.targetInstrumentalStemArtifactId,
+      mash_intent: params.mashIntent,
+      tempo_ratio: params.tempoRatio,
+      source_bpm: params.sourceBpm,
+      target_bpm: params.targetBpm,
+      pitch_shift_semitones: params.pitchShiftSemitones,
+      alignment_offset_ms: params.alignmentOffsetMs,
+      export_label: params.exportLabel ?? null,
+      loudness_target_mode: params.loudnessTargetMode,
+      neutral_processing: params.neutralProcessing,
+      confirm_neutral_settings: params.confirmNeutralSettings,
+      ...mixSettingsToRequestFields(params.mixSettings),
+    };
+    const contextPayload = params.arrangementContext
+      ? serializeArrangementContextForApi({
+          ...params.arrangementContext,
+          exportContextMode: "full_length_context_only",
+        })
+      : null;
+    if (contextPayload) {
+      body.arrangement_context = contextPayload;
+    }
+
     const response = await this.request("/v1/export/full-wav", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        source_vocal_stem_artifact_id: params.sourceVocalStemArtifactId,
-        target_instrumental_stem_artifact_id: params.targetInstrumentalStemArtifactId,
-        mash_intent: params.mashIntent,
-        tempo_ratio: params.tempoRatio,
-        source_bpm: params.sourceBpm,
-        target_bpm: params.targetBpm,
-        pitch_shift_semitones: params.pitchShiftSemitones,
-        alignment_offset_ms: params.alignmentOffsetMs,
-        export_label: params.exportLabel ?? null,
-        loudness_target_mode: params.loudnessTargetMode,
-        neutral_processing: params.neutralProcessing,
-        confirm_neutral_settings: params.confirmNeutralSettings,
-        ...mixSettingsToRequestFields(params.mixSettings),
-      }),
+      body: JSON.stringify(body),
       timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 12,
     });
 

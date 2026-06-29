@@ -1,7 +1,7 @@
 import { AlertTriangle, FolderOpen, LoaderCircle, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { ArtifactMetadataResult, PreviewArtifactSummary } from "../domain/previewArtifacts.ts";
-import { PREVIEW_ARTIFACT_LABEL } from "../domain/previewArtifacts.ts";
+import { formatArtifactArrangementTraceability, PREVIEW_ARTIFACT_LABEL } from "../domain/previewArtifacts.ts";
 import { artifactDeletionScopeNotice, formatArtifactLifecycleSummary } from "../domain/artifactLifecycle.ts";
 import {
   artifactClearFailureMessage,
@@ -225,6 +225,24 @@ export function PreviewArtifactBrowser({ onRegistryChange }: PreviewArtifactBrow
                     <dd>{artifact.mixSummary}</dd>
                   </div>
                 ) : null}
+                {(() => {
+                  const traceLines = formatArtifactArrangementTraceability(artifact);
+                  if (traceLines.length === 0) {
+                    return null;
+                  }
+                  return (
+                    <div>
+                      <dt>Arrangement traceability</dt>
+                      <dd>
+                        <ul className="preview-artifact-traceability">
+                          {traceLines.map((line) => (
+                            <li key={line}>{line}</li>
+                          ))}
+                        </ul>
+                      </dd>
+                    </div>
+                  );
+                })()}
                 {artifact.packageSubtype ? (
                   <div>
                     <dt>Package type</dt>

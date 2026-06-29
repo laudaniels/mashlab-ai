@@ -3168,6 +3168,252 @@ describe("Arrangement section preview binding", async () => {
   });
 });
 
+describe("Arrangement traceability (Phase 22)", async () => {
+  const {
+    buildSectionContextFromBinding,
+    evaluateBindingFreshness,
+    serializeArrangementContextForApi,
+    arrangementContextClaimsFakeSections,
+    ARRANGEMENT_SECTIONS_ADVISORY_NOTICE,
+    ARRANGEMENT_TRACEABILITY_NOTICE,
+  } = await importSrc("src/domain/arrangementSectionContext.ts");
+  const { bindSectionToPreviewSettings } = await importSrc(
+    "src/domain/arrangementSectionBinding.ts"
+  );
+  const { buildArrangementPlan, findArrangementSection } = await importSrc(
+    "src/domain/arrangementPlanning.ts"
+  );
+  const { serializeCombinedPreviewRequestBody } = await importSrc("src/domain/combinedPreview.ts");
+  const { formatArtifactArrangementTraceability: formatFromArtifact } = await importSrc(
+    "src/domain/previewArtifacts.ts"
+  );
+  const { createSessionArtifactStore, createTrackArtifact } = await importSrc(
+    "src/domain/sessionArtifacts.ts"
+  );
+  const { buildBeatGridFromAnalysis } = await importSrc("src/domain/beatGrid.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+
+  function buildStoreWithStems() {
+    const store = createSessionArtifactStore("trace-session");
+    const beat = {
+      bpm: 128,
+      beatCount: 32,
+      beatTimes: Array.from({ length: 32 }, (_, index) => index * 0.46875),
+      bpmConfidence: 0.8,
+      downbeatStatus: "not_implemented" as const,
+      limitations: [],
+      method: "librosa",
+    };
+    const grid = buildBeatGridFromAnalysis(beat, { jobComplete: true, phraseLengthBars: 16 });
+    const trackA = createTrackArtifact({
+      sessionId: "trace-session",
+      slotId: "trackA",
+      file: new File(["a"], "a.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    const trackB = createTrackArtifact({
+      sessionId: "trace-session",
+      slotId: "trackB",
+      file: new File(["b"], "b.wav", { type: "audio/wav" }),
+      inspection: null,
+    });
+    store.tracks.trackA = {
+      ...trackA,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemA001", updatedAt: new Date().toISOString() },
+    };
+    store.tracks.trackB = {
+      ...trackB,
+      beatAnalysis: beat,
+      effectiveBeatGrid: grid,
+      stemPreview: { artifactId: "stemB001", updatedAt: new Date().toISOString() },
+    };
+    return store;
+  }
+
+  it("builds planning-only section context from binding", () => {
+    const store = buildStoreWithStems();
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const context = buildSectionContextFromBinding({
+      binding,
+      pitchTimePlanSnapshot: null,
+      artifactStore: store,
+      exportContextMode: "preview_section",
+    });
+    assert.equal(context.planningOnly, true);
+    assert.equal(context.djReviewRequired, true);
+    assert.equal(context.exportContextMode, "preview_section");
+    assert.match(context.limitations.join(" "), /advisory|DJ review/i);
+    assert.equal(context.rightsNotice, requiredRightsNotice);
+  });
+
+  it("detects stale binding when mash intent changes", () => {
+    const store = buildStoreWithStems();
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const context = buildSectionContextFromBinding({
+      binding,
+      pitchTimePlanSnapshot: null,
+      artifactStore: store,
+    });
+    const stale = evaluateBindingFreshness({
+      binding,
+      context,
+      currentMashIntent: "vocal_b_over_beat_a",
+      currentMixSettings: binding.mixSettings,
+      currentDraftType: "clean_blend",
+      currentSectionId: binding.sectionId,
+      artifactStore: store,
+      currentPitchTime: null,
+    });
+    assert.equal(stale.status, "stale");
+    assert.ok(stale.reasons.some((reason) => reason.includes("Mash intent")));
+  });
+
+  it("detects partially stale binding when mix settings change", () => {
+    const store = buildStoreWithStems();
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const context = buildSectionContextFromBinding({
+      binding,
+      pitchTimePlanSnapshot: null,
+      artifactStore: store,
+    });
+    const partial = evaluateBindingFreshness({
+      binding,
+      context,
+      currentMashIntent: binding.mashIntent,
+      currentMixSettings: { ...binding.mixSettings, vocalGainDb: 3 },
+      currentDraftType: binding.draftType,
+      currentSectionId: binding.sectionId,
+      artifactStore: store,
+      currentPitchTime: null,
+    });
+    assert.equal(partial.status, "partially_stale");
+  });
+
+  it("includes arrangement context in combined preview request body", () => {
+    const store = buildStoreWithStems();
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const context = buildSectionContextFromBinding({
+      binding,
+      pitchTimePlanSnapshot: null,
+      artifactStore: store,
+      exportContextMode: "preview_section",
+    });
+    const body = serializeCombinedPreviewRequestBody({
+      mashIntent: "vocal_a_over_beat_b",
+      sourceVocalArtifactId: "aaa",
+      targetInstrumentalArtifactId: "bbb",
+      tempoRatio: 1,
+      sourceBpm: 120,
+      targetBpm: 128,
+      pitchShiftSemitones: 0,
+      alignmentOffsetMs: 0,
+      maxPreviewSeconds: 30,
+      previewStartSeconds: 0,
+      formantPreservation: true,
+      neutralProcessing: false,
+      mixSettings: binding.mixSettings,
+      arrangementContext: context,
+    });
+    const ctx = body.arrangement_context as Record<string, unknown>;
+    assert.equal(ctx.draft_type, "club_edit");
+    assert.equal(ctx.section_id, binding.sectionId);
+    assert.equal(ctx.planning_only, true);
+    assert.equal(ctx.dj_review_required, true);
+    assert.match(String(ctx.traceability_notice), /DJ review/i);
+  });
+
+  it("formats artifact browser arrangement traceability without fake section claims", () => {
+    const lines = formatFromArtifact({
+      artifactId: "abc",
+      artifactType: "combined-preview",
+      status: "ready",
+      createdAt: new Date().toISOString(),
+      durationSeconds: 30,
+      playbackUrls: { primary: null, vocals: null, noVocals: null },
+      playbackUrl: null,
+      previewOnly: true,
+      finalExport: false,
+      previewLabel: "preview",
+      primaryFileName: "preview.wav",
+      sourceTrackLabel: null,
+      targetTrackLabel: null,
+      registryLabel: null,
+      sourceCombinedPreviewArtifactId: null,
+      exportSubtype: null,
+      exportFormat: null,
+      sourceVocalStemArtifactId: null,
+      targetInstrumentalStemArtifactId: null,
+      sourceWavExportArtifactId: null,
+      masterPreset: null,
+      masteringPrototype: false,
+      packageOnly: false,
+      packageSubtype: null,
+      packageLabel: null,
+      includedFileCount: null,
+      selectedArtifactIds: null,
+      publicShare: false,
+      mixSummary: null,
+      arrangementDraftType: "club_edit",
+      arrangementSectionLabel: "Intro (heuristic 16 bars)",
+      arrangementPreviewStartSeconds: 16,
+      arrangementDurationSeconds: 30,
+      arrangementPhraseBasis: "heuristic_phrase_markers",
+      arrangementContextSummary:
+        "club edit · Intro (heuristic 16 bars) · advisory · DJ review required",
+      arrangementExportContextMode: "preview_section",
+    });
+    assert.ok(lines.some((line) => line.includes("DJ review required")));
+    assert.ok(lines.some((line) => line.includes(ARRANGEMENT_SECTIONS_ADVISORY_NOTICE)));
+    assert.ok(!lines.some((line) => /verse detected|downbeat verified/i.test(line)));
+  });
+
+  it("rejects fake section claims in context labels", () => {
+    const store = buildStoreWithStems();
+    const plan = buildArrangementPlan({
+      artifactStore: store,
+      draftType: "club_edit",
+      mashIntent: "vocal_a_over_beat_b",
+    });
+    const section = findArrangementSection(plan!, "intro-planned")!;
+    const binding = bindSectionToPreviewSettings(plan!, section, 128);
+    const context = buildSectionContextFromBinding({
+      binding: { ...binding, sectionLabel: "Verse detected" },
+      pitchTimePlanSnapshot: null,
+      artifactStore: store,
+    });
+    assert.equal(arrangementContextClaimsFakeSections(context), true);
+    const serialized = serializeArrangementContextForApi(context);
+    assert.ok(serialized);
+    assert.match(ARRANGEMENT_TRACEABILITY_NOTICE, /do not grant rights/i);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

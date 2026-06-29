@@ -20,6 +20,7 @@ from mix_settings import (
     mix_settings_to_dict,
     validate_mix_settings,
 )
+from arrangement_context import merge_arrangement_context_into_meta, validate_arrangement_context
 from artifact_management import analyze_technical_readout
 from rubber_band_processing import (
     build_ffmpeg_trim_command,
@@ -264,6 +265,7 @@ def process_combined_preview(
     instrumental_fade_out_ms: float = 0.0,
     limiter_safety: bool = False,
     clipping_guard: bool = False,
+    arrangement_context: dict | None = None,
 ) -> CombinedPreviewResult:
     mix_settings, mix_errors = validate_mix_settings(
         vocal_gain_db=vocal_gain_db,
@@ -282,6 +284,15 @@ def process_combined_preview(
             status="validation_error",
             message="Combined preview mix settings failed validation.",
             validation_errors=mix_errors,
+        )
+
+    validated_context, context_errors = validate_arrangement_context(arrangement_context)
+    if context_errors:
+        return CombinedPreviewFailure(
+            ok=False,
+            status="validation_error",
+            message="Combined preview arrangement context failed validation.",
+            validation_errors=context_errors,
         )
 
     resolved_ratio, validation_errors = validate_combined_preview_request(
@@ -460,10 +471,16 @@ def process_combined_preview(
             "mix_settings": mix_settings_to_dict(mix_settings),
             "limiter_safety_applied": mix_settings.limiter_safety,
             "clipping_guard_applied": mix_settings.clipping_guard,
+            "preview_start_seconds": preview_start_seconds,
+            "max_preview_seconds": max_preview_seconds,
             "created_at": datetime.now(tz=UTC).isoformat(),
             "public_share": False,
             "final_export": False,
         }
+        if validated_context is not None:
+            preview_context = dict(validated_context)
+            preview_context["export_context_mode"] = "preview_section"
+            merge_arrangement_context_into_meta(meta, preview_context)
         (artifact_dir / PREVIEW_META_FILE).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
         return CombinedPreviewSuccess(

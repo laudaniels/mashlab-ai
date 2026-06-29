@@ -18,9 +18,18 @@ import { subscribeArtifactRefresh } from "../lib/artifactRefresh.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import {
   loadAppliedDraftSettings,
+  loadArrangementSectionContext,
   loadSectionPreviewBinding,
+  loadSelectedArrangementSection,
   loadSelectedDraftType,
 } from "../lib/arrangementDraftSession.ts";
+import { loadMixSettings } from "../lib/mixSession.ts";
+import {
+  buildPitchTimePlanSnapshot,
+  evaluateBindingFreshness,
+} from "../domain/arrangementSectionContext.ts";
+import { buildPitchTimePlanFromArtifacts, rubberBandReadinessFromCapabilityStatus } from "../domain/pitchTimePlanning.ts";
+import { rubberBandCapabilitySummary } from "../lib/localEngine/capabilities.ts";
 
 interface WorkflowReadinessPanelProps {
   tracks: Record<SlotId, TrackState | null>;
@@ -33,8 +42,27 @@ export function WorkflowReadinessPanel({
   tracks,
   trackJobs,
   artifactStore,
+  mashIntent,
 }: WorkflowReadinessPanelProps) {
   const { status: localStatus } = useLocalEngineStatus();
+  const rubberBand = rubberBandCapabilitySummary(localStatus.capabilities);
+  const rubberBandStatus = rubberBandReadinessFromCapabilityStatus(rubberBand.status);
+  const pitchPlan = buildPitchTimePlanFromArtifacts({
+    artifactStore,
+    intent: mashIntent,
+    rubberBandStatus,
+    rubberBandMessage: rubberBand.message,
+  });
+  const bindingFreshness = evaluateBindingFreshness({
+    binding: loadSectionPreviewBinding(),
+    context: loadArrangementSectionContext(),
+    currentMashIntent: mashIntent,
+    currentMixSettings: loadMixSettings(),
+    currentDraftType: loadSelectedDraftType(),
+    currentSectionId: loadSelectedArrangementSection()?.sectionId ?? null,
+    artifactStore,
+    currentPitchTime: buildPitchTimePlanSnapshot(pitchPlan?.directions[0] ?? null),
+  });
   const [artifactCounts, setArtifactCounts] = useState(countWorkflowArtifacts([]));
 
   const refreshCounts = useCallback(async () => {
@@ -66,8 +94,19 @@ export function WorkflowReadinessPanel({
         arrangementDraftSelected: Boolean(loadSelectedDraftType()),
         arrangementDraftApplied: Boolean(loadAppliedDraftSettings()),
         arrangementSectionBound: Boolean(loadSectionPreviewBinding()),
+        arrangementBindingStale:
+          bindingFreshness.status === "stale" || bindingFreshness.status === "partially_stale",
       }),
-    [tracks, trackJobs, artifactStore, localStatus.online, localStatus.capabilities, artifactCounts]
+    [
+      tracks,
+      trackJobs,
+      artifactStore,
+      localStatus.online,
+      localStatus.capabilities,
+      artifactCounts,
+      mashIntent,
+      bindingFreshness.status,
+    ]
   );
 
   const completeCount = workflowStepsComplete(steps);

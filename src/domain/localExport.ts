@@ -1,3 +1,4 @@
+import type { ArrangementSectionContext } from "./arrangementSectionContext.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
 import type { LoudnessReadout } from "./previewArtifacts.ts";
 
@@ -21,6 +22,7 @@ export interface ExportWavRequestParams {
   sourceCombinedPreviewArtifactId: string;
   exportLabel?: string | null;
   loudnessTargetMode: LoudnessTargetMode;
+  arrangementContext?: ArrangementSectionContext | null;
 }
 
 export interface ExportWavResult {

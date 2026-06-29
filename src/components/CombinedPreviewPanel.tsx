@@ -1,5 +1,5 @@
 import { AlertTriangle, Headphones, LoaderCircle, PlayCircle, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   buildCombinedPreviewRequestParams,
   COMBINED_PREVIEW_DEFAULT_SECONDS,
@@ -33,7 +33,19 @@ import {
   PREVIEW_START_OFFSET_PENDING_NOTICE,
   type SectionPreviewBinding,
 } from "../domain/arrangementSectionBinding.ts";
-import { loadPreviewConfigurationSource } from "../lib/arrangementDraftSession.ts";
+import {
+  ARRANGEMENT_SECTIONS_ADVISORY_NOTICE,
+  buildPitchTimePlanSnapshot,
+  evaluateBindingFreshness,
+  formatBindingFreshnessLabel,
+  type ArrangementSectionContext,
+} from "../domain/arrangementSectionContext.ts";
+import {
+  loadArrangementSectionContext,
+  loadPreviewConfigurationSource,
+  loadSelectedArrangementSection,
+  loadSelectedDraftType,
+} from "../lib/arrangementDraftSession.ts";
 import { MixControlsPanel } from "./MixControlsPanel.tsx";
 import type { MixSettings } from "../domain/mixControls.ts";
 import { validateMixSettings } from "../domain/mixControls.ts";
@@ -76,8 +88,24 @@ export function CombinedPreviewPanel({
   const [mixSettings, setMixSettings] = useState<MixSettings>(() => loadMixSettings());
   const [previewStartSeconds, setPreviewStartSeconds] = useState(0);
   const [sectionBinding, setSectionBinding] = useState<SectionPreviewBinding | null>(null);
+  const [sectionContext, setSectionContext] = useState<ArrangementSectionContext | null>(null);
   const [appliedDraftNotice, setAppliedDraftNotice] = useState<string | null>(null);
   const [startOffsetNotice, setStartOffsetNotice] = useState<string | null>(null);
+
+  const bindingFreshness = useMemo(
+    () =>
+      evaluateBindingFreshness({
+        binding: sectionBinding,
+        context: sectionContext,
+        currentMashIntent: intent,
+        currentMixSettings: mixSettings,
+        currentDraftType: loadSelectedDraftType(),
+        currentSectionId: loadSelectedArrangementSection()?.sectionId ?? null,
+        artifactStore,
+        currentPitchTime: buildPitchTimePlanSnapshot(plan?.directions[0] ?? null),
+      }),
+    [sectionBinding, sectionContext, intent, mixSettings, artifactStore, plan]
+  );
 
   useEffect(() => {
     const config = loadPreviewConfigurationSource();
@@ -88,6 +116,7 @@ export function CombinedPreviewPanel({
     if (config.source === "section_binding") {
       const binding = config.binding;
       setSectionBinding(binding);
+      setSectionContext(loadArrangementSectionContext());
       setPreviewDurationSeconds(binding.previewDurationSeconds);
       setCustomDurationSeconds(String(binding.previewDurationSeconds));
       setMixSettings(binding.mixSettings);
@@ -176,6 +205,12 @@ export function CombinedPreviewPanel({
       mixSettings,
       previewStartSeconds
     );
+    if (sectionContext) {
+      params.arrangementContext = {
+        ...sectionContext,
+        exportContextMode: "preview_section",
+      };
+    }
     const durationErrors = validateCombinedPreviewDuration(previewDurationSeconds);
     const startErrors = validateCombinedPreviewStartOffset(previewStartSeconds);
     const mixErrors = validateMixSettings(mixSettings);
@@ -269,6 +304,14 @@ export function CombinedPreviewPanel({
               {formatSectionBindingSummary(sectionBinding)}
             </p>
           ) : null}
+          {bindingFreshness.status !== "current" && bindingFreshness.status !== "unavailable" ? (
+            <p className="combined-preview-stale-binding" role="status">
+              <AlertTriangle aria-hidden="true" size={16} />
+              {formatBindingFreshnessLabel(bindingFreshness.status)}: {bindingFreshness.summary}{" "}
+              Re-apply on Drafts or continue manually.
+            </p>
+          ) : null}
+          <p className="combined-preview-advisory">{ARRANGEMENT_SECTIONS_ADVISORY_NOTICE}</p>
           {startOffsetNotice ? (
             <p className="combined-preview-offset-note">{startOffsetNotice}</p>
           ) : null}

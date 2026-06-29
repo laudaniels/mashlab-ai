@@ -17,6 +17,12 @@ from artifact_management import (
     is_valid_artifact_id,
     _resolve_under,
 )
+from arrangement_context import (
+    FULL_LENGTH_CONTEXT_NOTICE,
+    inherit_arrangement_context,
+    merge_arrangement_context_into_meta,
+    validate_arrangement_context,
+)
 
 EXPORTS_DIR = config.WORK_DIR / "artifacts" / "exports"
 EXPORT_FILE_NAME = "export.wav"
@@ -75,6 +81,7 @@ def create_wav_export(
     export_format: str = "wav",
     export_label: str | None = None,
     loudness_target_mode: str = "measurement_only",
+    arrangement_context: dict | None = None,
 ) -> ExportWavResult:
     errors: list[str] = []
 
@@ -159,6 +166,18 @@ def create_wav_export(
         "public_share": False,
         "final_export": True,
     }
+    combined_meta = _read_combined_preview_meta(source_combined_preview_artifact_id)
+    inherited = inherit_arrangement_context(combined_meta)
+    validated_request, context_errors = validate_arrangement_context(arrangement_context)
+    if context_errors:
+        return ExportWavFailure(
+            ok=False,
+            status="validation_error",
+            message="Export arrangement context failed validation.",
+            validation_errors=context_errors,
+        )
+    context_to_store = validated_request or inherited
+    merge_arrangement_context_into_meta(meta, context_to_store)
     (export_dir / META_FILE_NAME).write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
     technical = analyze_technical_readout(export_path)
@@ -220,6 +239,20 @@ def _combined_preview_path(artifact_id: str) -> Path | None:
         return None
     preview = combined_dir / "preview.wav"
     return preview if preview.is_file() else None
+
+
+def _read_combined_preview_meta(artifact_id: str) -> dict | None:
+    combined_dir = _resolve_under(COMBINED_DIR, artifact_id)
+    if combined_dir is None:
+        return None
+    meta_path = combined_dir / "preview.meta.json"
+    if not meta_path.is_file():
+        return None
+    try:
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
 
 
 def _copy_preview_wav(source: Path, destination: Path) -> tuple[bool, str]:

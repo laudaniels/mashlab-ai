@@ -65,6 +65,15 @@ If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for th
 - [ ] User must still click Create combined preview or Export manually
 - [ ] Rights notice visible on arrangement panel
 
+### 5c. Arrangement traceability (Phase 22)
+- [ ] Apply section saves context snapshot (`planningOnly`, `djReviewRequired`)
+- [ ] Combined preview / export / artifact browser show section summary when context present
+- [ ] Stale binding warning after changing mash intent, mix, overrides, or stems
+- [ ] Re-apply section settings works without blocking export
+- [ ] Full-length export shows "Arrangement context only — full-length render" when context attached
+- [ ] Package manifest / technical report include arrangement contexts when present
+- [ ] No verse/chorus/drop detection claims in labels or metadata
+
 ### 6. Combined preview
 - [ ] Requires stem previews for both tracks (or documented neutral path)
 - [ ] Rubber Band + FFmpeg required

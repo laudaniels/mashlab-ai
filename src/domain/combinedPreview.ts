@@ -1,5 +1,7 @@
 import type { MixSettings } from "./mixControls.ts";
 import { mixSettingsToRequestFields } from "./mixControls.ts";
+import type { ArrangementSectionContext } from "./arrangementSectionContext.ts";
+import { serializeArrangementContextForApi } from "./arrangementSectionContext.ts";
 import type { MashIntent, PitchTimeDirectionPlan } from "./pitchTimePlanning.ts";
 import { resolveIntentDirectionPairs, buildTrackPlanningInput } from "./pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "./sessionArtifacts.ts";
@@ -46,6 +48,7 @@ export interface CombinedPreviewRequestParams {
   formantPreservation: boolean;
   neutralProcessing: boolean;
   mixSettings: MixSettings;
+  arrangementContext?: ArrangementSectionContext | null;
 }
 
 export interface CombinedPreviewProcessingSummary {
@@ -195,7 +198,7 @@ export function combinedPreviewRequestIncludesMixSettings(
 }
 
 export function serializeCombinedPreviewRequestBody(params: CombinedPreviewRequestParams) {
-  return {
+  const body: Record<string, unknown> = {
     mash_intent: params.mashIntent,
     source_vocal_artifact_id: params.sourceVocalArtifactId,
     target_instrumental_artifact_id: params.targetInstrumentalArtifactId,
@@ -210,6 +213,11 @@ export function serializeCombinedPreviewRequestBody(params: CombinedPreviewReque
     neutral_processing: params.neutralProcessing,
     ...mixSettingsToRequestFields(params.mixSettings),
   };
+  const context = serializeArrangementContextForApi(params.arrangementContext ?? null);
+  if (context) {
+    body.arrangement_context = context;
+  }
+  return body;
 }
 
 export function validateCombinedPreviewDuration(seconds: number): string[] {

@@ -1,3 +1,4 @@
+import type { ArrangementSectionContext } from "./arrangementSectionContext.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
 import {
   buildCombinedPreviewRequestParams,
@@ -49,6 +50,7 @@ export interface FullLengthExportRequestParams {
   neutralProcessing: boolean;
   confirmNeutralSettings: boolean;
   mixSettings: MixSettings;
+  arrangementContext?: ArrangementSectionContext | null;
 }
 
 export interface LoudnessGateDisplay {
@@ -218,7 +220,8 @@ export function buildFullLengthExportRequestParams(
   confirmNeutralSettings: boolean,
   loudnessTargetMode: FullLengthLoudnessMode,
   mixSettings: MixSettings,
-  exportLabel?: string | null
+  exportLabel?: string | null,
+  arrangementContext?: ArrangementSectionContext | null
 ): FullLengthExportRequestParams {
   const previewParams = buildCombinedPreviewRequestParams(
     context,
@@ -241,6 +244,7 @@ export function buildFullLengthExportRequestParams(
     neutralProcessing: useNeutralProcessing,
     confirmNeutralSettings: confirmNeutralSettings,
     mixSettings,
+    arrangementContext: arrangementContext ?? null,
   };
 }
 

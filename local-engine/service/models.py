@@ -224,6 +224,7 @@ class CombinedPreviewRequest(BaseModel):
     instrumental_fade_out_ms: float = 0.0
     limiter_safety: bool = False
     clipping_guard: bool = False
+    arrangement_context: dict | None = None
 
 
 class CombinedPreviewInputSummaryModel(BaseModel):
@@ -301,6 +302,13 @@ class PreviewArtifactSummary(BaseModel):
     selected_artifact_ids: list[str] | None = None
     public_share: bool = False
     mix_summary: str | None = None
+    arrangement_draft_type: str | None = None
+    arrangement_section_label: str | None = None
+    arrangement_preview_start_seconds: float | None = None
+    arrangement_duration_seconds: float | None = None
+    arrangement_phrase_basis: str | None = None
+    arrangement_context_summary: str | None = None
+    arrangement_export_context_mode: str | None = None
 
 
 class PackageIncludedFileModel(BaseModel):
@@ -391,6 +399,7 @@ class ExportWavRequest(BaseModel):
     export_format: str = "wav"
     export_label: str | None = None
     loudness_target_mode: str = "measurement_only"
+    arrangement_context: dict | None = None
 
 
 class ExportWavResponse(BaseModel):
@@ -535,6 +544,7 @@ class FullWavExportRequest(BaseModel):
     instrumental_fade_out_ms: float = 0.0
     limiter_safety: bool = False
     clipping_guard: bool = False
+    arrangement_context: dict | None = None
 
 
 class FullWavExportResponse(BaseModel):

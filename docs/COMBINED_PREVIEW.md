@@ -127,6 +127,18 @@ See `docs/ARRANGEMENT_DRAFTS.md`.
 
 When an arrangement section is bound with an available start time, the sidecar trims vocal and bed stems using FFmpeg `-ss preview_start_seconds` before Rubber Band and mix. If start time is unavailable in the plan, the UI applies duration/intent/mix only and shows an honest pending notice.
 
+## Arrangement Section Traceability (Phase 22)
+
+When creating a combined preview from a bound section, the client may send optional `arrangement_context` in the JSON body. The sidecar validates and stores it in `preview.meta.json` with `export_context_mode: preview_section`.
+
+Artifact listing and the Preview Artifact Browser show:
+
+- Draft type, section label, preview start offset, duration, phrase basis
+- Summary line: advisory arrangement section — DJ review required
+- Stale binding warnings on the UI when session state changed since bind (re-apply allowed)
+
+Downstream WAV/MP3/master/package artifacts inherit arrangement context from source meta when present. No fake verse/chorus/drop claims.
+
 ## Related Docs
 
 - `docs/ARRANGEMENT_DRAFTS.md`

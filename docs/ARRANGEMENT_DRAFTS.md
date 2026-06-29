@@ -116,6 +116,7 @@ The Arrangement Plan panel lists actionable missing requirements with **Go to re
 
 - `mashlab-arrangement-section-v1` — selected section metadata
 - `mashlab-arrangement-section-binding-v1` — preview binding (no raw audio)
+- `mashlab-arrangement-section-context-v1` — full traceability snapshot at bind time (Phase 22)
 
 ### Workflow checklist
 
@@ -123,7 +124,47 @@ Session checklist tracks:
 
 - Arrangement draft plan selected / applied
 - Section bound to preview settings
+- Stale binding warning when session state diverges (Phase 22)
 - Combined preview still requires explicit user action
+
+## Section Context Traceability (Phase 22)
+
+When you **Apply section to preview settings**, the app saves an `ArrangementSectionContext` snapshot:
+
+- Draft type, section id/label, phrase basis, source label
+- Preview start offset status, duration, mash intent and mix settings at bind time
+- Pitch/time plan snapshot when available
+- `planningOnly: true`, `djReviewRequired: true`
+- Rights and traceability notices
+
+This context is carried through (when present and not unavailable):
+
+- Combined preview request + `preview.meta.json`
+- Preview-length WAV export (inherits from preview or request)
+- Full-length WAV export (**metadata only** — does not trim to section)
+- MP3 export, mastering preset output, project package manifest + technical report
+- Preview Artifact Browser summaries
+
+### Stale binding detection
+
+The app compares the saved binding snapshot to current session state:
+
+| Change | Severity |
+|--------|----------|
+| Mash intent, draft type, selected section, stem artifact refs | **Stale** |
+| Mix settings, DJ overrides, pitch/time plan | **Partially stale** |
+
+Statuses: `current`, `stale`, `partially_stale`, `unavailable`.
+
+Warnings are shown on Drafts, Combined Preview, Export, and the session checklist. The user can **re-apply** section settings or continue manually — exports are not blocked.
+
+### Advisory notices
+
+- Arrangement sections are advisory and do not grant rights.
+- No true verse/chorus/drop detection.
+- Full-length export: *Arrangement context only — full-length render. Section-only export is not implemented.*
+
+No public sharing, cloud upload, downloader, or streaming integrations.
 
 ## UI Surfaces
 

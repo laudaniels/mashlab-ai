@@ -83,6 +83,8 @@ ZIP download: `GET /v1/artifacts/packages/{id}/download`
 - `package_id`, `created_at`, `package_label`, `package_type`
 - `selected_artifact_ids`, artifact entries with readouts when available
 - `mix_settings` on combined preview and full export entries when present (Phase 18)
+- `arrangement_context` per artifact entry when present (Phase 22) — advisory section traceability
+- `arrangement_contexts[]` top-level array when any selected artifact carries context
 - `included_files` with safe relative paths only
 - `public_share: false`, `rights_granted: false`, `user_responsible_for_rights: true`
 - `raw_uploads_included: false`
@@ -105,6 +107,8 @@ When requested:
 
 - `reports/technical-report.json`
 - `reports/technical-report.md`
+
+Phase 22: when selected artifacts include arrangement context, the technical report lists advisory traceability lines per artifact and a summary section stating sections do not grant rights and are not detected song structure.
 
 Includes available artifact loudness/readout summaries. Missing BPM/key/planning values are reported as `not_available` — not fabricated.
 

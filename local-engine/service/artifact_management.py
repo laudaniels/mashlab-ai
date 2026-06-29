@@ -12,6 +12,12 @@ from pathlib import Path
 
 import config
 from mix_settings import format_mix_summary, mix_settings_from_dict
+from arrangement_context import (
+    arrangement_summary_from_context,
+    inherit_arrangement_context,
+    merge_arrangement_context_into_meta,
+    validate_arrangement_context,
+)
 
 ARTIFACT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9]+$")
 ARTIFACTS_ROOT = config.WORK_DIR / "artifacts"
@@ -76,6 +82,13 @@ class PreviewArtifactEntry:
     selected_artifact_ids: list[str] | None = None
     public_share: bool = False
     mix_summary: str | None = None
+    arrangement_draft_type: str | None = None
+    arrangement_section_label: str | None = None
+    arrangement_preview_start_seconds: float | None = None
+    arrangement_duration_seconds: float | None = None
+    arrangement_phrase_basis: str | None = None
+    arrangement_context_summary: str | None = None
+    arrangement_export_context_mode: str | None = None
 
 
 @dataclass
@@ -267,6 +280,7 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                 continue
             combined_meta = _read_combined_meta(child)
             mix_summary = _mix_summary_from_meta(combined_meta)
+            arrangement_fields = _arrangement_list_fields_from_meta(combined_meta)
             entries.append(
                 PreviewArtifactEntry(
                     artifact_id=child.name,
@@ -281,6 +295,7 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     final_export=False,
                     primary_file_name=preview.name,
                     mix_summary=mix_summary,
+                    **arrangement_fields,
                 )
             )
 
@@ -369,6 +384,7 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     target_instrumental_stem_artifact_id=target_instrumental_id,
                     source_wav_export_artifact_id=source_wav_id,
                     mix_summary=_mix_summary_from_meta(meta),
+                    **_arrangement_list_fields_from_meta(meta),
                 )
             )
 
@@ -411,6 +427,7 @@ def list_preview_artifacts() -> list[PreviewArtifactEntry]:
                     master_preset=master_preset,
                     mastering_prototype=True,
                     mix_summary=f"preset {master_preset}" if master_preset else None,
+                    **_arrangement_list_fields_from_meta(meta),
                 )
             )
 
@@ -730,6 +747,39 @@ def _read_combined_meta(combined_dir: Path) -> dict | None:
     except (OSError, json.JSONDecodeError):
         return None
     return payload if isinstance(payload, dict) else None
+
+
+def _arrangement_list_fields_from_meta(meta: dict | None) -> dict[str, object]:
+    if not meta or not isinstance(meta, dict):
+        return {
+            "arrangement_draft_type": None,
+            "arrangement_section_label": None,
+            "arrangement_preview_start_seconds": None,
+            "arrangement_duration_seconds": None,
+            "arrangement_phrase_basis": None,
+            "arrangement_context_summary": None,
+            "arrangement_export_context_mode": None,
+        }
+    ctx = meta.get("arrangement_context")
+    if not isinstance(ctx, dict):
+        return {
+            "arrangement_draft_type": None,
+            "arrangement_section_label": None,
+            "arrangement_preview_start_seconds": None,
+            "arrangement_duration_seconds": None,
+            "arrangement_phrase_basis": None,
+            "arrangement_context_summary": None,
+            "arrangement_export_context_mode": None,
+        }
+    return {
+        "arrangement_draft_type": ctx.get("draft_type"),
+        "arrangement_section_label": ctx.get("section_label"),
+        "arrangement_preview_start_seconds": ctx.get("preview_start_seconds"),
+        "arrangement_duration_seconds": ctx.get("duration_seconds"),
+        "arrangement_phrase_basis": ctx.get("phrase_basis"),
+        "arrangement_context_summary": arrangement_summary_from_context(ctx),
+        "arrangement_export_context_mode": ctx.get("export_context_mode"),
+    }
 
 
 def _mix_summary_from_meta(meta: dict | None) -> str | None:

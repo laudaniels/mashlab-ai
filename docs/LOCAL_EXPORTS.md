@@ -229,6 +229,23 @@ The Export panel shows a notice when applied draft settings suggest an export la
 
 See `docs/ARRANGEMENT_DRAFTS.md`.
 
+## Arrangement Context on Exports (Phase 22)
+
+When a section binding exists, export requests may include `arrangement_context`:
+
+| Export lane | Context behavior |
+|-------------|------------------|
+| Preview WAV copy | Inherits from combined preview meta or request payload |
+| Full-length WAV | **Plan metadata only** — full render, not section-trimmed |
+| MP3 / Master | Inherited from source WAV `export.meta.json` |
+| Project package | `arrangement_contexts[]` in manifest; technical report lists advisory traceability |
+
+UI shows stale/partially stale binding status. User can re-apply on Drafts or continue manually.
+
+Notice on full-length export with context:
+
+> Arrangement context only — full-length render. Section-only export is not implemented.
+
 ## Related Docs
 
 - `docs/ARRANGEMENT_DRAFTS.md`

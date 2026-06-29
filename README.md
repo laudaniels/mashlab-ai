@@ -46,6 +46,7 @@ Implemented:
 - **End-to-end workflow QA** — session checklist panel, dependency health display, actionable errors, artifact lifecycle safety (Phase 19).
 - **Arrangement draft intelligence prototype** — Clean Blend / Club Edit / Creative Blend planning templates with optional apply-settings handoff (Phase 20; planning only, no auto-processing).
 - **Arrangement section preview binding** — select advisory sections, bind preview duration/start/mix, deep-link missing requirements (Phase 21).
+- **Arrangement traceability + stale binding** — section context through preview/export/package metadata; stale warnings with re-apply (Phase 22).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 

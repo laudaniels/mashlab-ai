@@ -53,6 +53,7 @@ Implemented:
 - **WSL rhythm sidecar dev profile** — optional `npm run sidecar:wsl:*` scripts, Linux validation harness (Phase 27).
 - **Windows runtime setup + MVP UX polish** — `setup:windows:*`, `start:local`, first-run guidance, dependency tier labels (Phase 28).
 - **Windows FFmpeg + Rubber Band PATH validation** — official BtbN FFmpeg and Breakfast Quay Rubber Band CLI; pitch/time preview validated with synthetic audio (Phase 29–30).
+- **Demucs / PyTorch stem preview validation** — CPU torch 2.5.1 + Demucs 4.x in sidecar venv; two-stem preview validated with synthetic lavfi audio (Phase 31).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 

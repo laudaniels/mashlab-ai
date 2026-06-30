@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /** Windows / local runtime PATH checks — informational by default. */
+import { existsSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
   evaluateWindowsCheckExitCode,
   formatWindowsRuntimeCheckLine,
   formatWindowsRuntimeSummary,
+  sidecarVenvPythonCandidates,
   STREAMLABS_FFMPEG_NOTE,
   WINDOWS_FFMPEG_PATH_NOTICE,
   WINDOWS_PYTHON_PATH_NOTICE,
@@ -29,11 +31,10 @@ async function commandAvailable(
   }
 }
 
-async function pythonImportAvailable(moduleName: string): Promise<boolean> {
+async function pythonImportAvailable(pythonCommand: string, moduleName: string): Promise<boolean> {
   try {
-    await execFileAsync("python", ["-c", `import ${moduleName}`], {
+    await execFileAsync(pythonCommand, ["-c", `import ${moduleName}`], {
       timeout: 15000,
-      shell: process.platform === "win32",
     });
     return true;
   } catch {
@@ -61,9 +62,14 @@ const ffmpeg = await commandAvailable("ffmpeg");
 const ffprobe = await commandAvailable("ffprobe");
 const rubberBand = await findRubberBand();
 
-const librosaOk = python.ok ? await pythonImportAvailable("librosa") : false;
-const torchOk = python.ok ? await pythonImportAvailable("torch") : false;
-const demucsOk = python.ok ? await pythonImportAvailable("demucs") : false;
+const sidecarVenvPython =
+  sidecarVenvPythonCandidates(process.cwd()).find((candidate) => existsSync(candidate)) ?? null;
+const pythonForPackages = sidecarVenvPython ?? (python.ok ? "python" : null);
+const packageSource = sidecarVenvPython ? "sidecar venv" : "default python";
+
+const librosaOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "librosa") : false;
+const torchOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "torch") : false;
+const demucsOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "demucs") : false;
 
 const items: WindowsRuntimeCheckItem[] = [
   {
@@ -111,26 +117,28 @@ const items: WindowsRuntimeCheckItem[] = [
     id: "librosa",
     label: "librosa (Python)",
     tier: "optional_analysis",
-    status: !python.ok ? "unknown" : librosaOk ? "available" : "optional_missing",
-    message: !python.ok
+    status: !pythonForPackages ? "unknown" : librosaOk ? "available" : "optional_missing",
+    message: !pythonForPackages
       ? "Install Python first, then pip install -r requirements-analysis.txt"
       : librosaOk
-        ? "librosa importable — BPM/key prototype available."
-        : "librosa not installed in default python — install in sidecar venv.",
+        ? `librosa importable in ${packageSource} — BPM/key prototype available.`
+        : `librosa not installed in ${packageSource} — install in sidecar venv.`,
     setupGuidance: librosaOk ? null : "cd local-engine/service && pip install -r requirements-analysis.txt",
   },
   {
     id: "demucs",
     label: "Demucs / PyTorch",
     tier: "processing",
-    status: !python.ok ? "unknown" : demucsOk && torchOk ? "available" : "optional_missing",
-    message: !python.ok
+    status: !pythonForPackages ? "unknown" : demucsOk && torchOk ? "available" : "optional_missing",
+    message: !pythonForPackages
       ? "Install Python first."
       : demucsOk && torchOk
-        ? "Demucs and PyTorch importable."
-        : "Demucs or PyTorch missing — stem preview blocked.",
+        ? `Demucs and PyTorch importable in ${packageSource}.`
+        : "Demucs or PyTorch missing in sidecar venv — stem preview blocked.",
     setupGuidance:
-      demucsOk && torchOk ? null : "pip install -r requirements-stems.txt inside the sidecar venv.",
+      demucsOk && torchOk
+        ? null
+        : "cd local-engine/service && pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements-stems.txt",
   },
   {
     id: "wsl",

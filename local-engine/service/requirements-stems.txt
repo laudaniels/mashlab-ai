@@ -1,5 +1,14 @@
 # Optional stem separation dependencies for Demucs preview lane.
-# Install after base service requirements:
+# Install after base service requirements inside local-engine/service/.venv
+#
+# Windows CPU (recommended on this project):
+#   pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 #   pip install -r requirements-stems.txt
+#
+# Linux/macOS may use: pip install -r requirements-stems.txt
+# (install matched torch/torchaudio wheels for your platform first if needed)
+#
+# First Demucs run downloads htdemucs weights (~80MB) to the user torch hub cache
+# (typically %USERPROFILE%\.cache\torch\hub on Windows). Not committed to git.
 demucs>=4.0.0
-torch
+soundfile>=0.12.1

@@ -34,19 +34,24 @@ Install in the sidecar virtual environment:
 ```powershell
 cd local-engine\service
 .\.venv\Scripts\Activate.ps1
+pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements-stems.txt
 ```
+
+On Linux/macOS, install matched `torch` / `torchaudio` wheels for your platform first if the CPU index URL does not apply, then `pip install -r requirements-stems.txt`.
 
 Optional file: `local-engine/service/requirements-stems.txt`
 
 ```text
 demucs>=4.0.0
-torch
+soundfile>=0.12.1
 ```
 
-**Model download:** First successful run may download HTDemucs (or default model) weights into the local PyTorch/Demucs cache on the user's machine. This is normal and stays local.
+**Model download:** First successful run downloads HTDemucs weights (~80 MB) into the local PyTorch hub cache (typically `%USERPROFILE%\.cache\torch\hub` on Windows). This is normal, stays local, and is not committed to git.
 
-Capability status is reported via `GET /v1/capabilities` (`demucs` entry requires both Demucs and PyTorch).
+**Processing time:** CPU separation of a ~60 s preview clip often takes 1–5 minutes (longer on first run while weights download). No studio-quality claims — preview separation is heuristic.
+
+Capability status is reported via `GET /v1/capabilities` (`demucs` entry requires both Demucs and PyTorch importable in the sidecar process).
 
 ## Sidecar Endpoints
 

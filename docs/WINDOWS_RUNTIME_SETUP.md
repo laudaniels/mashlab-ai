@@ -65,7 +65,9 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 pip install -r requirements-analysis.txt   # optional BPM/key
-pip install -r requirements-stems.txt      # optional Demucs stems
+# optional Demucs stems (Windows CPU):
+#   pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-stems.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
@@ -128,7 +130,43 @@ npm run setup:windows:check
 
 Restart the Python sidecar after PATH changes so it inherits Rubber Band.
 
-**Demucs remains separate** — stem preview still requires `requirements-stems.txt` in the sidecar venv.
+## Demucs + PyTorch setup (stem preview)
+
+Required for **stem preview** (`vocals.wav` + `no_vocals.wav`). Not required for browser MVP upload/planning.
+
+Install inside the sidecar venv — **`npm run setup:windows:check` probes the venv first**, then falls back to default `python`:
+
+```powershell
+cd local-engine\service
+.\.venv\Scripts\Activate.ps1
+pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-stems.txt
+python -m demucs --help
+python -c "import torch; print(torch.__version__)"
+```
+
+**CPU vs GPU:** Start with CPU wheels (above) unless you already have a clean CUDA setup. GPU can reduce separation time but is optional.
+
+**First model download:** The first successful stem preview downloads HTDemucs weights (~80 MB) to the user torch hub cache:
+
+```text
+%USERPROFILE%\.cache\torch\hub
+```
+
+Expect a one-time delay on first run. Weights are **not** committed to git (see `.gitignore` for `.work` and `.cache`).
+
+**Expected processing time (CPU, ~60 s preview clip):** roughly 1–5 minutes depending on hardware — longer on first run while weights download.
+
+**Artifacts:** Stem outputs live under `local-engine/service/.work/artifacts/stems/{uuid}/` (`vocals.wav`, `no_vocals.wav`). Temp trim/Demucs folders under `.work/temp/` are deleted after processing.
+
+Verify:
+
+```powershell
+npm run setup:windows:check
+curl.exe http://127.0.0.1:47831/v1/capabilities
+```
+
+Restart the sidecar after installing Demucs so `/v1/capabilities` reports `demucs` and `torch` as available.
 
 ## Start MashLab locally
 

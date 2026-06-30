@@ -4146,8 +4146,10 @@ describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
     formatDependencyTierLabel,
     formatWindowsRuntimeCheckLine,
     formatWindowsRuntimeSummary,
+    formatPackageSourceLabel,
     includesNoPublicSharingLanguage,
     isFirstRunDismissed,
+    sidecarVenvPythonCandidates,
   } = await importSrc("src/domain/windowsRuntimeSetup.ts");
   const {
     buildDependencyHealth,
@@ -4238,6 +4240,15 @@ describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
     assert.ok(checklist.some((line) => /uvicorn/i.test(line)));
     assert.ok(checklist.some((line) => /sidecar:wsl:check/i.test(line)));
     assert.match(WSL_OPTIONAL_RHYTHM_NOTICE, /Optional/i);
+  });
+
+  it("resolves sidecar venv python candidates for runtime checks", () => {
+    const candidates = sidecarVenvPythonCandidates("/repo");
+    assert.equal(candidates.length, 2);
+    assert.ok(candidates.some((path) => path.includes(".venv/Scripts/python.exe")));
+    assert.ok(candidates.some((path) => path.includes(".venv/bin/python")));
+    assert.equal(formatPackageSourceLabel("/venv/python"), "sidecar venv");
+    assert.equal(formatPackageSourceLabel(null), "default python");
   });
 });
 

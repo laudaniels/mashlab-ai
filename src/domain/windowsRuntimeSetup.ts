@@ -130,7 +130,7 @@ export function buildLocalStartChecklist(): string[] {
     "   pip install -r requirements.txt && pip install -r requirements-analysis.txt",
     "   python -m uvicorn main:app --host 127.0.0.1 --port 47831",
     "3. Verify PATH: npm run setup:windows:check",
-    "4. Optional stems: pip install -r requirements-stems.txt (Demucs + PyTorch)",
+    "4. Optional stems: pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements-stems.txt",
     "5. Optional Rubber Band: download Breakfast Quay Windows CLI zip; add folder with rubberband.exe + sndfile.dll to PATH",
     "6. Optional WSL rhythm: npm run sidecar:wsl:check (advanced verified downbeats only)",
     "7. Open http://127.0.0.1:5173 — load two tracks and follow the session checklist",
@@ -174,6 +174,23 @@ export function isFirstRunDismissed(storage: Pick<Storage, "getItem">): boolean 
 
 export function dismissFirstRun(storage: Pick<Storage, "setItem">): void {
   storage.setItem(FIRST_RUN_DISMISS_KEY, "true");
+}
+
+export function sidecarVenvPythonCandidates(rootDir: string): string[] {
+  const normalizedRoot = rootDir.replace(/\\/g, "/").replace(/\/$/, "");
+  return [
+    `${normalizedRoot}/local-engine/service/.venv/Scripts/python.exe`,
+    `${normalizedRoot}/local-engine/service/.venv/bin/python`,
+  ];
+}
+
+/** Expected sidecar venv interpreter path — verify existence in Node scripts. */
+export function resolveSidecarVenvPython(rootDir = "."): string | null {
+  return sidecarVenvPythonCandidates(rootDir)[0] ?? null;
+}
+
+export function formatPackageSourceLabel(sidecarVenvPython: string | null): string {
+  return sidecarVenvPython ? "sidecar venv" : "default python";
 }
 
 export const SIDECAR_DEPENDENCY_NOTE =

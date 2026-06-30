@@ -61,13 +61,18 @@ Linux packages may provide `rubberband-cli`; on Windows use the Breakfast Quay e
 
 ### Demucs + PyTorch (required for stem preview)
 
-Inside the service virtualenv:
+Inside the service virtualenv (Windows CPU example):
 
 ```powershell
-pip install torch demucs
+cd local-engine\service
+.\.venv\Scripts\Activate.ps1
+pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-stems.txt
 ```
 
-First run may download model weights.
+First run downloads HTDemucs weights (~80 MB) to `%USERPROFILE%\.cache\torch\hub` (not committed). CPU preview of a ~60 s clip often takes 1–5 minutes.
+
+Stem artifacts: `local-engine/service/.work/artifacts/stems/{uuid}/vocals.wav` and `no_vocals.wav`.
 
 ### librosa (optional — BPM/key analysis)
 

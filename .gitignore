@@ -13,3 +13,4 @@ __pycache__/
 .pytest_cache/
 local-engine/service/.venv
 local-engine/service/.work
+local-engine/service/.cache

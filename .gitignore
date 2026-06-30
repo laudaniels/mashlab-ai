@@ -8,7 +8,8 @@ dist
 coverage
 *.log
 *.tsbuildinfo
+__pycache__/
+*.pyc
+.pytest_cache/
 local-engine/service/.venv
-local-engine/service/__pycache__
 local-engine/service/.work
-local-engine/service/tests/__pycache__

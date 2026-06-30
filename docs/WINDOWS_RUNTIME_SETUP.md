@@ -72,7 +72,24 @@ python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ## FFmpeg setup
 
 1. Download a standard [FFmpeg release](https://ffmpeg.org/download.html) for Windows (not bundled app copies for permanent setup).
+
+   **When winget/choco/scoop are unavailable**, use the official [BtbN FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) win64 GPL zip (`ffmpeg-master-latest-win64-gpl.zip`), extract it, and add its inner `bin` folder to PATH.
+
 2. Add the `bin` folder containing `ffmpeg.exe` and `ffprobe.exe` to your user or system PATH.
+
+   Example user PATH entry on this dev host:
+
+   ```text
+   C:\Users\<you>\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin
+   ```
+
+   PowerShell (user PATH, open a new terminal afterward):
+
+   ```powershell
+   $bin = "C:\Users\<you>\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin"
+   [Environment]::SetEnvironmentVariable("Path", "$([Environment]::GetEnvironmentVariable('Path','User'));$bin", "User")
+   ```
+
 3. Open a **new** terminal and verify:
 
 ```powershell

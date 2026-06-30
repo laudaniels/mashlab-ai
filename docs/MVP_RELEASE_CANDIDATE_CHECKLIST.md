@@ -10,6 +10,27 @@
 
 ---
 
+## Quick Mix MVP release candidate (RC1)
+
+| Field | Value |
+|-------|-------|
+| **Tag** | `mashlab-quick-mix-mvp-rc1` |
+| **Commit** | `1d6bb44` — Improve sidecar lifecycle and Quick Mix smoke validation |
+| **Prior tag** | `mashlab-windows-local-mvp-rc1` (Advanced Studio full workflow) |
+
+**Default user flow:** Drop vocal source → drop instrumental source → click **Mix** → local WAV export (+ optional MP3 reference).
+
+**Smoke evidence:** `qa/full-local-workflow/phase-37/` (API + browser logs, browser screenshot manifest)
+
+```powershell
+npm run smoke:quick-mix
+npm run smoke:quick-mix:browser   # requires npm run dev + sidecar healthy
+```
+
+See [QUICK_MIX_MODE.md](./QUICK_MIX_MODE.md) for operator guidance.
+
+---
+
 ## 1. Dependency setup
 
 - [ ] Node.js and npm installed (`node -v`, `npm -v`)
@@ -58,6 +79,16 @@ npm run dev
 | http://127.0.0.1:47831/v1/capabilities | Dependency capabilities |
 
 ## 5. Full workflow summary (user-initiated)
+
+### Quick Mix (default landing — RC1)
+
+1. Drop vocal/acapella source + instrumental/beat source
+2. Click **Mix** — orchestrated pipeline: validate → stems (Demucs) → mix → WAV → optional MP3
+3. Download local exports (`public_share: false`)
+
+Evidence: `qa/full-local-workflow/phase-37/` · `npm run smoke:quick-mix`
+
+### Advanced Studio (mode switch)
 
 1. Upload two tracks (synthetic test WAVs OK for QA)
 2. Inspect metadata / optional BPM/key (librosa)

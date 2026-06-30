@@ -38,9 +38,12 @@ npm run setup:windows:check:strict
 npm run check:local-engine
 npm run check:python-service:test:venv
 npm run sidecar:status
+npm run smoke:quick-mix
 npm run validate:analysis-lane
 npm run collect:release-versions
 ```
+
+**Quick Mix MVP RC1 tag:** `mashlab-quick-mix-mvp-rc1` at commit `1d6bb44` (includes `smoke:quick-mix` + optional `smoke:quick-mix:browser`).
 
 ## Artifacts and cache exclusions
 

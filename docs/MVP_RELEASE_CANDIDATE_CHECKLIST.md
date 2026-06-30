@@ -76,8 +76,10 @@ Capture in **Chrome or Edge** (or `npm run capture:release-screenshots` with Pla
 
 | File | Screen |
 |------|--------|
-| `01-first-run-guidance.png` | First-run guidance |
-| `02-upload-two-tracks.png` | Upload with Track A + B |
+| `01-first-run-guidance.png` | First-run guidance (Advanced Studio) |
+| `02-upload-two-tracks.png` | Upload with Track A + B (Advanced Studio) |
+| `11-quick-mix-home.png` | Quick Mix default home (Phase 36) |
+| `12-quick-mix-output.png` | Quick Mix output screen (Phase 36) |
 | `03-local-engine-status.png` | Local Engine Status |
 | `04-workflow-checklist.png` | Session workflow checklist |
 | `05-analysis-screen.png` | Analysis with librosa available |

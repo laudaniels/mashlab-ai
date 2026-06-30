@@ -54,6 +54,15 @@ import { StemPreviewPanel } from "./components/StemPreviewPanel";
 import { TimelineAlignmentPanel } from "./components/TimelineAlignmentPanel";
 import { PhraseAnalysisPanel } from "./components/PhraseAnalysisPanel";
 import { TrackOverridePanel } from "./components/TrackOverridePanel";
+import {
+  QuickMixApp,
+} from "./components/QuickMixApp.tsx";
+import {
+  loadAppExperienceMode,
+  QUICK_MIX_ADVANCED_STUDIO_LABEL,
+  saveAppExperienceMode,
+  type AppExperienceMode,
+} from "./domain/quickMix.ts";
 import type { MashTrackJob } from "./domain/jobs.ts";
 import type { MashIntent } from "./domain/pitchTimePlanning.ts";
 import {
@@ -114,6 +123,7 @@ const emptySlotErrors: SlotErrorMap = {
 
 function App() {
   const sessionIdRef = useRef(crypto.randomUUID());
+  const [appMode, setAppMode] = useState<AppExperienceMode>(() => loadAppExperienceMode());
   const [activeScreen, setActiveScreen] = useState<ScreenId>("intro");
   const [tracks, setTracks] = useState<TrackMap>(emptyTracks);
   const [slotErrors, setSlotErrors] = useState<SlotErrorMap>(emptySlotErrors);
@@ -443,6 +453,20 @@ function App() {
     clearAnalysisCache();
   }
 
+  function openAdvancedStudio() {
+    saveAppExperienceMode("advanced-studio");
+    setAppMode("advanced-studio");
+  }
+
+  function openQuickMix() {
+    saveAppExperienceMode("quick-mix");
+    setAppMode("quick-mix");
+  }
+
+  if (appMode === "quick-mix") {
+    return <QuickMixApp onOpenAdvancedStudio={openAdvancedStudio} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -451,20 +475,25 @@ function App() {
             <Waves aria-hidden="true" size={26} />
           </div>
           <div>
-            <p className="eyebrow">Project MashLab AI / CyphaBlend AI</p>
-            <h1>Two songs in. A DJ-ready mashup out.</h1>
+            <p className="eyebrow">MashLab AI / CyphaBlend AI</p>
+            <h1>{QUICK_MIX_ADVANCED_STUDIO_LABEL}</h1>
           </div>
         </div>
-        <div className="privacy-badge">
-          <ShieldCheck aria-hidden="true" size={18} />
-          <span>Local-first MVP</span>
+        <div className="topbar-actions">
+          <button className="secondary-action" onClick={openQuickMix} type="button">
+            Quick Mix
+          </button>
+          <div className="privacy-badge">
+            <ShieldCheck aria-hidden="true" size={18} />
+            <span>Local-first MVP</span>
+          </div>
         </div>
       </header>
 
       <div className="workspace-grid">
-        <aside className="sidebar" aria-label="MVP screens">
+        <aside className="sidebar" aria-label="Advanced Studio workflow">
           <div className="sidebar-header">
-            <span>Workflow</span>
+            <span>Advanced Studio</span>
             <strong>{readyTracks.length}/2 ready</strong>
           </div>
           <nav className="workflow-nav">

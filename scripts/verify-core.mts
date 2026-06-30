@@ -4420,6 +4420,108 @@ describe("Release packaging (Phase 35)", async () => {
   });
 });
 
+describe("Quick Mix mode (Phase 36)", async () => {
+  const {
+    QUICK_MIX_DEFAULT_MIX_SETTINGS,
+    QUICK_MIX_LOCAL_ONLY_NOTICE,
+    QUICK_MIX_OUTPUT_LABEL,
+    QUICK_MIX_PROGRESS_STEPS,
+    advanceQuickMixStep,
+    canStartQuickMix,
+    createInitialQuickMixUploadState,
+    includesNoPublicSharingInQuickMixCopy,
+    includesQuickMixRightsLanguage,
+    validateQuickMixUploads,
+  } = await importSrc("src/domain/quickMix.ts");
+  const { buildQuickMixReadiness, isQuickMixReady } = await importSrc("src/domain/quickMixReadiness.ts");
+  const { mapQuickMixError, recoveryMessageForTopic } = await importSrc("src/domain/quickMixErrors.ts");
+  const { buildQuickMixTimingStrategy } = await importSrc("src/domain/quickMixStrategy.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+  const { loadAppExperienceMode, saveAppExperienceMode } = await importSrc("src/domain/quickMix.ts");
+
+  it("validates two-file upload state", () => {
+    const empty = validateQuickMixUploads(createInitialQuickMixUploadState());
+    assert.equal(empty.ok, false);
+    assert.match(empty.message ?? "", /vocal/i);
+  });
+
+  it("requires readiness before mix can start", () => {
+    const state = {
+      ...createInitialQuickMixUploadState(),
+      vocalFile: new File(["a"], "vocal.wav", { type: "audio/wav" }),
+      instrumentalFile: new File(["b"], "beat.wav", { type: "audio/wav" }),
+    };
+    assert.equal(canStartQuickMix(state, false), false);
+    assert.equal(canStartQuickMix(state, true), true);
+  });
+
+  it("summarizes simplified dependency readiness", () => {
+    const summary = buildQuickMixReadiness({ sidecarOnline: false, capabilities: [] });
+    assert.equal(summary.status, "setup_needed");
+    assert.equal(isQuickMixReady(summary), false);
+    assert.ok(summary.items.some((item) => item.id === "demucs"));
+    assert.ok(!summary.items.some((item) => item.id === ("wsl" as never)));
+  });
+
+  it("models progress steps in order", () => {
+    assert.equal(QUICK_MIX_PROGRESS_STEPS.length, 7);
+    const active = advanceQuickMixStep(
+      QUICK_MIX_PROGRESS_STEPS.map((step) => ({ ...step, status: "pending" as const })),
+      "mixing_track",
+      "active"
+    );
+    assert.equal(active.find((step) => step.id === "checking_files")?.status, "complete");
+    assert.equal(active.find((step) => step.id === "mixing_track")?.status, "active");
+  });
+
+  it("maps errors to plain English recovery topics", () => {
+    const mapped = mapQuickMixError({ message: "Demucs not available for stem separation" });
+    assert.equal(mapped.recoveryTopic, "demucs");
+    assert.match(recoveryMessageForTopic("demucs"), /Demucs/i);
+  });
+
+  it("uses neutral timing when BPM analysis is unavailable", () => {
+    const strategy = buildQuickMixTimingStrategy({
+      vocalBpm: null,
+      beatBpm: null,
+      pitchShiftSemitones: null,
+      librosaUsed: false,
+    });
+    assert.equal(strategy.useNeutralProcessing, true);
+    assert.match(strategy.timingNotice, /No tempo\/key correction applied/i);
+  });
+
+  it("labels output honestly without publish-ready claims", () => {
+    assert.match(QUICK_MIX_OUTPUT_LABEL, /user responsible for rights/i);
+    assert.match(QUICK_MIX_OUTPUT_LABEL, /Local mix export/i);
+    assert.ok(!/publish-ready|professionally mastered/i.test(QUICK_MIX_OUTPUT_LABEL));
+  });
+
+  it("includes rights and no public sharing language", () => {
+    const copy = [requiredRightsNotice, QUICK_MIX_OUTPUT_LABEL, QUICK_MIX_LOCAL_ONLY_NOTICE].join("\n");
+    assert.ok(includesQuickMixRightsLanguage(copy));
+    assert.ok(includesNoPublicSharingInQuickMixCopy(copy));
+  });
+
+  it("defaults mix gains to neutral with safety guards enabled", () => {
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.vocalGainDb, 0);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.instrumentalGainDb, 0);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.limiterSafety, true);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.clippingGuard, true);
+  });
+
+  it("persists advanced studio access mode", () => {
+    const storage = new Map<string, string>();
+    saveAppExperienceMode("advanced-studio", {
+      getItem: (key) => storage.get(key) ?? null,
+      setItem: (key, value) => {
+        storage.set(key, value);
+      },
+    });
+    assert.equal(loadAppExperienceMode({ getItem: (key) => storage.get(key) ?? null }), "advanced-studio");
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

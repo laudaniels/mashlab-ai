@@ -94,6 +94,15 @@ Evidence: `qa/full-local-workflow/phase-32/logs/`
 - [x] `.gitignore` audit — venv, .work, caches, model weights, test WAVs
 - [x] Circular import fix — `combinedPreviewConstants.ts` (React mount in automated browsers)
 
+## Phase 36 verified (Quick Mix mode)
+
+- [x] Quick Mix default landing screen with two drop zones + Mix button
+- [x] Advanced Studio secondary entry — full existing workflow preserved
+- [x] Simplified dependency readiness (no WSL/madmom on Quick Mix)
+- [x] Progress ladder + plain-English error mapping
+- [x] Local WAV export output + optional MP3
+- [ ] Quick Mix smoke screenshot — capture after synthetic mix run
+
 ### Phase 34 local demo checklist
 
 - [x] `npm run setup:windows:check:strict` passes

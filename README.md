@@ -58,6 +58,7 @@ Implemented:
 - **Production hardening** — venv-aware Python checks, `sidecar:start|stop|status`, optional `setup:analysis`, strict setup accepts venv Python (Phase 33).
 - **Release documentation pass** — `start:local:windows`, librosa validation, manual UI screenshot checklist (Phase 34).
 - **Release packaging** — pinned dependency manifest, MVP checklist, demo ZIP recipe, CI `mvp-checks`, Playwright screenshot script (Phase 35).
+- **Quick Mix default workflow** — two-drop front door, one-click local mix, Advanced Studio secondary (Phase 36).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
@@ -128,6 +129,10 @@ npm run package:demo-release           # optional small demo ZIP
 ```
 
 Checklist: **`docs/MVP_RELEASE_CANDIDATE_CHECKLIST.md`** · Dependencies: **`docs/RELEASE_DEPENDENCIES_WINDOWS.md`** · CI: **`docs/CI_CHECKS.md`**
+
+### Quick Mix (default)
+
+Open http://127.0.0.1:5173/ — **Quick Mix** is the default screen. Drop vocal + beat sources, click **Mix**. Advanced workflows live under **Advanced Studio**. See **`docs/QUICK_MIX_MODE.md`**.
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 

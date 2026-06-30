@@ -1,8 +1,22 @@
 # Phase 34 — Release Documentation Pass
 
 **Date:** 2026-06-30  
-**Commit base:** Phase 34 release documentation commit  
+**Commit base:** `6b4fe6f` (initial Phase 34); continuation closes with evidence manifest + smoke logs  
 **Platform:** Windows 11 Home build 26200
+
+## Phase 34 completion status
+
+| Task | Status |
+|------|--------|
+| One-command Windows start (`start:local:windows`) | **Complete** — smoke-tested with healthy sidecar |
+| Optional librosa validation | **Complete** — re-validated 2026-06-30 |
+| Manual UI screenshot evidence | **Documented** — automation blocked; manifest + capture checklist |
+| Release documentation | **Complete** (this file + README + QA checklist) |
+| Quality checks | **Pass** — lint, typecheck, 175 tests, build, runtime checks |
+
+### Sidecar exit code note (Task 384497)
+
+During Phase 34 librosa work, the venv sidecar **started cleanly**, served health checks for ~20 minutes, then exited with Windows code **4294967295** (`-1`) only because it was **stopped externally** for a librosa restart. This is **not** a dependency or startup failure. Do not treat that exit as a regression unless it occurs during an active run without an external stop.
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 
@@ -61,11 +75,28 @@ After librosa install, restart sidecar: `npm run sidecar:stop` (if pid recorded)
 
 Validate: `npm run validate:analysis-lane`
 
+**Re-validation (2026-06-30):** `npm run validate:analysis-lane` — all four steps **PASS** with sidecar pid 33836. Log: `qa/full-local-workflow/phase-34/logs/validate-analysis-lane-rerun.txt`
+
+## `start:local:windows` confirmation
+
+Smoke-tested 2026-06-30 with sidecar already healthy:
+
+| Step | Result |
+|------|--------|
+| Preflight (venv, FFmpeg, ffprobe) | **PASS** |
+| Sidecar start | **Skipped** — already healthy at 47831 |
+| URLs printed (app, health, capabilities) | **PASS** |
+| Vite in new PowerShell window | **PASS** |
+| Exit code | **0** |
+
+Log: `qa/full-local-workflow/phase-34/logs/start-local-windows-smoke.txt`
+
 ## Manual UI screenshots
 
-**Status:** Not captured in automation — manual pass required.
+**Status:** Not captured in automation — manual pass required. Evidence manifest documents automation attempts and substitute API validation.
 
-See: `qa/full-local-workflow/phase-34/screenshots/README.md`
+See: `qa/full-local-workflow/phase-34/screenshots/README.md`  
+Manifest: `qa/full-local-workflow/phase-34/screenshots/EVIDENCE_MANIFEST.md`
 
 | Screen | Status |
 |--------|--------|
@@ -99,7 +130,7 @@ Full API chain validated in Phase 32: `docs/PHASE_32_FULL_LOCAL_QA.md`
 - librosa BPM/key is experimental — DJ review required
 - Phrase analysis needs detectable beats (not pure sine test tones)
 - Mastering/mix limiter prototypes — not certification
-- Manual UI screenshots pending
+- Manual UI PNG captures pending (documented in EVIDENCE_MANIFEST; API/librosa evidence complete)
 - Global `python` not on agent PATH — venv scripts cover checks
 
 ## Rights / legal confirmation

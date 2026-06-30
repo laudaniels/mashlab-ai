@@ -72,32 +72,33 @@ Evidence: `qa/full-local-workflow/phase-32/logs/`
 - [x] `setup:windows:check:strict` passes with venv Python + FFmpeg on PATH
 - [x] `npm run sidecar:start|status|stop` — single-instance lifecycle
 - [x] `npm run setup:analysis:dry-run` documents optional librosa path
-- [ ] Manual UI screenshots — see `qa/full-local-workflow/phase-33/screenshots/README.md`
+- [ ] Manual UI screenshots — see `qa/full-local-workflow/phase-33/screenshots/README.md` (automation blocked)
 
 ## Phase 34 verified (release documentation)
 
-- [x] `npm run start:local:windows` — preflight, sidecar, Vite in new window
+- [x] `npm run start:local:windows` — preflight, sidecar skip when healthy, Vite in new window (smoke log in phase-34/logs)
 - [x] `npm run setup:analysis` — librosa 0.11.0 in sidecar venv
-- [x] `npm run validate:analysis-lane` — beat/key PASS; phrases honest on sine clip
+- [x] `npm run validate:analysis-lane` — beat/key PASS; phrases honest on sine clip (re-run 2026-06-30)
 - [x] Capabilities show librosa + beat/key lanes available after sidecar restart
-- [ ] Manual UI screenshots — see `qa/full-local-workflow/phase-34/screenshots/README.md`
+- [x] Task 384497 exit 4294967295 documented as external stop during librosa restart — not startup failure
+- [ ] Manual UI PNG screenshots — documented in `qa/full-local-workflow/phase-34/screenshots/EVIDENCE_MANIFEST.md`
 
 ### Phase 34 local demo checklist
 
-- [ ] `npm run setup:windows:check:strict` passes
-- [ ] `npm run start:local:windows` opens app + sidecar URLs printed
-- [ ] `npm run sidecar:status` → healthy
-- [ ] Upload two synthetic/non-copyright tracks
-- [ ] Session checklist progresses (user-initiated steps)
-- [ ] Optional: BPM/key analysis after `setup:analysis`
+- [x] `npm run setup:windows:check:strict` passes
+- [x] `npm run start:local:windows` opens app + sidecar URLs printed
+- [x] `npm run sidecar:status` → healthy
+- [ ] Upload two synthetic/non-copyright tracks (manual browser)
+- [ ] Session checklist progresses (user-initiated steps; manual browser)
+- [x] Optional: BPM/key analysis after `setup:analysis` (API validated)
 
 ### Phase 34 optional librosa checklist
 
-- [ ] `npm run setup:analysis`
-- [ ] Restart sidecar (`sidecar:stop` / kill 47831 / `sidecar:start`)
-- [ ] `/v1/capabilities` → librosa available
-- [ ] Beat/key analysis on test WAV — not missing_dependency
-- [ ] Phrase lane honest when no beats detected (sine clip)
+- [x] `npm run setup:analysis`
+- [x] Restart sidecar (`sidecar:stop` / kill 47831 / `sidecar:start`)
+- [x] `/v1/capabilities` → librosa available
+- [x] Beat/key analysis on test WAV — not missing_dependency
+- [x] Phrase lane honest when no beats detected (sine clip)
 
 ## End-to-End Workflow Checklist
 

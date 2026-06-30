@@ -36,6 +36,8 @@ Use synthetic test audio from `qa/full-local-workflow/phase-32/test-audio/` or o
 
 ## Automation limitation (Phase 33–34)
 
-Cursor IDE browser MCP and CDP returned empty DOM / black frames for the Vite/React app. **Manual capture is required** until a supported browser automation path is available.
+Cursor IDE browser MCP and CDP returned empty DOM / black frames for the Vite/React app, and on 2026-06-30 could not reach `http://127.0.0.1:5173/` at all (`chrome-error://chromewebdata/`). **Manual capture is required** until a supported browser automation path is available.
+
+Full evidence status: [EVIDENCE_MANIFEST.md](./EVIDENCE_MANIFEST.md)
 
 Processing validation evidence: `qa/full-local-workflow/phase-32/logs/` (API QA) and `qa/full-local-workflow/phase-34/logs/` (librosa validation).

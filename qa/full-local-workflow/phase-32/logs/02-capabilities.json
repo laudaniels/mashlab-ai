@@ -1,0 +1,112 @@
+﻿{
+    "service":  "mashlab-local-engine",
+    "version":  "0.1.0",
+    "python_version":  "3.12.10",
+    "capabilities":  [
+                         {
+                             "id":  "python",
+                             "label":  "Python runtime",
+                             "status":  "available",
+                             "message":  "Python 3.12.10 is running the local MashLab helper service.",
+                             "version":  "3.12.10"
+                         },
+                         {
+                             "id":  "ffmpeg",
+                             "label":  "FFmpeg",
+                             "status":  "available",
+                             "message":  "FFmpeg found at C:\\Users\\dimit\\tools\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.EXE.",
+                             "version":  "C:\\Users\\dimit\\tools\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.EXE"
+                         },
+                         {
+                             "id":  "ffprobe",
+                             "label":  "ffprobe",
+                             "status":  "available",
+                             "message":  "ffprobe found at C:\\Users\\dimit\\tools\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffprobe.EXE.",
+                             "version":  "C:\\Users\\dimit\\tools\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffprobe.EXE"
+                         },
+                         {
+                             "id":  "librosa",
+                             "label":  "librosa",
+                             "status":  "not_configured",
+                             "message":  "librosa is optional and not installed in this service environment.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "beat_bpm_analysis",
+                             "label":  "Basic beat/BPM analysis",
+                             "status":  "missing",
+                             "message":  "Install librosa for basic beat/BPM analysis.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "key_analysis_experimental",
+                             "label":  "Experimental key analysis",
+                             "status":  "missing",
+                             "message":  "Install librosa for experimental key analysis.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "heuristic_phrase_planning",
+                             "label":  "Heuristic phrase planning",
+                             "status":  "planned",
+                             "message":  "Heuristic phrase planning requires beat analysis (librosa).",
+                             "version":  null
+                         },
+                         {
+                             "id":  "essentia",
+                             "label":  "Essentia",
+                             "status":  "not_configured",
+                             "message":  "Essentia is not installed in this service environment.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "beatnet",
+                             "label":  "BeatNet+",
+                             "status":  "planned",
+                             "message":  "BeatNet+ is not installed ΓÇö adapter reserved for a future phase.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "madmom",
+                             "label":  "madmom",
+                             "status":  "not_configured",
+                             "message":  "madmom is not installed in this service environment.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "verified_downbeat_analysis",
+                             "label":  "Verified downbeat analysis",
+                             "status":  "planned",
+                             "message":  "Verified downbeat/phrase analysis requires optional Essentia or madmom.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "verified_phrase_markers",
+                             "label":  "Verified phrase markers",
+                             "status":  "planned",
+                             "message":  "Verified downbeat/phrase analysis requires optional Essentia or madmom.",
+                             "version":  null
+                         },
+                         {
+                             "id":  "torch",
+                             "label":  "PyTorch",
+                             "status":  "available",
+                             "message":  "PyTorch is installed.",
+                             "version":  "2.5.1+cpu"
+                         },
+                         {
+                             "id":  "demucs",
+                             "label":  "Demucs",
+                             "status":  "available",
+                             "message":  "Demucs and PyTorch are installed. User-initiated vocal/instrumental stem preview separation is available. First run may download model weights.",
+                             "version":  "4.0.1"
+                         },
+                         {
+                             "id":  "rubberband",
+                             "label":  "Rubber Band CLI",
+                             "status":  "available",
+                             "message":  "Rubber Band CLI found at C:\\Users\\dimit\\tools\\rubberband\\rubberband-4.0.0-gpl-executable-windows\\rubberband.EXE. Ready for pitch/time and combined preview processing.",
+                             "version":  "C:\\Users\\dimit\\tools\\rubberband\\rubberband-4.0.0-gpl-executable-windows\\rubberband.EXE"
+                         }
+                     ]
+}

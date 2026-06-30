@@ -1,0 +1,18 @@
+﻿{
+    "ok":  true,
+    "status":  "implemented",
+    "message":  "Metadata returned from local ffprobe inspection.",
+    "result":  {
+                   "file_name":  "track-b-instrumental-15s.wav",
+                   "file_size_bytes":  2646078,
+                   "duration_seconds":  15.0,
+                   "bitrate":  1411241,
+                   "codec":  "pcm_s16le",
+                   "container":  "WAV / WAVE (Waveform Audio)",
+                   "sample_rate":  44100,
+                   "channel_count":  2,
+                   "format_name":  "wav",
+                   "source":  "ffprobe"
+               },
+    "setup_guidance":  null
+}

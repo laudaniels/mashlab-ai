@@ -1,0 +1,71 @@
+﻿{
+    "ok":  true,
+    "status":  "ready",
+    "message":  "Mastering preset \u0027Club loudness prototype\u0027 applied to local master artifact.",
+    "master_artifact_id":  "34a58da28f204655983aaee0fc0a411e",
+    "source_wav_export_artifact_id":  "beb668faeef24ffbb2abc7dbff25a321",
+    "preset":  "club_loudness_prototype",
+    "artifact_url":  "/v1/artifacts/masters/34a58da28f204655983aaee0fc0a411e/master",
+    "download_url":  "/v1/artifacts/masters/34a58da28f204655983aaee0fc0a411e/master",
+    "before_readout":  {
+                           "duration_seconds":  15.0,
+                           "sample_rate":  44100,
+                           "channel_count":  2,
+                           "codec":  "pcm_s16le",
+                           "container":  "WAV / WAVE (Waveform Audio)",
+                           "file_size_bytes":  2646078,
+                           "loudness":  {
+                                            "integrated_lufs":  -32.2,
+                                            "true_peak_dbtp":  -30.15,
+                                            "peak_level_db":  -30.2,
+                                            "status":  "available",
+                                            "message":  "Loudness readout measured with FFmpeg loudnorm analysis pass."
+                                        }
+                       },
+    "after_readout":  {
+                          "duration_seconds":  15.0,
+                          "sample_rate":  192000,
+                          "channel_count":  2,
+                          "codec":  "pcm_s16le",
+                          "container":  "WAV / WAVE (Waveform Audio)",
+                          "file_size_bytes":  11520102,
+                          "loudness":  {
+                                           "integrated_lufs":  -7.96,
+                                           "true_peak_dbtp":  -5.95,
+                                           "peak_level_db":  -5.9,
+                                           "status":  "available",
+                                           "message":  "Loudness readout measured with FFmpeg loudnorm analysis pass."
+                                       }
+                      },
+    "target_integrated_lufs":  -8.0,
+    "target_true_peak_dbtp":  -1.0,
+    "loudness_gate":  {
+                          "status":  "pass",
+                          "message":  "Within preset display targets (~-8.0 LUFS / -1.0 dBTP). Club loudness prototype gate ΓÇö DJ review required. Not club-ready certification or professional mastering.",
+                          "integrated_lufs":  -7.96,
+                          "true_peak_dbtp":  -5.95,
+                          "target_integrated_lufs":  -8.0,
+                          "target_true_peak_dbtp":  -1.0
+                      },
+    "audio_created":  true,
+    "final_export":  true,
+    "public_share":  false,
+    "mastering_prototype":  true,
+    "rights_notice":  "Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user\u0027s responsibility.",
+    "warnings":  [
+                     "Local mastering preset prototype ΓÇö user-generated, not a published release.",
+                     "Not professional mastering or a club-ready final unless measured targets pass.",
+                     "Club loudness prototype ΓÇö higher distortion and dynamics loss risk.",
+                     "DJ review required ΓÇö not professional mastering or club-ready certification.",
+                     "Gate pass does not mean club-ready ΓÇö prototype only.",
+                     "Integrated loudness -8.0 LUFS (available)."
+                 ],
+    "limitations":  [
+                        "No public sharing, streaming integration, or distribution rights granted.",
+                        "MP3, stem package, and public sharing remain separate features.",
+                        "Mastering prototype does not grant publishing or distribution rights."
+                    ],
+    "export_label":  "phase32-master",
+    "validation_errors":  null,
+    "setup_guidance":  null
+}

@@ -1,0 +1,93 @@
+﻿{
+    "ok":  true,
+    "status":  "ready",
+    "message":  "Local project package created.",
+    "package_artifact_id":  "e834e51a35cb4dceb7768ac165859843",
+    "package_label":  "phase32-local-qa",
+    "package_type":  "folder",
+    "local_folder_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa",
+    "download_url":  null,
+    "manifest_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa/manifest.json",
+    "rights_notice_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa/RIGHTS_NOTICE.txt",
+    "technical_report_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa/reports/technical-report.json",
+    "included_files":  [
+                           {
+                               "artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+                               "artifact_type":  "stem",
+                               "artifact_subtype":  null,
+                               "source_path":  "vocals.wav",
+                               "package_path":  "stems/track-b-vocals.wav"
+                           },
+                           {
+                               "artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+                               "artifact_type":  "stem",
+                               "artifact_subtype":  null,
+                               "source_path":  "no_vocals.wav",
+                               "package_path":  "stems/track-b-no-vocals.wav"
+                           },
+                           {
+                               "artifact_id":  "2fc8db3e1daa412995655a3377eb54b9",
+                               "artifact_type":  "stem",
+                               "artifact_subtype":  null,
+                               "source_path":  "vocals.wav",
+                               "package_path":  "stems/track-a-vocals.wav"
+                           },
+                           {
+                               "artifact_id":  "2fc8db3e1daa412995655a3377eb54b9",
+                               "artifact_type":  "stem",
+                               "artifact_subtype":  null,
+                               "source_path":  "no_vocals.wav",
+                               "package_path":  "stems/track-a-no-vocals.wav"
+                           },
+                           {
+                               "artifact_id":  "b75b191bb7ad4db782fc0cfc6cd7611b",
+                               "artifact_type":  "combined-preview",
+                               "artifact_subtype":  null,
+                               "source_path":  "preview.wav",
+                               "package_path":  "previews/combined-preview.wav"
+                           },
+                           {
+                               "artifact_id":  "beb668faeef24ffbb2abc7dbff25a321",
+                               "artifact_type":  "export",
+                               "artifact_subtype":  "full-wav",
+                               "source_path":  "export.wav",
+                               "package_path":  "exports/export-full.wav"
+                           },
+                           {
+                               "artifact_id":  "f7b2d96259da4c6591808a36004a4898",
+                               "artifact_type":  "export",
+                               "artifact_subtype":  "mp3",
+                               "source_path":  "export.mp3",
+                               "package_path":  "exports/export.mp3"
+                           },
+                           {
+                               "artifact_id":  "34a58da28f204655983aaee0fc0a411e",
+                               "artifact_type":  "master",
+                               "artifact_subtype":  "club_loudness_prototype",
+                               "source_path":  "master.wav",
+                               "package_path":  "exports/master.wav"
+                           }
+                       ],
+    "included_artifact_ids":  [
+                                  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+                                  "2fc8db3e1daa412995655a3377eb54b9",
+                                  "b75b191bb7ad4db782fc0cfc6cd7611b",
+                                  "beb668faeef24ffbb2abc7dbff25a321",
+                                  "f7b2d96259da4c6591808a36004a4898",
+                                  "34a58da28f204655983aaee0fc0a411e"
+                              ],
+    "public_share":  false,
+    "package_only":  true,
+    "rights_notice":  "Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user\u0027s responsibility.",
+    "warnings":  [
+                     "Local project package ΓÇö user-generated, not public sharing.",
+                     "No distribution or publishing rights granted.",
+                     "Raw uploads are excluded from this package."
+                 ],
+    "limitations":  [
+                        "Package is for local organization only ΓÇö not cloud upload or public distribution.",
+                        "MashLab does not provide music or clearances."
+                    ],
+    "validation_errors":  null,
+    "setup_guidance":  null
+}

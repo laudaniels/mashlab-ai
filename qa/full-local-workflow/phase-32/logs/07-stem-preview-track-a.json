@@ -1,0 +1,40 @@
+﻿{
+    "ok":  true,
+    "status":  "preview_complete",
+    "message":  "Vocal/instrumental stem preview processed locally. Preview only ΓÇö not final export.",
+    "method":  "demucs-two-stems-vocals",
+    "audio_processed":  true,
+    "artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+    "input_summary":  {
+                          "file_name":  "track-a-vocal-like-15s.wav",
+                          "duration_seconds":  15.0,
+                          "sample_rate":  44100,
+                          "channel_count":  2,
+                          "split_mode":  "vocals_no_vocals",
+                          "max_preview_seconds":  15
+                      },
+    "vocals":  {
+                   "file_name":  "vocals.wav",
+                   "duration_seconds":  15.0,
+                   "sample_rate":  44100,
+                   "channel_count":  2,
+                   "artifact_url":  "/v1/artifacts/stems/e7f66eb142cc4bd6ad1fe68f909fcf6a/vocals"
+               },
+    "no_vocals":  {
+                      "file_name":  "no_vocals.wav",
+                      "duration_seconds":  15.0,
+                      "sample_rate":  44100,
+                      "channel_count":  2,
+                      "artifact_url":  "/v1/artifacts/stems/e7f66eb142cc4bd6ad1fe68f909fcf6a/no_vocals"
+                  },
+    "warnings":  [
+                     "Demucs preview output is not studio-quality. Use for arrangement testing only."
+                 ],
+    "limitations":  [
+                        "Preview only ΓÇö not studio-quality stem separation, final mashup, or export.",
+                        "Demucs two-stem output is heuristic. DJ review required before any publish decision.",
+                        "One uploaded track at a time. No batch or library processing."
+                    ],
+    "setup_guidance":  null,
+    "validation_errors":  null
+}

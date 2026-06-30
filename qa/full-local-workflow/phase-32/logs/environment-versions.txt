@@ -1,0 +1,6 @@
+﻿Windows: Microsoft Windows 11 Home build 26200
+Python (venv): Python 3.12.10
+Torch: 2.5.1+cpu
+Demucs: 4.0.1
+FFmpeg: ffmpeg version N-125365-g9a01c1cb6a-20260630 Copyright (c) 2000-2026 the FFmpeg developers
+Rubber Band: 4.0.0

@@ -1,0 +1,38 @@
+﻿{
+    "ok":  true,
+    "status":  "ready",
+    "message":  "Local MP3 reference export created from WAV export artifact.",
+    "export_artifact_id":  "f7b2d96259da4c6591808a36004a4898",
+    "source_wav_export_artifact_id":  "beb668faeef24ffbb2abc7dbff25a321",
+    "artifact_url":  "/v1/artifacts/exports/f7b2d96259da4c6591808a36004a4898/export.mp3",
+    "download_url":  "/v1/artifacts/exports/f7b2d96259da4c6591808a36004a4898/export.mp3",
+    "export_format":  "mp3",
+    "bitrate_kbps":  320,
+    "file_size_bytes":  602949,
+    "duration_seconds":  15.0,
+    "sample_rate":  44100,
+    "channel_count":  2,
+    "codec":  "mp3",
+    "loudness":  {
+                     "integrated_lufs":  -32.2,
+                     "true_peak_dbtp":  -30.16,
+                     "peak_level_db":  -30.2,
+                     "status":  "available",
+                     "message":  "Loudness readout measured with FFmpeg loudnorm analysis pass."
+                 },
+    "final_export":  true,
+    "public_share":  false,
+    "rights_notice":  "Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user\u0027s responsibility.",
+    "warnings":  [
+                     "Local MP3 reference export ΓÇö user-generated, not a published release.",
+                     "MP3 is a reference/export format, not proof of distribution rights.",
+                     "MP3 is not a mastered club version."
+                 ],
+    "limitations":  [
+                        "No public sharing, streaming integration, or distribution rights granted.",
+                        "Lossy MP3 encoding ΓÇö use WAV export for primary local master reference."
+                    ],
+    "export_label":  "phase32-mp3",
+    "validation_errors":  null,
+    "setup_guidance":  null
+}

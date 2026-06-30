@@ -1,0 +1,7 @@
+﻿{
+    "ok":  true,
+    "service":  "mashlab-local-engine",
+    "version":  "0.1.0",
+    "bind":  "http://127.0.0.1:47831",
+    "privacy":  "Local helper service only. Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute remain the user\u0027s responsibility."
+}

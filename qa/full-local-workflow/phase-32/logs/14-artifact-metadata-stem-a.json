@@ -1,0 +1,25 @@
+﻿{
+    "ok":  true,
+    "status":  "ready",
+    "message":  "Preview artifact metadata returned. Not a final export.",
+    "artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+    "artifact_type":  "stem",
+    "preview_only":  true,
+    "final_export":  false,
+    "playback_url":  "/v1/artifacts/stems/e7f66eb142cc4bd6ad1fe68f909fcf6a/vocals",
+    "technical":  {
+                      "duration_seconds":  15.0,
+                      "sample_rate":  44100,
+                      "channel_count":  2,
+                      "codec":  "pcm_s16le",
+                      "container":  "WAV / WAVE (Waveform Audio)",
+                      "file_size_bytes":  2646044,
+                      "loudness":  {
+                                       "integrated_lufs":  -69.82,
+                                       "true_peak_dbtp":  -63.82,
+                                       "peak_level_db":  -63.9,
+                                       "status":  "available",
+                                       "message":  "Loudness readout measured with FFmpeg loudnorm analysis pass."
+                                   }
+                  }
+}

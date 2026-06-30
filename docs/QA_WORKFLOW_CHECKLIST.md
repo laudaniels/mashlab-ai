@@ -1,4 +1,4 @@
-# QA Workflow Checklist (Phase 19–28)
+# QA Workflow Checklist (Phase 19–32)
 
 Manual and automated verification for the full local DJ workflow in MashLab AI / CyphaBlend AI. **Nothing auto-processes** — each step requires explicit user action.
 
@@ -40,6 +40,31 @@ npm run setup:windows:check
 ```
 
 If `check:local-engine` or `setup:windows:check` reports FFmpeg missing, install FFmpeg, add its bin folder to PATH, open a new terminal, and rerun — do not treat PATH misconfiguration as a product defect.
+
+**Phase 32 full local QA (automated):** see `docs/PHASE_32_FULL_LOCAL_QA.md` and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File qa/full-local-workflow/phase-32/run-phase32-api-qa.ps1
+```
+
+Use synthetic test audio only. When librosa is missing, set `neutral_processing=true` for combined preview and full WAV export (matches DJ override / neutral path in the UI).
+
+## Phase 32 verified (2026-06-30)
+
+End-to-end API workflow **PASS** on Windows 11 with FFmpeg + Rubber Band 4.0.0 + torch 2.5.1+cpu + Demucs 4.0.1:
+
+- [x] Metadata for two synthetic tracks
+- [x] Stem previews (both tracks)
+- [x] Combined preview with mix controls
+- [x] Full WAV export (`final_export: true`, `public_share: false`)
+- [x] MP3 reference export
+- [x] Mastering preset (`club_loudness_prototype`)
+- [x] Project package with manifest + RIGHTS_NOTICE
+- [x] Artifact list, metadata/loudness readout
+- [x] Safe artifact delete
+- [x] Sidecar offline → connection refused (Browser MVP remains available in UI)
+
+Evidence: `qa/full-local-workflow/phase-32/logs/`
 
 ## End-to-End Workflow Checklist
 

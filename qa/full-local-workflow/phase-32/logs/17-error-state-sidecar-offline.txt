@@ -1,0 +1,18 @@
+Sidecar offline error-state QA (Phase 32)
+=========================================
+Action: Stopped sidecar process on 127.0.0.1:47831 before this request.
+
+GET /health
+-----------
+Result: connection refused (curl http_code:000)
+
+POST /v1/process/stem-preview
+-------------------------------
+Result: connection refused (curl exit 7)
+
+Expected browser behavior (Browser MVP mode):
+- Local Engine Status shows "Browser MVP mode" / sidecar offline
+- Upload and planning remain usable without crash
+- Processing lanes show blocked/missing dependency messaging (not blank UI)
+
+Sidecar was restarted after this check (see environment-versions.txt timestamp).

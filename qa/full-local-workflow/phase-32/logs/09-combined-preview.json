@@ -1,0 +1,65 @@
+﻿{
+    "ok":  true,
+    "status":  "preview_complete",
+    "message":  "Combined vocal-over-instrumental preview processed locally. Preview only ΓÇö not a final export.",
+    "method":  "rubberband-vocal + ffmpeg-mix",
+    "audio_processed":  true,
+    "final_export":  false,
+    "artifact_id":  "b75b191bb7ad4db782fc0cfc6cd7611b",
+    "artifact_url":  "/v1/artifacts/combined-preview/b75b191bb7ad4db782fc0cfc6cd7611b/preview",
+    "input_summary":  {
+                          "mash_intent":  "vocal_a_over_beat_b",
+                          "source_vocal_artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+                          "target_instrumental_artifact_id":  "2fc8db3e1daa412995655a3377eb54b9",
+                          "tempo_ratio":  1.0,
+                          "pitch_shift_semitones":  0.0,
+                          "alignment_offset_ms":  0.0,
+                          "max_preview_seconds":  15,
+                          "preview_start_seconds":  0.0,
+                          "neutral_processing":  true,
+                          "mix_settings":  {
+                                               "vocal_gain_db":  -2.0,
+                                               "instrumental_gain_db":  1.0,
+                                               "master_gain_db":  0.0,
+                                               "vocal_fade_in_ms":  100.0,
+                                               "vocal_fade_out_ms":  200.0,
+                                               "instrumental_fade_in_ms":  0.0,
+                                               "instrumental_fade_out_ms":  0.0,
+                                               "limiter_safety":  true,
+                                               "clipping_guard":  false
+                                           }
+                      },
+    "processing_summary":  {
+                               "method":  "rubberband-vocal + ffmpeg-mix",
+                               "vocal_rubberband_ratio":  1.0,
+                               "pitch_shift_semitones":  0.0,
+                               "alignment_offset_ms":  0.0,
+                               "max_preview_seconds":  15,
+                               "preview_start_seconds":  0.0,
+                               "mix_settings":  {
+                                                    "vocal_gain_db":  -2.0,
+                                                    "instrumental_gain_db":  1.0,
+                                                    "master_gain_db":  0.0,
+                                                    "vocal_fade_in_ms":  100.0,
+                                                    "vocal_fade_out_ms":  200.0,
+                                                    "instrumental_fade_in_ms":  0.0,
+                                                    "instrumental_fade_out_ms":  0.0,
+                                                    "limiter_safety":  true,
+                                                    "clipping_guard":  false
+                                                },
+                               "limiter_safety_applied":  true,
+                               "clipping_guard_applied":  false
+                           },
+    "output_duration_seconds":  15.0,
+    "warnings":  [
+                     "Conservative FFmpeg alimiter prototype applied on master bus ΓÇö not professional mastering.",
+                     "Integrated loudness -31.8 LUFS (available)."
+                 ],
+    "limitations":  [
+                        "Preview only ΓÇö not a final export, mastered mashup, or distribution-ready mix.",
+                        "No mastering, no final arrangement, no distribution rights granted.",
+                        "DJ review required before any publish or distribute decision."
+                    ],
+    "setup_guidance":  null,
+    "validation_errors":  null
+}

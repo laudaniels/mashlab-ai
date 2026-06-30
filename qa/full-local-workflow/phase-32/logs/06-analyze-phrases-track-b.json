@@ -1,0 +1,8 @@
+﻿{
+    "ok":  false,
+    "status":  "missing_dependency",
+    "message":  "librosa is not installed in the local service environment.",
+    "result":  null,
+    "setup_guidance":  "Install optional analysis dependencies in the service virtual environment: pip install librosa soundfile",
+    "validation_errors":  null
+}

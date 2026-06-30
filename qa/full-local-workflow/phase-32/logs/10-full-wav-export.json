@@ -1,0 +1,88 @@
+﻿{
+    "ok":  true,
+    "status":  "ready",
+    "message":  "Full-length local WAV export rendered from stem artifacts.",
+    "export_artifact_id":  "beb668faeef24ffbb2abc7dbff25a321",
+    "artifact_url":  "/v1/artifacts/exports/beb668faeef24ffbb2abc7dbff25a321/export",
+    "download_url":  "/v1/artifacts/exports/beb668faeef24ffbb2abc7dbff25a321/export",
+    "input_summary":  {
+                          "mash_intent":  "vocal_a_over_beat_b",
+                          "source_vocal_stem_artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+                          "target_instrumental_stem_artifact_id":  "2fc8db3e1daa412995655a3377eb54b9",
+                          "tempo_ratio":  1.0,
+                          "pitch_shift_semitones":  0.0,
+                          "alignment_offset_ms":  0.0,
+                          "neutral_processing":  true,
+                          "mix_settings":  {
+                                               "vocal_gain_db":  -2.0,
+                                               "instrumental_gain_db":  1.0,
+                                               "master_gain_db":  0.0,
+                                               "vocal_fade_in_ms":  0.0,
+                                               "vocal_fade_out_ms":  0.0,
+                                               "instrumental_fade_in_ms":  0.0,
+                                               "instrumental_fade_out_ms":  0.0,
+                                               "limiter_safety":  false,
+                                               "clipping_guard":  false
+                                           }
+                      },
+    "processing_summary":  {
+                               "method":  "rubberband-vocal + ffmpeg-full-mix",
+                               "vocal_rubberband_ratio":  1.0,
+                               "pitch_shift_semitones":  0.0,
+                               "alignment_offset_ms":  0.0,
+                               "full_length":  false,
+                               "max_test_seconds":  15,
+                               "mix_settings":  {
+                                                    "vocal_gain_db":  -2.0,
+                                                    "instrumental_gain_db":  1.0,
+                                                    "master_gain_db":  0.0,
+                                                    "vocal_fade_in_ms":  0.0,
+                                                    "vocal_fade_out_ms":  0.0,
+                                                    "instrumental_fade_in_ms":  0.0,
+                                                    "instrumental_fade_out_ms":  0.0,
+                                                    "limiter_safety":  false,
+                                                    "clipping_guard":  false
+                                                },
+                               "limiter_safety_applied":  false,
+                               "clipping_guard_applied":  false
+                           },
+    "file_size_bytes":  2646078,
+    "duration_seconds":  15.0,
+    "sample_rate":  44100,
+    "channel_count":  2,
+    "codec":  "pcm_s16le",
+    "loudness":  {
+                     "integrated_lufs":  -32.2,
+                     "true_peak_dbtp":  -30.15,
+                     "peak_level_db":  -30.2,
+                     "status":  "available",
+                     "message":  "Loudness readout measured with FFmpeg loudnorm analysis pass."
+                 },
+    "loudness_gate":  {
+                          "status":  "warn",
+                          "message":  "integrated loudness -32.2 LUFS differs from general target -14 LUFS ΓÇö not a mastering pass or club-ready claim.",
+                          "integrated_lufs":  -32.2,
+                          "true_peak_dbtp":  -30.15,
+                          "target_integrated_lufs":  -14.0,
+                          "target_true_peak_dbtp":  -1.0
+                      },
+    "final_export":  true,
+    "public_share":  false,
+    "rights_notice":  "Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user\u0027s responsibility.",
+    "warnings":  [
+                     "Full-length local WAV export ΓÇö user-generated, not a published release.",
+                     "Processing may take longer than preview lanes; no auto-export occurred.",
+                     "Not a club-ready mastered release unless a future mastering lane is implemented.",
+                     "max_test_seconds=15 applied ΓÇö testing override, not default production behavior.",
+                     "No mix-stage limiter or clipping guard applied.",
+                     "Integrated loudness -32.2 LUFS (available)."
+                 ],
+    "limitations":  [
+                        "No MP3, stem package export, public sharing, or distribution rights granted.",
+                        "Loudness gate is informational only ΓÇö not a mastering pass.",
+                        "Loudness measured only; no normalization unless a normalize mode is selected."
+                    ],
+    "export_label":  "phase32-full-wav",
+    "validation_errors":  null,
+    "setup_guidance":  null
+}

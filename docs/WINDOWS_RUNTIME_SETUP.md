@@ -168,6 +168,10 @@ curl.exe http://127.0.0.1:47831/v1/capabilities
 
 Restart the sidecar after installing Demucs so `/v1/capabilities` reports `demucs` and `torch` as available.
 
+**Validated stack (Phase 31, Windows CPU):** PyTorch **2.5.1+cpu**, Demucs **4.0.1**, Python **3.12.10** in the sidecar venv.
+
+**Sidecar exit code `4294967295`:** On Windows this is `-1` (process killed externally). It is **not** a Torch/Demucs install failure. Common causes: stopping/restarting uvicorn, duplicate sidecar on port `47831`, or terminal/session cleanup after a successful run. Confirm with `curl.exe http://127.0.0.1:47831/health` and `/v1/capabilities` — if both respond, the sidecar is healthy.
+
 ## Start MashLab locally
 
 ```powershell

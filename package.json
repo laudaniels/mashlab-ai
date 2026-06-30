@@ -27,6 +27,7 @@
     "collect:release-versions": "node --experimental-strip-types scripts/collect-release-versions.mts",
     "package:demo-release": "node --experimental-strip-types scripts/package-demo-release.mts",
     "capture:release-screenshots": "node --experimental-strip-types scripts/capture-release-screenshots.mts",
+    "smoke:quick-mix": "node --experimental-strip-types scripts/quick-mix-smoke.mts",
     "check:local-engine": "node --experimental-strip-types local-engine/check-binaries.mts",
     "check:python-service": "node --experimental-strip-types scripts/python-service-check.mts compile",
     "check:python-service:test": "node --experimental-strip-types scripts/python-service-check.mts test",

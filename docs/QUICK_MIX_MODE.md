@@ -12,14 +12,17 @@ Quick Mix is the **default landing screen**. It asks for:
 2. **Instrumental / beat source** — the song you want the beat/instrumental from
 3. One **Mix** button
 
-The app runs the existing local pipeline automatically:
+The app runs the existing local pipeline automatically when the user clicks **Mix** (no processing on upload):
 
-- Validate files
-- Separate vocal stem (Demucs)
-- Prepare instrumental bed (Demucs `no_vocals`)
-- Match timing/key when librosa analysis is available, otherwise neutral processing
-- Mix with default 0 dB vocal/instrumental gains and safety limiter guards
-- Export a **local WAV** (and optional **MP3** when the export lane succeeds)
+1. Validate both files and local dependencies (sidecar, FFmpeg/ffprobe, Rubber Band, Demucs/PyTorch)
+2. Separate **vocals.wav** from the vocal source
+3. Separate **no_vocals.wav** from the instrumental source
+4. Match timing/key when librosa analysis is available, otherwise neutral processing with copy: *No tempo/key correction applied*
+5. Mix internally with default 0 dB vocal/instrumental/master gains and safety limiter guards
+6. Export a **local WAV**
+7. Optionally create an **MP3 reference** (does not block WAV success)
+
+Progress ladder: Checking files → Separating vocal → Preparing instrumental → Matching timing/key → Mixing track → Creating WAV export → Creating MP3 reference → Done
 
 Output label: **Local mix export — user responsible for rights.**
 
@@ -73,6 +76,7 @@ No stack traces on the main Quick Mix screen.
 npm run start:local:windows
 # Open http://127.0.0.1:5173/ — Quick Mix is the default screen
 npm run sidecar:status
+npm run smoke:quick-mix   # API orchestration smoke (synthetic audio, produces WAV)
 ```
 
 ## Related docs

@@ -12,11 +12,12 @@ import {
   QUICK_MIX_PROMISE,
   QUICK_MIX_VOCAL_DROP_HINT,
   QUICK_MIX_VOCAL_DROP_LABEL,
+  type QuickMixFailureViewModel,
   type QuickMixOutputModel,
   type QuickMixProgressStep,
   type QuickMixUploadState,
 } from "../domain/quickMix.ts";
-import { recoveryMessageForTopic } from "../domain/quickMixErrors.ts";
+import { buildQuickMixFailureView } from "../domain/quickMixErrors.ts";
 import { buildQuickMixReadiness, isQuickMixReady } from "../domain/quickMixReadiness.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import { validateAudioFile } from "../lib/audioMetadata.ts";
@@ -41,7 +42,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
   const [mixing, setMixing] = useState(false);
   const [progressSteps, setProgressSteps] = useState<QuickMixProgressStep[]>(createInitialQuickMixProgress);
   const [output, setOutput] = useState<QuickMixOutputModel | null>(null);
-  const [mixError, setMixError] = useState<string | null>(null);
+  const [mixFailure, setMixFailure] = useState<QuickMixFailureViewModel | null>(null);
 
   const readiness = useMemo(
     () =>
@@ -72,7 +73,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
         : { ...current, instrumentalFile: file, instrumentalFileName: file.name }
     );
     setOutput(null);
-    setMixError(null);
+    setMixFailure(null);
   }
 
   function clearFile(kind: "vocal" | "instrumental") {
@@ -83,7 +84,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
     );
     setUploadErrors((current) => ({ ...current, [kind]: null }));
     setOutput(null);
-    setMixError(null);
+    setMixFailure(null);
   }
 
   async function handleMix() {
@@ -92,7 +93,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
     }
 
     setMixing(true);
-    setMixError(null);
+    setMixFailure(null);
     setOutput(null);
     setProgressSteps(createInitialQuickMixProgress());
 
@@ -104,10 +105,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
     setMixing(false);
 
     if (!result.ok || !result.output) {
-      const recovery = result.error
-        ? recoveryMessageForTopic(result.error.recoveryTopic)
-        : "Try again or open Advanced Studio for more detail.";
-      setMixError(`${result.error?.headline ?? "Mix failed"}. ${result.error?.detail ?? recovery}`);
+      setMixFailure(result.error ? buildQuickMixFailureView(result.error) : null);
       return;
     }
 
@@ -118,7 +116,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
     setUploads(createInitialQuickMixUploadState());
     setUploadErrors({ vocal: null, instrumental: null });
     setOutput(null);
-    setMixError(null);
+    setMixFailure(null);
     setProgressSteps(createInitialQuickMixProgress());
   }
 
@@ -186,10 +184,34 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
 
             <QuickMixProgressPanel active={mixing || progressSteps.some((step) => step.status === "failed")} steps={progressSteps} />
 
-            {mixError ? (
-              <p className="quick-mix-error" role="alert">
-                {mixError}
-              </p>
+            {mixFailure ? (
+              <section className="quick-mix-error-panel" role="alert">
+                <h2>{mixFailure.headline}</h2>
+                <p>{mixFailure.detail}</p>
+                <p className="quick-mix-error-recovery">{mixFailure.recovery}</p>
+                {mixFailure.failedStepLabel ? (
+                  <p className="quick-mix-error-meta">
+                    Failed step: {mixFailure.failedStepLabel}
+                    {mixFailure.failedSourceLabel ? ` · ${mixFailure.failedSourceLabel}` : ""}
+                  </p>
+                ) : null}
+                {mixFailure.validationErrors.length > 0 ? (
+                  <ul className="quick-mix-error-validation">
+                    {mixFailure.validationErrors.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                {mixFailure.statusCode || mixFailure.responseBody ? (
+                  <details className="quick-mix-technical-details">
+                    <summary>Technical details</summary>
+                    {mixFailure.statusCode ? <p>Status: {mixFailure.statusCode}</p> : null}
+                    {mixFailure.responseBody ? (
+                      <pre>{mixFailure.responseBody}</pre>
+                    ) : null}
+                  </details>
+                ) : null}
+              </section>
             ) : null}
 
             <div className="quick-mix-rights-panel">

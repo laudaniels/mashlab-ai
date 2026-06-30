@@ -21,8 +21,6 @@ export const QUICK_MIX_NEUTRAL_TIMING_NOTICE =
 export const QUICK_MIX_LOCAL_ONLY_NOTICE =
   "All processing stays on your machine. No public sharing or cloud upload.";
 
-export const QUICK_MIX_STEM_MAX_SECONDS = 300;
-
 export const QUICK_MIX_DEFAULT_MIX_SETTINGS: MixSettings = {
   vocalGainDb: 0,
   instrumentalGainDb: 0,
@@ -41,7 +39,8 @@ export type QuickMixStepId =
   | "preparing_instrumental"
   | "matching_timing"
   | "mixing_track"
-  | "creating_export"
+  | "creating_wav_export"
+  | "creating_mp3_reference"
   | "done";
 
 export interface QuickMixProgressStep {
@@ -56,7 +55,8 @@ export const QUICK_MIX_PROGRESS_STEPS: readonly { id: QuickMixStepId; label: str
   { id: "preparing_instrumental", label: "Preparing instrumental" },
   { id: "matching_timing", label: "Matching timing/key" },
   { id: "mixing_track", label: "Mixing track" },
-  { id: "creating_export", label: "Creating local export" },
+  { id: "creating_wav_export", label: "Creating WAV export" },
+  { id: "creating_mp3_reference", label: "Creating MP3 reference" },
   { id: "done", label: "Done" },
 ];
 
@@ -80,6 +80,18 @@ export interface QuickMixOutputModel {
   mp3ArtifactId: string | null;
   durationSeconds: number | null;
   technicalSummary: string[];
+  mp3SkippedReason: string | null;
+}
+
+export interface QuickMixFailureViewModel {
+  headline: string;
+  detail: string;
+  recovery: string;
+  failedStepLabel: string | null;
+  failedSourceLabel: string | null;
+  validationErrors: string[];
+  statusCode: string | null;
+  responseBody: string | null;
 }
 
 export type AppExperienceMode = "quick-mix" | "advanced-studio";

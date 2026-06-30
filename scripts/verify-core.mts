@@ -4464,7 +4464,7 @@ describe("Quick Mix mode (Phase 36)", async () => {
   });
 
   it("models progress steps in order", () => {
-    assert.equal(QUICK_MIX_PROGRESS_STEPS.length, 7);
+    assert.equal(QUICK_MIX_PROGRESS_STEPS.length, 8);
     const active = advanceQuickMixStep(
       QUICK_MIX_PROGRESS_STEPS.map((step) => ({ ...step, status: "pending" as const })),
       "mixing_track",
@@ -4472,6 +4472,22 @@ describe("Quick Mix mode (Phase 36)", async () => {
     );
     assert.equal(active.find((step) => step.id === "checking_files")?.status, "complete");
     assert.equal(active.find((step) => step.id === "mixing_track")?.status, "active");
+    assert.equal(active.find((step) => step.id === "creating_wav_export")?.status, "pending");
+  });
+
+  it("maps stem validation errors with source-specific headlines", async () => {
+    const { mapQuickMixStemFailure } = await importSrc("src/domain/quickMixErrors.ts");
+    const mapped = mapQuickMixStemFailure(
+      {
+        message: "Stem preview request failed validation.",
+        status: "validation_error",
+        validationErrors: ["max_preview_seconds must be between 1 and 180."],
+      },
+      "vocal"
+    );
+    assert.match(mapped.headline, /Vocal/i);
+    assert.match(mapped.detail, /max_preview_seconds/i);
+    assert.equal(mapped.failedStepId, "separating_vocal");
   });
 
   it("maps errors to plain English recovery topics", () => {
@@ -4519,6 +4535,99 @@ describe("Quick Mix mode (Phase 36)", async () => {
       },
     });
     assert.equal(loadAppExperienceMode({ getItem: (key) => storage.get(key) ?? null }), "advanced-studio");
+  });
+});
+
+describe("Quick Mix orchestrated pipeline (Phase 36 fix)", async () => {
+  const {
+    QUICK_MIX_PIPELINE_STAGES,
+    QUICK_MIX_STEM_MAX_SECONDS,
+    QUICK_MIX_STEM_FORM_FIELDS,
+    buildQuickMixStemFormData,
+    buildQuickMixStemRequestParams,
+    listQuickMixStemFormFieldNames,
+    quickMixStageTriggersProcessing,
+    resolveQuickMixExportStemIds,
+    validateQuickMixStemRequest,
+  } = await importSrc("src/domain/quickMixPipeline.ts");
+  const { buildFullLengthExportRequestParams } = await importSrc("src/domain/fullLengthExport.ts");
+  const { buildQuickMixDirectionContext, buildQuickMixTimingStrategy } = await importSrc(
+    "src/domain/quickMixStrategy.ts"
+  );
+  const { QUICK_MIX_DEFAULT_MIX_SETTINGS } = await importSrc("src/domain/quickMix.ts");
+
+  it("does not trigger processing before validate_uploads", () => {
+    assert.equal(quickMixStageTriggersProcessing("validate_uploads"), false);
+    assert.equal(quickMixStageTriggersProcessing("stem_vocal"), true);
+  });
+
+  it("uses legal stem preview seconds within server limit", () => {
+    const file = new File(["a"], "vocal.wav", { type: "audio/wav" });
+    const params = buildQuickMixStemRequestParams("vocal", file);
+    assert.equal(params.maxPreviewSeconds, 180);
+    assert.equal(QUICK_MIX_STEM_MAX_SECONDS, 180);
+    assert.deepEqual(validateQuickMixStemRequest(params), []);
+  });
+
+  it("builds stem multipart fields expected by the sidecar", () => {
+    const file = new File(["a"], "beat.wav", { type: "audio/wav" });
+    const formData = buildQuickMixStemFormData(file, "instrumental");
+    const fields = listQuickMixStemFormFieldNames(formData).sort();
+    assert.deepEqual(fields, [...QUICK_MIX_STEM_FORM_FIELDS].sort());
+    assert.equal(formData.get("split_mode"), "vocals_no_vocals");
+    assert.equal(formData.get("max_preview_seconds"), "180");
+  });
+
+  it("maps vocal and instrumental stems to vocals.wav and no_vocals.wav roles", () => {
+    const ids = resolveQuickMixExportStemIds({
+      vocalStem: {
+        ok: true,
+        artifactId: "vocal123",
+        vocals: { artifactUrl: "/v1/artifacts/stems/vocal123/vocals" },
+        noVocals: { artifactUrl: "/v1/artifacts/stems/vocal123/no_vocals" },
+      },
+      instrumentalStem: {
+        ok: true,
+        artifactId: "beat456",
+        vocals: { artifactUrl: "/v1/artifacts/stems/beat456/vocals" },
+        noVocals: { artifactUrl: "/v1/artifacts/stems/beat456/no_vocals" },
+      },
+    } as never);
+    assert.deepEqual(ids, {
+      sourceVocalStemArtifactId: "vocal123",
+      targetInstrumentalStemArtifactId: "beat456",
+    });
+  });
+
+  it("builds full-length WAV export params after stem resolution", () => {
+    const strategy = buildQuickMixTimingStrategy({
+      vocalBpm: null,
+      beatBpm: null,
+      pitchShiftSemitones: 0,
+      librosaUsed: false,
+    });
+    const context = buildQuickMixDirectionContext({
+      vocalStemArtifactId: "aaa",
+      beatStemArtifactId: "bbb",
+      strategy,
+    });
+    const exportParams = buildFullLengthExportRequestParams(
+      context,
+      strategy.useNeutralProcessing,
+      strategy.confirmNeutralSettings,
+      "measurement_only",
+      QUICK_MIX_DEFAULT_MIX_SETTINGS,
+      "quick-mix"
+    );
+    assert.equal(exportParams.sourceVocalStemArtifactId, "aaa");
+    assert.equal(exportParams.targetInstrumentalStemArtifactId, "bbb");
+    assert.equal(exportParams.mixSettings.masterGainDb, 0);
+  });
+
+  it("lists orchestration stages through optional MP3", () => {
+    assert.ok(QUICK_MIX_PIPELINE_STAGES.includes("mix_and_export_wav"));
+    assert.ok(QUICK_MIX_PIPELINE_STAGES.includes("export_mp3_optional"));
+    assert.equal(QUICK_MIX_PIPELINE_STAGES.at(-1), "export_mp3_optional");
   });
 });
 

@@ -3223,6 +3223,44 @@ audio {
   color: #ff9b9b;
 }
 
+.quick-mix-error-panel {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 120, 120, 0.35);
+  background: rgba(40, 16, 16, 0.55);
+}
+
+.quick-mix-error-panel h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.quick-mix-error-panel p {
+  margin: 0 0 8px;
+  color: #ffd6d6;
+}
+
+.quick-mix-error-recovery {
+  color: #ffe9b8 !important;
+}
+
+.quick-mix-error-meta {
+  color: #9db0d1 !important;
+  font-size: 14px;
+}
+
+.quick-mix-error-validation {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #ffb4b4;
+}
+
+.quick-mix-error-panel pre {
+  overflow: auto;
+  max-height: 220px;
+  font-size: 12px;
+}
+
 .quick-mix-actions {
   display: flex;
   justify-content: center;

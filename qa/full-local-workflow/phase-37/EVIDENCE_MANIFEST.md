@@ -1,7 +1,8 @@
 # Phase 37 Quick Mix MVP RC evidence manifest
 
 **Tag target:** `mashlab-quick-mix-mvp-rc1`  
-**Commit:** `1d6bb44` — Improve sidecar lifecycle and Quick Mix smoke validation  
+**Base commit:** `1d6bb44` — Improve sidecar lifecycle and Quick Mix smoke validation  
+**RC checkpoint commit:** tagged at final HEAD after preflight smokes  
 **Updated:** 2026-06-30
 
 Upload audio you own or are authorized to use. All smoke inputs are synthetic FFmpeg lavfi WAVs only — no commercial music.
@@ -22,8 +23,8 @@ Drop vocal source → drop instrumental source → click **Mix** → local WAV e
 
 | Export | Artifact ID |
 |--------|-------------|
-| WAV | `9065910b4e2047c0b51a2fa57f3ea7ea` |
-| MP3 (optional) | `4de60606e29c4e68816b2dac53ad4f43` |
+| WAV | `bdf7af3d2bfd440fb568da98f06fe956` |
+| MP3 (optional) | `5530abac833443ac8092a8201ef649d2` |
 
 Re-run `npm run smoke:quick-mix` to regenerate IDs on a fresh sidecar session.
 

@@ -43,7 +43,7 @@ npm run validate:analysis-lane
 npm run collect:release-versions
 ```
 
-**Quick Mix MVP RC1 tag:** `mashlab-quick-mix-mvp-rc1` at commit `1d6bb44` (includes `smoke:quick-mix` + optional `smoke:quick-mix:browser`).
+**Quick Mix MVP RC1 tag:** `mashlab-quick-mix-mvp-rc1` (base `1d6bb44`; includes `smoke:quick-mix` + optional `smoke:quick-mix:browser`).
 
 ## Artifacts and cache exclusions
 

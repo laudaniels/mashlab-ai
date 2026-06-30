@@ -15,7 +15,7 @@
 | Field | Value |
 |-------|-------|
 | **Tag** | `mashlab-quick-mix-mvp-rc1` |
-| **Commit** | `1d6bb44` — Improve sidecar lifecycle and Quick Mix smoke validation |
+| **Base commit** | `1d6bb44` — Improve sidecar lifecycle and Quick Mix smoke validation |
 | **Prior tag** | `mashlab-windows-local-mvp-rc1` (Advanced Studio full workflow) |
 
 **Default user flow:** Drop vocal source → drop instrumental source → click **Mix** → local WAV export (+ optional MP3 reference).

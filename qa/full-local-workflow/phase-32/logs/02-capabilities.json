@@ -27,29 +27,29 @@
                          {
                              "id":  "librosa",
                              "label":  "librosa",
-                             "status":  "not_configured",
-                             "message":  "librosa is optional and not installed in this service environment.",
-                             "version":  null
+                             "status":  "available",
+                             "message":  "librosa is installed.",
+                             "version":  "0.11.0"
                          },
                          {
                              "id":  "beat_bpm_analysis",
                              "label":  "Basic beat/BPM analysis",
-                             "status":  "missing",
-                             "message":  "Install librosa for basic beat/BPM analysis.",
-                             "version":  null
+                             "status":  "available",
+                             "message":  "Experimental librosa beat_track BPM and beat times.",
+                             "version":  "0.11.0"
                          },
                          {
                              "id":  "key_analysis_experimental",
                              "label":  "Experimental key analysis",
-                             "status":  "missing",
-                             "message":  "Install librosa for experimental key analysis.",
-                             "version":  null
+                             "status":  "experimental",
+                             "message":  "Experimental librosa chroma key estimation ΓÇö DJ review required.",
+                             "version":  "0.11.0"
                          },
                          {
                              "id":  "heuristic_phrase_planning",
                              "label":  "Heuristic phrase planning",
-                             "status":  "planned",
-                             "message":  "Heuristic phrase planning requires beat analysis (librosa).",
+                             "status":  "available",
+                             "message":  "Heuristic phrase windows from detected beats ΓÇö not verified downbeats.",
                              "version":  null
                          },
                          {

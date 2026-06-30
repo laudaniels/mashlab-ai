@@ -11,6 +11,16 @@ coverage
 __pycache__/
 *.pyc
 .pytest_cache/
+.venv-rhythm/
 local-engine/service/.venv
 local-engine/service/.work
 local-engine/service/.cache
+# Torch / model caches (user machine — never commit weights)
+.cache/
+*.pt
+*.pth
+*.onnx
+# Large generated demo outputs (recipe + small zip may be committed intentionally)
+qa/full-local-workflow/phase-32/test-audio/*.wav
+qa/full-local-workflow/**/artifacts/
+qa/full-local-workflow/phase-35/mashlab-local-mvp-demo-package.zip

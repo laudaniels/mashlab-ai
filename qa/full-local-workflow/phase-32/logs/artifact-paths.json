@@ -1,8 +1,8 @@
 ﻿{
-    "combined":  "local-engine/service/.work/artifacts/combined-preview/b75b191bb7ad4db782fc0cfc6cd7611b",
-    "stem_b":  "local-engine/service/.work/artifacts/stems/2fc8db3e1daa412995655a3377eb54b9",
-    "stem_a":  "local-engine/service/.work/artifacts/stems/e7f66eb142cc4bd6ad1fe68f909fcf6a",
-    "master":  "local-engine/service/.work/artifacts/masters/34a58da28f204655983aaee0fc0a411e",
-    "package":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa",
-    "full_wav":  "local-engine/service/.work/artifacts/exports/beb668faeef24ffbb2abc7dbff25a321"
+    "combined":  "local-engine/service/.work/artifacts/combined-preview/64d8df366572435aa839f2a8a5fed5ce",
+    "stem_b":  "local-engine/service/.work/artifacts/stems/b2c4f575d0e84fff813c2fd7109f1c3a",
+    "stem_a":  "local-engine/service/.work/artifacts/stems/bd894b59a55b4862a131efacaf0ed509",
+    "master":  "local-engine/service/.work/artifacts/masters/299c93020b1e4387b1e5f7dfe130fbc1",
+    "package":  "artifacts/packages/8c6eb2fd9e804781bea5829f7bf71f0a/MashLab_Project_phase32-local-qa",
+    "full_wav":  "local-engine/service/.work/artifacts/exports/8248507c04ac417b91f37041372d3a89"
 }

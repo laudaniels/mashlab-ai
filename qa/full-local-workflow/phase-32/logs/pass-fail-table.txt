@@ -1,31 +1,31 @@
 ﻿
-Step                       Pass Detail                                                                                
-----                       ---- ------                                                                                
-Generate test audio        True track-a + track-b synthetic WAV                                                       
-Sidecar health             True http://127.0.0.1:47831                                                                
-Capability ffmpeg          True C:\Users\dimit\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.EXE             
-Capability ffprobe         True C:\Users\dimit\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffprobe.EXE            
-Capability rubberband      True C:\Users\dimit\tools\rubberband\rubberband-4.0.0-gpl-executable-windows\rubberband.EXE
-Capability torch           True 2.5.1+cpu                                                                             
-Capability demucs          True 4.0.1                                                                                 
-Metadata Track A           True Metadata returned from local ffprobe inspection.                                      
-Metadata Track B           True Metadata returned from local ffprobe inspection.                                      
-Analyze beat (track-a)     True librosa is not installed in the local service environment.                            
-Analyze key (track-a)      True librosa is not installed in the local service environment.                            
-Analyze phrases (track-a)  True librosa is not installed in the local service environment.                            
-Analyze beat (track-b)     True librosa is not installed in the local service environment.                            
-Analyze key (track-b)      True librosa is not installed in the local service environment.                            
-Analyze phrases (track-b)  True librosa is not installed in the local service environment.                            
-Stem preview Track A       True e7f66eb142cc4bd6ad1fe68f909fcf6a                                                      
-Stem preview Track B       True 2fc8db3e1daa412995655a3377eb54b9                                                      
-Combined preview           True b75b191bb7ad4db782fc0cfc6cd7611b                                                      
-Full WAV export            True beb668faeef24ffbb2abc7dbff25a321                                                      
-MP3 export                 True f7b2d96259da4c6591808a36004a4898                                                      
-Mastering preset           True 34a58da28f204655983aaee0fc0a411e                                                      
-Artifact browser list      True count=9                                                                               
-Artifact metadata loudness True Preview artifact metadata returned. Not a final export.                               
-Project package            True e834e51a35cb4dceb7768ac165859843                                                      
-Delete artifact safely     True f7b2d96259da4c6591808a36004a4898                                                      
+Step                        Pass Detail                                                                                
+----                        ---- ------                                                                                
+Generate test audio         True track-a + track-b synthetic WAV                                                       
+Sidecar health              True http://127.0.0.1:47831                                                                
+Capability ffmpeg           True C:\Users\dimit\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.EXE             
+Capability ffprobe          True C:\Users\dimit\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffprobe.EXE            
+Capability rubberband       True C:\Users\dimit\tools\rubberband\rubberband-4.0.0-gpl-executable-windows\rubberband.EXE
+Capability torch            True 2.5.1+cpu                                                                             
+Capability demucs           True 4.0.1                                                                                 
+Metadata Track A            True Metadata returned from local ffprobe inspection.                                      
+Metadata Track B            True Metadata returned from local ffprobe inspection.                                      
+Analyze beat (track-a)      True Experimental BPM and beat times computed with librosa.                                
+Analyze key (track-a)       True Experimental key estimate computed with librosa chroma/CQT.                           
+Analyze phrases (track-a)  False No beat times available for phrase analysis.                                          
+Analyze beat (track-b)      True Experimental BPM and beat times computed with librosa.                                
+Analyze key (track-b)       True Experimental key estimate computed with librosa chroma/CQT.                           
+Analyze phrases (track-b)   True Heuristic phrase windows computed from beat times. Not verified downbeats.            
+Stem preview Track A        True bd894b59a55b4862a131efacaf0ed509                                                      
+Stem preview Track B        True b2c4f575d0e84fff813c2fd7109f1c3a                                                      
+Combined preview            True 64d8df366572435aa839f2a8a5fed5ce                                                      
+Full WAV export             True 8248507c04ac417b91f37041372d3a89                                                      
+MP3 export                  True 366884bc313f4d65a4b6c531298b8c08                                                      
+Mastering preset            True 299c93020b1e4387b1e5f7dfe130fbc1                                                      
+Artifact browser list       True count=6                                                                               
+Artifact metadata loudness  True Preview artifact metadata returned. Not a final export.                               
+Project package             True 8c6eb2fd9e804781bea5829f7bf71f0a                                                      
+Delete artifact safely      True 366884bc313f4d65a4b6c531298b8c08                                                      
 
 
 

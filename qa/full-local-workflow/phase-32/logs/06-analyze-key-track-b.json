@@ -1,7 +1,19 @@
 ﻿{
-    "ok":  false,
-    "status":  "missing_dependency",
-    "message":  "librosa is not installed in the local service environment.",
-    "result":  null,
-    "setup_guidance":  "Install optional analysis dependencies in the service virtual environment: pip install librosa soundfile"
+    "ok":  true,
+    "status":  "implemented",
+    "message":  "Experimental key estimate computed with librosa chroma/CQT.",
+    "result":  {
+                   "file_name":  "track-b-instrumental-15s.wav",
+                   "key":  "A",
+                   "mode":  "major",
+                   "camelot":  "11B",
+                   "method":  "librosa chroma_cqt + Krumhansl-style correlation (experimental prototype)",
+                   "limitations":  [
+                                       "Experimental prototype using chroma/CQT correlation; not pro-grade key detection.",
+                                       "Short clips, atonal material, and heavy FX can reduce reliability.",
+                                       "Camelot codes are heuristic mappings for DJ reference only."
+                                   ],
+                   "confidence":  0.841
+               },
+    "setup_guidance":  null
 }

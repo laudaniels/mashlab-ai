@@ -1,7 +1,7 @@
 import {
   COMBINED_PREVIEW_DEFAULT_SECONDS,
   COMBINED_PREVIEW_MAX_SECONDS,
-} from "./combinedPreview.ts";
+} from "./combinedPreviewConstants.ts";
 import {
   createNeutralMixSettings,
   type MixSettings,

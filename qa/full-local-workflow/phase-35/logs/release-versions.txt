@@ -1,0 +1,15 @@
+Release version snapshot (2026-06-30T21:20:29.224Z)
+Node: v24.16.0
+npm: 11.13.0
+Python (venv): Python 3.12.10
+Venv path: C:/Users/dimit/Documents/Codex/2026-06-23/files-mentioned-by-the-user-you-4/local-engine/service/.venv/Scripts/python.exe
+FFmpeg: ffmpeg version N-125365-g9a01c1cb6a-20260630 Copyright (c) 2000-2026 the FFmpeg developers
+FFmpeg path: C:\Users\dimit\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe
+ffprobe path: C:\Users\dimit\tools\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffprobe.exe
+Rubber Band: 4.0.0
+Rubber Band path: C:\Users\dimit\tools\rubberband\rubberband-4.0.0-gpl-executable-windows\rubberband.exe
+PyTorch: 2.5.1+cpu
+Demucs: 4.0.1
+librosa: 0.11.0
+numpy: 2.4.6
+soundfile: 0.14.0

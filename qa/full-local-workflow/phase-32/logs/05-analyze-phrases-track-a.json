@@ -1,8 +1,8 @@
 ﻿{
     "ok":  false,
-    "status":  "missing_dependency",
-    "message":  "librosa is not installed in the local service environment.",
+    "status":  "failed",
+    "message":  "No beat times available for phrase analysis.",
     "result":  null,
-    "setup_guidance":  "Install optional analysis dependencies in the service virtual environment: pip install librosa soundfile",
+    "setup_guidance":  null,
     "validation_errors":  null
 }

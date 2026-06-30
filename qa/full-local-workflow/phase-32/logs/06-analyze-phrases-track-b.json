@@ -1,8 +1,66 @@
 ﻿{
-    "ok":  false,
-    "status":  "missing_dependency",
-    "message":  "librosa is not installed in the local service environment.",
-    "result":  null,
-    "setup_guidance":  "Install optional analysis dependencies in the service virtual environment: pip install librosa soundfile",
+    "ok":  true,
+    "status":  "implemented",
+    "message":  "Heuristic phrase windows computed from beat times. Not verified downbeats.",
+    "result":  {
+                   "file_name":  "track-b-instrumental-15s.wav",
+                   "method_used":  "heuristic_from_detected_beats",
+                   "phrase_basis":  "heuristic_from_beats",
+                   "beat_times":  [
+                                      0.0348,
+                                      0.4296,
+                                      0.8243,
+                                      1.2307,
+                                      1.637,
+                                      2.0317,
+                                      2.4613,
+                                      2.8909,
+                                      3.2972,
+                                      3.7268,
+                                      4.168,
+                                      4.5859,
+                                      4.9575,
+                                      5.4102,
+                                      5.863,
+                                      6.281,
+                                      6.6757,
+                                      7.0589,
+                                      7.4884,
+                                      7.8948,
+                                      8.3011,
+                                      8.6959,
+                                      9.1022,
+                                      9.6015,
+                                      10.0426,
+                                      10.449,
+                                      10.8437,
+                                      11.2733,
+                                      11.7029,
+                                      12.1208,
+                                      12.5736,
+                                      12.9683,
+                                      13.3747,
+                                      13.8043,
+                                      14.1874,
+                                      14.5821
+                                  ],
+                   "downbeat_times":  [
+
+                                      ],
+                   "phrase_start_times":  [
+                                              0.0348,
+                                              13.3747
+                                          ],
+                   "phrase_length_bars":  8,
+                   "confidence":  null,
+                   "bpm":  139.67,
+                   "limitations":  [
+                                       "Heuristic phrase windows from detected beats ΓÇö not verified downbeats.",
+                                       "Assumes the first beat in the window equals bar 1 downbeat unless advanced engine provides verified data.",
+                                       "DJ review required before live use."
+                                   ],
+                   "dj_review_required":  true
+               },
+    "setup_guidance":  null,
     "validation_errors":  null
 }

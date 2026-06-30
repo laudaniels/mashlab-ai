@@ -4370,6 +4370,56 @@ describe("Release documentation and local demo (Phase 34)", async () => {
   });
 });
 
+describe("Release packaging (Phase 35)", async () => {
+  const {
+    MVP_RELEASE_LIMITATIONS,
+    MVP_RELEASE_PREFLIGHT_ITEMS,
+    MVP_RELEASE_URLS,
+    RELEASE_GITIGNORE_PATTERNS,
+    WINDOWS_MVP_VERIFY_COMMANDS,
+    buildDemoPackageFileList,
+    formatDependencyManifestRow,
+    formatDependencyVerifyBlock,
+    includesReleaseSafetyLanguage,
+    matchesReleaseGitignorePattern,
+  } = await importSrc("src/domain/releasePackaging.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+
+  it("formats dependency manifest rows", () => {
+    assert.match(formatDependencyManifestRow("Node.js", "v24.16.0", "node -v"), /Node.js \| v24.16.0 \| `node -v`/);
+  });
+
+  it("lists verify commands for Windows MVP dependencies", () => {
+    const block = formatDependencyVerifyBlock(WINDOWS_MVP_VERIFY_COMMANDS).join("\n");
+    assert.match(block, /npm run sidecar:status/);
+    assert.match(block, /WSL rhythm \(optional\)/);
+  });
+
+  it("includes release safety and rights language in limitations", () => {
+    const text = [...MVP_RELEASE_LIMITATIONS, requiredRightsNotice].join("\n");
+    assert.ok(includesReleaseSafetyLanguage(text));
+    assert.match(text, /No public sharing/);
+  });
+
+  it("matches gitignore patterns for venv and work dirs", () => {
+    assert.ok(matchesReleaseGitignorePattern("local-engine/service/.venv/Lib/site-packages/foo.py"));
+    assert.ok(matchesReleaseGitignorePattern("local-engine/service/.work/artifacts/stem.wav"));
+    assert.ok(!matchesReleaseGitignorePattern("docs/MVP_RELEASE_CANDIDATE_CHECKLIST.md"));
+    assert.ok(RELEASE_GITIGNORE_PATTERNS.includes("local-engine/service/.venv/"));
+  });
+
+  it("builds demo package file list with release docs", () => {
+    const files = buildDemoPackageFileList();
+    assert.ok(files.includes("docs/MVP_RELEASE_CANDIDATE_CHECKLIST.md"));
+    assert.ok(files.includes("docs/RELEASE_DEPENDENCIES_WINDOWS.md"));
+  });
+
+  it("defines MVP preflight items and local URLs", () => {
+    assert.ok(MVP_RELEASE_PREFLIGHT_ITEMS.some((item) => item.commandOrPath === "npm run start:local:windows"));
+    assert.equal(MVP_RELEASE_URLS.health, "http://127.0.0.1:47831/health");
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

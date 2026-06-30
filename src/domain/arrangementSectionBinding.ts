@@ -1,7 +1,5 @@
-import {
-  COMBINED_PREVIEW_MAX_SECONDS,
-  type CombinedPreviewRequestParams,
-} from "./combinedPreview.ts";
+import { COMBINED_PREVIEW_MAX_SECONDS } from "./combinedPreviewConstants.ts";
+import type { CombinedPreviewRequestParams } from "./combinedPreview.ts";
 import type { MixSettings } from "./mixControls.ts";
 import type { PhraseBasis, ArrangementPlanModel, ArrangementSection, DraftType } from "./arrangementPlanning.ts";
 import {

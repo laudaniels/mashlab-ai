@@ -2,11 +2,11 @@
     "ok":  true,
     "status":  "ready",
     "message":  "Mastering preset \u0027Club loudness prototype\u0027 applied to local master artifact.",
-    "master_artifact_id":  "34a58da28f204655983aaee0fc0a411e",
-    "source_wav_export_artifact_id":  "beb668faeef24ffbb2abc7dbff25a321",
+    "master_artifact_id":  "299c93020b1e4387b1e5f7dfe130fbc1",
+    "source_wav_export_artifact_id":  "8248507c04ac417b91f37041372d3a89",
     "preset":  "club_loudness_prototype",
-    "artifact_url":  "/v1/artifacts/masters/34a58da28f204655983aaee0fc0a411e/master",
-    "download_url":  "/v1/artifacts/masters/34a58da28f204655983aaee0fc0a411e/master",
+    "artifact_url":  "/v1/artifacts/masters/299c93020b1e4387b1e5f7dfe130fbc1/master",
+    "download_url":  "/v1/artifacts/masters/299c93020b1e4387b1e5f7dfe130fbc1/master",
     "before_readout":  {
                            "duration_seconds":  15.0,
                            "sample_rate":  44100,
@@ -31,7 +31,7 @@
                           "file_size_bytes":  11520102,
                           "loudness":  {
                                            "integrated_lufs":  -7.96,
-                                           "true_peak_dbtp":  -5.95,
+                                           "true_peak_dbtp":  -5.94,
                                            "peak_level_db":  -5.9,
                                            "status":  "available",
                                            "message":  "Loudness readout measured with FFmpeg loudnorm analysis pass."
@@ -43,7 +43,7 @@
                           "status":  "pass",
                           "message":  "Within preset display targets (~-8.0 LUFS / -1.0 dBTP). Club loudness prototype gate ΓÇö DJ review required. Not club-ready certification or professional mastering.",
                           "integrated_lufs":  -7.96,
-                          "true_peak_dbtp":  -5.95,
+                          "true_peak_dbtp":  -5.94,
                           "target_integrated_lufs":  -8.0,
                           "target_true_peak_dbtp":  -1.0
                       },

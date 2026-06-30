@@ -81,7 +81,18 @@ Evidence: `qa/full-local-workflow/phase-32/logs/`
 - [x] `npm run validate:analysis-lane` — beat/key PASS; phrases honest on sine clip (re-run 2026-06-30)
 - [x] Capabilities show librosa + beat/key lanes available after sidecar restart
 - [x] Task 384497 exit 4294967295 documented as external stop during librosa restart — not startup failure
-- [ ] Manual UI PNG screenshots — documented in `qa/full-local-workflow/phase-34/screenshots/EVIDENCE_MANIFEST.md`
+- [x] Manual UI PNG screenshots — captured via Playwright + Edge (Phase 35); see `EVIDENCE_MANIFEST.md`
+
+## Phase 35 verified (release packaging)
+
+- [x] `docs/RELEASE_DEPENDENCIES_WINDOWS.md` — pinned dependency manifest
+- [x] `docs/MVP_RELEASE_CANDIDATE_CHECKLIST.md` — release candidate checklist
+- [x] `docs/CI_CHECKS.md` + `.github/workflows/mvp-checks.yml`
+- [x] `npm run collect:release-versions` — version snapshot
+- [x] `npm run package:demo-release` — optional demo ZIP recipe
+- [x] `npm run capture:release-screenshots` — 10 UI PNGs (Playwright + Edge)
+- [x] `.gitignore` audit — venv, .work, caches, model weights, test WAVs
+- [x] Circular import fix — `combinedPreviewConstants.ts` (React mount in automated browsers)
 
 ### Phase 34 local demo checklist
 

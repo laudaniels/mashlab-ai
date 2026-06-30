@@ -2,8 +2,6 @@ import { AlertTriangle, Headphones, LoaderCircle, PlayCircle, Sparkles } from "l
 import { useEffect, useMemo, useState } from "react";
 import {
   buildCombinedPreviewRequestParams,
-  COMBINED_PREVIEW_DEFAULT_SECONDS,
-  COMBINED_PREVIEW_DURATION_OPTIONS,
   COMBINED_PREVIEW_ONLY_NOTICE,
   COMBINED_PREVIEW_PROCESSED_LABEL,
   combinedPreviewDurationWarning,
@@ -14,6 +12,10 @@ import {
   validateCombinedPreviewStartOffset,
   type CombinedPreviewResult,
 } from "../domain/combinedPreview.ts";
+import {
+  COMBINED_PREVIEW_DEFAULT_SECONDS,
+  COMBINED_PREVIEW_DURATION_OPTIONS,
+} from "../domain/combinedPreviewConstants.ts";
 import {
   buildPitchTimePlanFromArtifacts,
   rubberBandReadinessFromCapabilityStatus,

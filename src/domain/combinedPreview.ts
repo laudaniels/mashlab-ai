@@ -2,6 +2,10 @@ import type { MixSettings } from "./mixControls.ts";
 import { mixSettingsToRequestFields } from "./mixControls.ts";
 import type { ArrangementSectionContext } from "./arrangementSectionContext.ts";
 import { serializeArrangementContextForApi } from "./arrangementSectionContext.ts";
+import {
+  COMBINED_PREVIEW_DEFAULT_SECONDS,
+  COMBINED_PREVIEW_MAX_SECONDS,
+} from "./combinedPreviewConstants.ts";
 import type { MashIntent, PitchTimeDirectionPlan } from "./pitchTimePlanning.ts";
 import { resolveIntentDirectionPairs, buildTrackPlanningInput } from "./pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "./sessionArtifacts.ts";
@@ -15,11 +19,12 @@ export const COMBINED_PREVIEW_PROCESSED_LABEL =
 
 export const MISSING_STEM_ARTIFACTS_MESSAGE = "Create stem previews for both tracks first.";
 
-export const COMBINED_PREVIEW_DURATION_OPTIONS = [15, 30, 60] as const;
-export const COMBINED_PREVIEW_DEFAULT_SECONDS = 30;
-export const COMBINED_PREVIEW_MAX_SECONDS = 60;
-
-export type CombinedPreviewDurationOption = (typeof COMBINED_PREVIEW_DURATION_OPTIONS)[number];
+export type { CombinedPreviewDurationOption } from "./combinedPreviewConstants.ts";
+export {
+  COMBINED_PREVIEW_DEFAULT_SECONDS,
+  COMBINED_PREVIEW_DURATION_OPTIONS,
+  COMBINED_PREVIEW_MAX_SECONDS,
+} from "./combinedPreviewConstants.ts";
 
 export type CombinedMashIntent = "vocal_a_over_beat_b" | "vocal_b_over_beat_a";
 

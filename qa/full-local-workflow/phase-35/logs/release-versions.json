@@ -1,0 +1,19 @@
+{
+  "collectedAt": "2026-06-30T21:20:29.224Z",
+  "platform": "win32",
+  "node": "v24.16.0",
+  "npm": "11.13.0",
+  "sidecarVenvPython": "C:/Users/dimit/Documents/Codex/2026-06-23/files-mentioned-by-the-user-you-4/local-engine/service/.venv/Scripts/python.exe",
+  "pythonVersion": "Python 3.12.10",
+  "ffmpegPath": "C:\\Users\\dimit\\tools\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.exe",
+  "ffmpegVersion": "ffmpeg version N-125365-g9a01c1cb6a-20260630 Copyright (c) 2000-2026 the FFmpeg developers",
+  "ffprobePath": "C:\\Users\\dimit\\tools\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffprobe.exe",
+  "ffprobeVersion": "ffprobe version N-125365-g9a01c1cb6a-20260630 Copyright (c) 2007-2026 the FFmpeg developers",
+  "rubberbandPath": "C:\\Users\\dimit\\tools\\rubberband\\rubberband-4.0.0-gpl-executable-windows\\rubberband.exe",
+  "rubberbandVersion": "4.0.0",
+  "torch": "2.5.1+cpu",
+  "demucs": "4.0.1",
+  "librosa": "0.11.0",
+  "numpy": "2.4.6",
+  "soundfile": "0.14.0"
+}

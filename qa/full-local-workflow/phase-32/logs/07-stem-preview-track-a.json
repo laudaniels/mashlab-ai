@@ -4,7 +4,7 @@
     "message":  "Vocal/instrumental stem preview processed locally. Preview only ΓÇö not final export.",
     "method":  "demucs-two-stems-vocals",
     "audio_processed":  true,
-    "artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+    "artifact_id":  "bd894b59a55b4862a131efacaf0ed509",
     "input_summary":  {
                           "file_name":  "track-a-vocal-like-15s.wav",
                           "duration_seconds":  15.0,
@@ -18,14 +18,14 @@
                    "duration_seconds":  15.0,
                    "sample_rate":  44100,
                    "channel_count":  2,
-                   "artifact_url":  "/v1/artifacts/stems/e7f66eb142cc4bd6ad1fe68f909fcf6a/vocals"
+                   "artifact_url":  "/v1/artifacts/stems/bd894b59a55b4862a131efacaf0ed509/vocals"
                },
     "no_vocals":  {
                       "file_name":  "no_vocals.wav",
                       "duration_seconds":  15.0,
                       "sample_rate":  44100,
                       "channel_count":  2,
-                      "artifact_url":  "/v1/artifacts/stems/e7f66eb142cc4bd6ad1fe68f909fcf6a/no_vocals"
+                      "artifact_url":  "/v1/artifacts/stems/bd894b59a55b4862a131efacaf0ed509/no_vocals"
                   },
     "warnings":  [
                      "Demucs preview output is not studio-quality. Use for arrangement testing only."

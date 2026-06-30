@@ -2,11 +2,11 @@ import type { ArrangementSectionContext } from "./arrangementSectionContext.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
 import {
   buildCombinedPreviewRequestParams,
-  COMBINED_PREVIEW_DEFAULT_SECONDS,
   isCombinedPreviewReady,
   resolveCombinedPreviewDirections,
   type CombinedPreviewDirectionContext,
 } from "./combinedPreview.ts";
+import { COMBINED_PREVIEW_DEFAULT_SECONDS } from "./combinedPreviewConstants.ts";
 import type { MixSettings } from "./mixControls.ts";
 import { validateMixSettings } from "./mixControls.ts";
 import type { MashIntent, PitchTimeDirectionPlan, RubberBandReadiness } from "./pitchTimePlanning.ts";

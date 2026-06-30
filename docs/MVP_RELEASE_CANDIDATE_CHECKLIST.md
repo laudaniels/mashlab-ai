@@ -1,0 +1,135 @@
+# MVP release candidate checklist
+
+**Product:** MashLab AI / CyphaBlend AI  
+**Target:** Local Windows MVP release candidate  
+**Legal:** Neutral private audio-processing tool — user supplies audio and holds rights.
+
+> Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
+
+**No public sharing. No cloud upload. No downloader. No streaming imports.**
+
+---
+
+## 1. Dependency setup
+
+- [ ] Node.js and npm installed (`node -v`, `npm -v`)
+- [ ] `npm install` in repo root
+- [ ] Sidecar venv created: `local-engine/service/.venv`
+- [ ] Base Python deps: `pip install -r requirements.txt`
+- [ ] Optional stems: CPU torch + `requirements-stems.txt`
+- [ ] Optional analysis: `npm run setup:analysis`
+- [ ] FFmpeg + ffprobe on PATH
+- [ ] Rubber Band CLI on PATH
+- [ ] Record versions: `npm run collect:release-versions`
+
+Reference: [RELEASE_DEPENDENCIES_WINDOWS.md](./RELEASE_DEPENDENCIES_WINDOWS.md)
+
+## 2. Preflight checks
+
+```powershell
+npm run setup:windows:check
+npm run setup:windows:check:strict
+npm run check:local-engine
+npm run check:python-service:test:venv
+npm run sidecar:status
+```
+
+Expected strict tier: venv Python + FFmpeg/ffprobe available (6/7 checks; WSL rhythm optional).
+
+## 3. Start commands
+
+```powershell
+npm run start:local:windows
+```
+
+Or manual:
+
+```powershell
+npm run sidecar:start
+npm run dev
+```
+
+## 4. Expected local URLs
+
+| URL | Purpose |
+|-----|---------|
+| http://127.0.0.1:5173/ | Vite React app |
+| http://127.0.0.1:47831/health | Sidecar health |
+| http://127.0.0.1:47831/v1/capabilities | Dependency capabilities |
+
+## 5. Full workflow summary (user-initiated)
+
+1. Upload two tracks (synthetic test WAVs OK for QA)
+2. Inspect metadata / optional BPM/key (librosa)
+3. Stem preview both tracks (Demucs)
+4. Combined preview (Rubber Band + FFmpeg mix)
+5. Full WAV export → MP3 reference → mastering prototype
+6. Project package export (`public_share: false`)
+7. Artifact browser list + optional cleanup
+
+API validation evidence: `qa/full-local-workflow/phase-32/`  
+Librosa lane: `npm run validate:analysis-lane`
+
+## 6. Manual screenshot checklist
+
+Capture in **Chrome or Edge** (or `npm run capture:release-screenshots` with Playwright):
+
+| File | Screen |
+|------|--------|
+| `01-first-run-guidance.png` | First-run guidance |
+| `02-upload-two-tracks.png` | Upload with Track A + B |
+| `03-local-engine-status.png` | Local Engine Status |
+| `04-workflow-checklist.png` | Session workflow checklist |
+| `05-analysis-screen.png` | Analysis with librosa available |
+| `06-stems-screen.png` | Stems panel |
+| `07-combined-preview.png` | Timeline / combined preview |
+| `08-export-screen.png` | Export prep |
+| `09-artifact-browser.png` | Artifact browser |
+| `10-package-result.png` | Package result if available |
+
+Folder: `qa/full-local-workflow/phase-34/screenshots/`  
+Manifest: `EVIDENCE_MANIFEST.md`
+
+## 7. Quality gate (release)
+
+```powershell
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run validate:analysis-lane
+npm run package:demo-release
+```
+
+## 8. Known limitations
+
+- No public sharing hub, cloud upload, downloader, or streaming import
+- librosa BPM/key and phrase lanes are experimental — DJ review required
+- Phrase analysis needs detectable beats (not pure sine tones)
+- Demucs weights download to user cache on first run
+- Mastering/mix limiter prototypes — not certification
+- Verified madmom/Essentia rhythm requires optional WSL/Linux setup
+
+## 9. Rights / legal constraints
+
+- User-supplied audio only; user responsible for use and distribution rights
+- `RIGHTS_NOTICE.txt` included in project packages
+- All exports set `public_share: false`
+- No publishing-rights claims in product copy
+
+## 10. Demo package
+
+Optional ZIP (docs + QA logs, no binaries/weights):
+
+```powershell
+npm run package:demo-release
+```
+
+Output: `qa/full-local-workflow/phase-35/mashlab-local-mvp-demo-package.zip`  
+Recipe: `qa/full-local-workflow/phase-35/PACKAGE_RECIPE.md`
+
+## Related docs
+
+- [PHASE_34_RELEASE_DOCUMENTATION.md](./PHASE_34_RELEASE_DOCUMENTATION.md)
+- [QA_WORKFLOW_CHECKLIST.md](./QA_WORKFLOW_CHECKLIST.md)
+- [CI_CHECKS.md](./CI_CHECKS.md)

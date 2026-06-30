@@ -2,66 +2,66 @@
     "ok":  true,
     "status":  "ready",
     "message":  "Local project package created.",
-    "package_artifact_id":  "e834e51a35cb4dceb7768ac165859843",
+    "package_artifact_id":  "8c6eb2fd9e804781bea5829f7bf71f0a",
     "package_label":  "phase32-local-qa",
     "package_type":  "folder",
-    "local_folder_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa",
+    "local_folder_path":  "artifacts/packages/8c6eb2fd9e804781bea5829f7bf71f0a/MashLab_Project_phase32-local-qa",
     "download_url":  null,
-    "manifest_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa/manifest.json",
-    "rights_notice_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa/RIGHTS_NOTICE.txt",
-    "technical_report_path":  "artifacts/packages/e834e51a35cb4dceb7768ac165859843/MashLab_Project_phase32-local-qa/reports/technical-report.json",
+    "manifest_path":  "artifacts/packages/8c6eb2fd9e804781bea5829f7bf71f0a/MashLab_Project_phase32-local-qa/manifest.json",
+    "rights_notice_path":  "artifacts/packages/8c6eb2fd9e804781bea5829f7bf71f0a/MashLab_Project_phase32-local-qa/RIGHTS_NOTICE.txt",
+    "technical_report_path":  "artifacts/packages/8c6eb2fd9e804781bea5829f7bf71f0a/MashLab_Project_phase32-local-qa/reports/technical-report.json",
     "included_files":  [
                            {
-                               "artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+                               "artifact_id":  "bd894b59a55b4862a131efacaf0ed509",
                                "artifact_type":  "stem",
                                "artifact_subtype":  null,
                                "source_path":  "vocals.wav",
                                "package_path":  "stems/track-b-vocals.wav"
                            },
                            {
-                               "artifact_id":  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
+                               "artifact_id":  "bd894b59a55b4862a131efacaf0ed509",
                                "artifact_type":  "stem",
                                "artifact_subtype":  null,
                                "source_path":  "no_vocals.wav",
                                "package_path":  "stems/track-b-no-vocals.wav"
                            },
                            {
-                               "artifact_id":  "2fc8db3e1daa412995655a3377eb54b9",
+                               "artifact_id":  "b2c4f575d0e84fff813c2fd7109f1c3a",
                                "artifact_type":  "stem",
                                "artifact_subtype":  null,
                                "source_path":  "vocals.wav",
                                "package_path":  "stems/track-a-vocals.wav"
                            },
                            {
-                               "artifact_id":  "2fc8db3e1daa412995655a3377eb54b9",
+                               "artifact_id":  "b2c4f575d0e84fff813c2fd7109f1c3a",
                                "artifact_type":  "stem",
                                "artifact_subtype":  null,
                                "source_path":  "no_vocals.wav",
                                "package_path":  "stems/track-a-no-vocals.wav"
                            },
                            {
-                               "artifact_id":  "b75b191bb7ad4db782fc0cfc6cd7611b",
+                               "artifact_id":  "64d8df366572435aa839f2a8a5fed5ce",
                                "artifact_type":  "combined-preview",
                                "artifact_subtype":  null,
                                "source_path":  "preview.wav",
                                "package_path":  "previews/combined-preview.wav"
                            },
                            {
-                               "artifact_id":  "beb668faeef24ffbb2abc7dbff25a321",
+                               "artifact_id":  "8248507c04ac417b91f37041372d3a89",
                                "artifact_type":  "export",
                                "artifact_subtype":  "full-wav",
                                "source_path":  "export.wav",
                                "package_path":  "exports/export-full.wav"
                            },
                            {
-                               "artifact_id":  "f7b2d96259da4c6591808a36004a4898",
+                               "artifact_id":  "366884bc313f4d65a4b6c531298b8c08",
                                "artifact_type":  "export",
                                "artifact_subtype":  "mp3",
                                "source_path":  "export.mp3",
                                "package_path":  "exports/export.mp3"
                            },
                            {
-                               "artifact_id":  "34a58da28f204655983aaee0fc0a411e",
+                               "artifact_id":  "299c93020b1e4387b1e5f7dfe130fbc1",
                                "artifact_type":  "master",
                                "artifact_subtype":  "club_loudness_prototype",
                                "source_path":  "master.wav",
@@ -69,12 +69,12 @@
                            }
                        ],
     "included_artifact_ids":  [
-                                  "e7f66eb142cc4bd6ad1fe68f909fcf6a",
-                                  "2fc8db3e1daa412995655a3377eb54b9",
-                                  "b75b191bb7ad4db782fc0cfc6cd7611b",
-                                  "beb668faeef24ffbb2abc7dbff25a321",
-                                  "f7b2d96259da4c6591808a36004a4898",
-                                  "34a58da28f204655983aaee0fc0a411e"
+                                  "bd894b59a55b4862a131efacaf0ed509",
+                                  "b2c4f575d0e84fff813c2fd7109f1c3a",
+                                  "64d8df366572435aa839f2a8a5fed5ce",
+                                  "8248507c04ac417b91f37041372d3a89",
+                                  "366884bc313f4d65a4b6c531298b8c08",
+                                  "299c93020b1e4387b1e5f7dfe130fbc1"
                               ],
     "public_share":  false,
     "package_only":  true,

@@ -55,6 +55,7 @@ Implemented:
 - **Windows FFmpeg + Rubber Band PATH validation** — official BtbN FFmpeg and Breakfast Quay Rubber Band CLI; pitch/time preview validated with synthetic audio (Phase 29–30).
 - **Demucs / PyTorch stem preview validation** — CPU torch 2.5.1 + Demucs 4.x in sidecar venv; two-stem preview validated with synthetic lavfi audio (Phase 31).
 - **Full end-to-end local QA** — stem → combined → WAV → MP3 → master → package validated with synthetic audio; evidence in `qa/full-local-workflow/phase-32/` (Phase 32).
+- **Production hardening** — venv-aware Python checks, `sidecar:start|stop|status`, optional `setup:analysis`, strict setup accepts venv Python (Phase 33).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 

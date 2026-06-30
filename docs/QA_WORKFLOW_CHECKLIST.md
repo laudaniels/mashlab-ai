@@ -66,6 +66,14 @@ End-to-end API workflow **PASS** on Windows 11 with FFmpeg + Rubber Band 4.0.0 +
 
 Evidence: `qa/full-local-workflow/phase-32/logs/`
 
+## Phase 33 verified (production hardening)
+
+- [x] `check:python-service` prefers sidecar venv when global python missing
+- [x] `setup:windows:check:strict` passes with venv Python + FFmpeg on PATH
+- [x] `npm run sidecar:start|status|stop` — single-instance lifecycle
+- [x] `npm run setup:analysis:dry-run` documents optional librosa path
+- [ ] Manual UI screenshots — see `qa/full-local-workflow/phase-33/screenshots/README.md`
+
 ## End-to-End Workflow Checklist
 
 ### 1. Upload Track A and Track B

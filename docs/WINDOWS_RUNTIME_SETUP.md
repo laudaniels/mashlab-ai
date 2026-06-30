@@ -9,7 +9,12 @@ Upload audio you own or are authorized to use. MashLab AI helps process and arra
 | Command | Purpose |
 |---------|---------|
 | `npm run setup:windows:check` | Detect Python, FFmpeg, Rubber Band, librosa, Demucs (informational) |
-| `npm run setup:windows:check:strict` | Exit 1 if Python or FFmpeg/ffprobe missing |
+| `npm run setup:windows:check:strict` | Exit 1 if FFmpeg/ffprobe missing or neither global Python nor sidecar venv exists |
+| `npm run sidecar:start` | Start single sidecar instance on 127.0.0.1:47831 (skip if healthy) |
+| `npm run sidecar:status` | Sidecar health + recorded pid |
+| `npm run sidecar:stop` | Stop MashLab sidecar when health check identifies it |
+| `npm run check:python-service` | py_compile — prefers sidecar venv when global python missing |
+| `npm run setup:analysis` | Optional librosa install in sidecar venv |
 | `npm run setup:windows:guide` | Print setup guide and start checklist |
 | `npm run start:local` | Step-by-step “start MashLab locally” checklist |
 | `npm run check:local-engine` | FFmpeg/ffprobe PATH check only |
@@ -181,8 +186,10 @@ npm run start:local
 Typical two-terminal flow:
 
 1. **Terminal A:** `npm run dev` → open http://127.0.0.1:5173
-2. **Terminal B:** start Python sidecar (see above)
+2. **Terminal B:** `npm run sidecar:start` (or manual uvicorn — see `docs/PHASE_33_PRODUCTION_HARDENING.md`)
 3. Run `npm run setup:windows:check` before processing steps
+
+**Phase 33:** `setup:windows:check:strict` passes when sidecar **venv Python** exists even if global `python` is not on PATH. Python service checks (`check:python-service*`) use the same venv-first resolution.
 
 ## Interpreting check failures
 
@@ -193,7 +200,8 @@ Typical two-terminal flow:
 | `setup:windows:check` | Rubber Band missing | Combined preview / pitch-time blocked |
 | `setup:windows:check` | Demucs missing | Stem preview blocked |
 | `setup:windows:check` | librosa missing | BPM/key prototype unavailable — overrides still work |
-| `setup:windows:check:strict` | exit 1 | Python or FFmpeg/ffprobe not ready for processing CI |
+| `setup:windows:check` | Python missing (global) | Browser MVP still works — **venv python counts as available** (Phase 33) |
+| `setup:windows:check:strict` | exit 1 | FFmpeg/ffprobe missing, or neither global python nor sidecar venv |
 | `check:local-engine` | exit 1 | ffmpeg or ffprobe not on PATH |
 | `sidecar:wsl:check` | WSL not installed | Expected on Windows-only hosts — heuristic rhythm remains default |
 
@@ -208,8 +216,11 @@ npm test
 npm run build
 npm run check:python-service
 npm run check:python-service:test
+npm run check:python-service:venv
 npm run check:local-engine
 npm run setup:windows:check
+npm run setup:windows:check:strict
+npm run sidecar:status
 ```
 
 ## Related docs

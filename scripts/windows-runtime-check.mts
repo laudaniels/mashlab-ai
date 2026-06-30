@@ -4,10 +4,15 @@ import { existsSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
+  ANALYSIS_SETUP_GUIDANCE,
+  findExistingSidecarVenvPython,
+  pythonRuntimeAvailableForSidecar,
+  resolvePythonForChecks,
+} from "../src/domain/pythonRuntime.ts";
+import {
   evaluateWindowsCheckExitCode,
   formatWindowsRuntimeCheckLine,
   formatWindowsRuntimeSummary,
-  sidecarVenvPythonCandidates,
   STREAMLABS_FFMPEG_NOTE,
   WINDOWS_FFMPEG_PATH_NOTICE,
   WINDOWS_PYTHON_PATH_NOTICE,
@@ -62,10 +67,14 @@ const ffmpeg = await commandAvailable("ffmpeg");
 const ffprobe = await commandAvailable("ffprobe");
 const rubberBand = await findRubberBand();
 
-const sidecarVenvPython =
-  sidecarVenvPythonCandidates(process.cwd()).find((candidate) => existsSync(candidate)) ?? null;
-const pythonForPackages = sidecarVenvPython ?? (python.ok ? "python" : null);
+const sidecarVenvPython = findExistingSidecarVenvPython(process.cwd(), existsSync);
+const pythonForPackages = resolvePythonForChecks({
+  globalPythonAvailable: python.ok,
+  venvPythonPath: sidecarVenvPython,
+  preferVenv: true,
+}).command;
 const packageSource = sidecarVenvPython ? "sidecar venv" : "default python";
+const pythonAvailable = pythonRuntimeAvailableForSidecar(python.ok, sidecarVenvPython);
 
 const librosaOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "librosa") : false;
 const torchOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "torch") : false;
@@ -84,11 +93,13 @@ const items: WindowsRuntimeCheckItem[] = [
     id: "python",
     label: "Python",
     tier: "processing",
-    status: python.ok ? "available" : "missing",
-    message: python.ok
-      ? `Found: ${python.detail ?? "python"}`
-      : "python not found on PATH — sidecar cannot start.",
-    setupGuidance: python.ok ? null : WINDOWS_PYTHON_PATH_NOTICE,
+    status: pythonAvailable ? "available" : "missing",
+    message: pythonAvailable
+      ? python.ok
+        ? `Found on PATH: ${python.detail ?? "python"}`
+        : "Sidecar venv python available (global python not on PATH)"
+      : "python not on PATH and no sidecar venv — sidecar cannot start.",
+    setupGuidance: pythonAvailable ? null : WINDOWS_PYTHON_PATH_NOTICE,
   },
   {
     id: "ffmpeg",
@@ -123,7 +134,7 @@ const items: WindowsRuntimeCheckItem[] = [
       : librosaOk
         ? `librosa importable in ${packageSource} — BPM/key prototype available.`
         : `librosa not installed in ${packageSource} — install in sidecar venv.`,
-    setupGuidance: librosaOk ? null : "cd local-engine/service && pip install -r requirements-analysis.txt",
+    setupGuidance: librosaOk ? null : ANALYSIS_SETUP_GUIDANCE,
   },
   {
     id: "demucs",

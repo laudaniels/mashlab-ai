@@ -1,4 +1,5 @@
 import { requiredRightsNotice } from "../lib/legal.ts";
+import { evaluateStrictWindowsRuntimeExit } from "./pythonRuntime.ts";
 import { RHYTHM_SELF_TEST_NO_USER_AUDIO_NOTICE } from "./rhythmSelfTest.ts";
 import { WSL_OPTIONAL_RHYTHM_NOTICE, WINDOWS_MVP_RHYTHM_NOTICE } from "./wslSidecarProfile.ts";
 
@@ -110,25 +111,15 @@ export function evaluateWindowsCheckExitCode(
   items: WindowsRuntimeCheckItem[],
   strict: boolean
 ): number {
-  if (!strict) {
-    return 0;
-  }
-  const blocking = items.filter(
-    (item) =>
-      item.tier === "processing" &&
-      (item.id === "ffmpeg" || item.id === "python") &&
-      item.status !== "available"
-  );
-  return blocking.length > 0 ? 1 : 0;
+  return evaluateStrictWindowsRuntimeExit(items, strict);
 }
 
 export function buildLocalStartChecklist(): string[] {
   return [
     "1. Terminal A — Vite app: npm install && npm run dev",
-    "2. Terminal B — Sidecar (optional): cd local-engine/service",
-    "   python -m venv .venv && .venv\\Scripts\\activate (Windows)",
-    "   pip install -r requirements.txt && pip install -r requirements-analysis.txt",
-    "   python -m uvicorn main:app --host 127.0.0.1 --port 47831",
+    "2. Terminal B — Sidecar (optional): npm run sidecar:start",
+    "   Or manually: cd local-engine/service && .venv\\Scripts\\python.exe -m uvicorn main:app --host 127.0.0.1 --port 47831",
+    "   Status: npm run sidecar:status — stop: npm run sidecar:stop",
     "3. Verify PATH: npm run setup:windows:check",
     "4. Optional stems: pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements-stems.txt",
     "5. Optional Rubber Band: download Breakfast Quay Windows CLI zip; add folder with rubberband.exe + sndfile.dll to PATH",

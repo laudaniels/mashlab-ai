@@ -4192,6 +4192,16 @@ describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
     ];
     assert.equal(evaluateWindowsCheckExitCode(items, true), 1);
     assert.equal(evaluateWindowsCheckExitCode(items, false), 0);
+    assert.equal(
+      evaluateWindowsCheckExitCode(
+        [
+          { id: "python", label: "Python", tier: "processing", status: "available", message: "venv", setupGuidance: null },
+          { id: "ffmpeg", label: "FFmpeg", tier: "processing", status: "available", message: "ok", setupGuidance: null },
+        ],
+        true
+      ),
+      0
+    );
   });
 
   it("labels dependency requirement tiers", () => {
@@ -4237,7 +4247,7 @@ describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
 
   it("local start checklist mentions sidecar and WSL optional", () => {
     const checklist = buildLocalStartChecklist();
-    assert.ok(checklist.some((line) => /uvicorn/i.test(line)));
+    assert.ok(checklist.some((line) => /sidecar:start/i.test(line)));
     assert.ok(checklist.some((line) => /sidecar:wsl:check/i.test(line)));
     assert.match(WSL_OPTIONAL_RHYTHM_NOTICE, /Optional/i);
   });
@@ -4249,6 +4259,69 @@ describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
     assert.ok(candidates.some((path) => path.includes(".venv/bin/python")));
     assert.equal(formatPackageSourceLabel("/venv/python"), "sidecar venv");
     assert.equal(formatPackageSourceLabel(null), "default python");
+  });
+});
+
+describe("Production hardening (Phase 33)", async () => {
+  const {
+    ANALYSIS_SETUP_GUIDANCE,
+    evaluateStrictWindowsRuntimeExit,
+    formatPythonResolutionLabel,
+    pythonRuntimeAvailableForSidecar,
+    resolvePythonForChecks,
+  } = await importSrc("src/domain/pythonRuntime.ts");
+  const {
+    evaluateSidecarStatus,
+    formatSidecarLifecycleMessage,
+    includesNoPublicSharingLanguage,
+    isMashlabSidecarHealthy,
+    SIDECAR_EXTERNAL_KILL_NOTICE,
+    sidecarStopSafetyNotice,
+  } = await importSrc("src/domain/sidecarLifecycle.ts");
+
+  it("prefers sidecar venv python when global python is missing", () => {
+    const resolution = resolvePythonForChecks({
+      globalPythonAvailable: false,
+      venvPythonPath: "/repo/local-engine/service/.venv/Scripts/python.exe",
+      preferVenv: true,
+    });
+    assert.equal(resolution.source, "venv");
+    assert.match(formatPythonResolutionLabel(resolution), /sidecar venv/i);
+    assert.equal(pythonRuntimeAvailableForSidecar(false, resolution.venvPath), true);
+  });
+
+  it("strict setup passes with venv python and ffmpeg available", () => {
+    const exitCode = evaluateStrictWindowsRuntimeExit(
+      [
+        { id: "python", tier: "processing", status: "available" },
+        { id: "ffmpeg", tier: "processing", status: "available" },
+        { id: "demucs", tier: "processing", status: "optional_missing" },
+      ],
+      true
+    );
+    assert.equal(exitCode, 0);
+  });
+
+  it("evaluates sidecar lifecycle states", () => {
+    assert.equal(
+      evaluateSidecarStatus({ health: { ok: true, service: "mashlab-local-engine" }, portInUse: true, recordedPid: 1 })
+        .state,
+      "healthy"
+    );
+    assert.equal(
+      evaluateSidecarStatus({ health: null, portInUse: true, recordedPid: null }).state,
+      "port_occupied_unknown"
+    );
+    assert.match(formatSidecarLifecycleMessage("port_occupied_unknown"), /47831|Port/i);
+    assert.equal(isMashlabSidecarHealthy({ ok: true, service: "other" }), false);
+  });
+
+  it("documents analysis setup and sidecar safety without public sharing claims", () => {
+    assert.match(ANALYSIS_SETUP_GUIDANCE, /setup:analysis/i);
+    assert.match(ANALYSIS_SETUP_GUIDANCE, /optional|Optional/i);
+    assert.match(sidecarStopSafetyNotice(), /health check/i);
+    assert.match(SIDECAR_EXTERNAL_KILL_NOTICE, /4294967295/);
+    assert.ok(includesNoPublicSharingLanguage("No public sharing or cloud upload."));
   });
 });
 

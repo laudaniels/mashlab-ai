@@ -29,10 +29,13 @@ Quick verify:
 
 ```powershell
 npm run setup:windows:check
-npm run setup:windows:guide
-npm run start:local
+npm run sidecar:status
+npm run sidecar:start
+npm run check:python-service
 npm run check:local-engine
 ```
+
+See **`docs/PHASE_33_PRODUCTION_HARDENING.md`** for venv-aware checks and single-instance sidecar lifecycle.
 
 ### Python (required for sidecar)
 
@@ -98,6 +101,16 @@ Runtime artifact root: `.work/artifacts/` (stems, combined-preview, exports, mas
 ## HTTP Boundary
 
 Default bind: `http://127.0.0.1:47831`
+
+**Lifecycle (Phase 33):**
+
+```powershell
+npm run sidecar:start    # skip if healthy; refuse duplicate port
+npm run sidecar:status   # health + pid file under .work/sidecar-status.json
+npm run sidecar:stop     # only when /health identifies MashLab
+```
+
+Status file and artifacts live under `local-engine/service/.work/` (gitignored).
 
 ### Core endpoints
 

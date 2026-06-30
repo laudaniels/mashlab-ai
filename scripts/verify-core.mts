@@ -4491,7 +4491,10 @@ describe("Quick Mix mode (Phase 36)", async () => {
   });
 
   it("maps errors to plain English recovery topics", () => {
-    const mapped = mapQuickMixError({ message: "Demucs not available for stem separation" });
+    const mapped = mapQuickMixError({
+      message: "Demucs not available for stem separation",
+      status: "missing_dependency",
+    });
     assert.equal(mapped.recoveryTopic, "demucs");
     assert.match(recoveryMessageForTopic("demucs"), /Demucs/i);
   });
@@ -4628,6 +4631,94 @@ describe("Quick Mix orchestrated pipeline (Phase 36 fix)", async () => {
     assert.ok(QUICK_MIX_PIPELINE_STAGES.includes("mix_and_export_wav"));
     assert.ok(QUICK_MIX_PIPELINE_STAGES.includes("export_mp3_optional"));
     assert.equal(QUICK_MIX_PIPELINE_STAGES.at(-1), "export_mp3_optional");
+  });
+});
+
+describe("Quick Mix reliability (Phase 36 hotfix)", async () => {
+  const {
+    QUICK_MIX_DURATION_CAP_NOTICE,
+    QUICK_MIX_DURATION_CAP_SECONDS,
+    QUICK_MIX_STEM_ACTIVE_HINT,
+    buildQuickMixDurationCapNotice,
+    createInitialQuickMixProgress,
+    failQuickMixProgress,
+    quickMixPipelineShowsDone,
+    quickMixProgressStepHint,
+    succeedQuickMixProgress,
+  } = await importSrc("src/domain/quickMix.ts");
+  const {
+    mapQuickMixNoResponseStemFailure,
+    mapQuickMixSidecarFailure,
+    mapQuickMixStemFailure,
+    mp3SkippedMessageAfterWavSuccess,
+    recoveryMessageForTopic,
+  } = await importSrc("src/domain/quickMixErrors.ts");
+  const { LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS } = await importSrc("src/lib/localEngine/types.ts");
+
+  it("does not mark Done complete when a required step fails", () => {
+    const failed = failQuickMixProgress(createInitialQuickMixProgress(), "preparing_instrumental");
+    assert.equal(failed.find((step) => step.id === "preparing_instrumental")?.status, "failed");
+    assert.equal(failed.find((step) => step.id === "done")?.status, "pending");
+    assert.equal(quickMixPipelineShowsDone(failed), false);
+  });
+
+  it("marks Done complete only after full success path", () => {
+    const success = succeedQuickMixProgress(createInitialQuickMixProgress());
+    assert.equal(quickMixPipelineShowsDone(success), true);
+  });
+
+  it("maps no-response stem failures to timeout guidance not Demucs install", () => {
+    const mapped = mapQuickMixNoResponseStemFailure("instrumental", { demucsAvailable: true });
+    assert.match(mapped.detail, /did not respond/i);
+    assert.equal(mapped.recoveryTopic, "timeout");
+    assert.match(mapped.recoveryMessage, /several minutes on CPU/i);
+    assert.doesNotMatch(mapped.recoveryMessage, /Install Demucs/i);
+  });
+
+  it("recommends Demucs install only when capability is missing", () => {
+    const mapped = mapQuickMixStemFailure(
+      { message: "Demucs is not available.", status: "missing_dependency" },
+      "vocal",
+      { demucsAvailable: false }
+    );
+    assert.equal(mapped.recoveryTopic, "demucs");
+    assert.match(recoveryMessageForTopic("demucs"), /Demucs/i);
+
+    const withDemucs = mapQuickMixStemFailure(
+      { message: "Demucs is not available.", status: "missing_dependency" },
+      "vocal",
+      { demucsAvailable: true }
+    );
+    assert.notEqual(withDemucs.recoveryTopic, "demucs");
+  });
+
+  it("uses WAV-created copy when MP3 reference is optional and fails", () => {
+    assert.match(mp3SkippedMessageAfterWavSuccess("encoder busy"), /WAV created/i);
+    assert.match(mp3SkippedMessageAfterWavSuccess("encoder busy"), /MP3 reference failed/i);
+  });
+
+  it("maps sidecar health failures between steps clearly", () => {
+    const mapped = mapQuickMixSidecarFailure("Local helper service is offline.", "preparing_instrumental");
+    assert.equal(mapped.failedStepId, "preparing_instrumental");
+    assert.match(mapped.recoveryMessage, /sidecar:start/i);
+  });
+
+  it("shows long-running stem step hint while active", () => {
+    assert.match(quickMixProgressStepHint("separating_vocal", "active") ?? "", /several minutes/i);
+    assert.equal(quickMixProgressStepHint("creating_wav_export", "active"), null);
+    assert.equal(QUICK_MIX_STEM_ACTIVE_HINT, quickMixProgressStepHint("preparing_instrumental", "active"));
+  });
+
+  it("discloses 180-second MVP cap for longer sources", () => {
+    assert.equal(QUICK_MIX_DURATION_CAP_SECONDS, 180);
+    assert.match(QUICK_MIX_DURATION_CAP_NOTICE, /180 seconds/i);
+    assert.match(QUICK_MIX_DURATION_CAP_NOTICE, /not a full-length/i);
+    assert.equal(buildQuickMixDurationCapNotice(200, 120), QUICK_MIX_DURATION_CAP_NOTICE);
+    assert.equal(buildQuickMixDurationCapNotice(60, 90), null);
+  });
+
+  it("allows long CPU stem requests up to 30 minutes", () => {
+    assert.equal(LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS, 30 * 60 * 1000);
   });
 });
 

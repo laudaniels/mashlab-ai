@@ -24,6 +24,10 @@ The app runs the existing local pipeline automatically when the user clicks **Mi
 
 Progress ladder: Checking files → Separating vocal → Preparing instrumental → Matching timing/key → Mixing track → Creating WAV export → Creating MP3 reference → Done
 
+**Done** appears only after WAV export succeeds. Stem steps show: *This can take several minutes on CPU.*
+
+**Duration cap:** Quick Mix processes up to the **first 180 seconds** of each song (sidecar limit). Longer files are trimmed for stem separation — this MVP is **not a full-length song export**.
+
 Output label: **Local mix export — user responsible for rights.**
 
 This is **not** professionally mastered and **not** publish-ready.

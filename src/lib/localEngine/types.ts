@@ -156,3 +156,6 @@ export const DEFAULT_LOCAL_ENGINE_URL = "http://127.0.0.1:47831";
 export const LOCAL_ENGINE_REQUEST_TIMEOUT_MS = 2500;
 
 export const LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS = 90000;
+
+/** Demucs stem preview on CPU can exceed 9 minutes — used by Quick Mix and stem panel. */
+export const LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS = 30 * 60 * 1000;

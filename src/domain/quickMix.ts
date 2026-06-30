@@ -21,6 +21,17 @@ export const QUICK_MIX_NEUTRAL_TIMING_NOTICE =
 export const QUICK_MIX_LOCAL_ONLY_NOTICE =
   "All processing stays on your machine. No public sharing or cloud upload.";
 
+export const QUICK_MIX_STEM_ACTIVE_HINT =
+  "This can take several minutes on CPU. Keep the local engine running.";
+
+export const QUICK_MIX_DURATION_CAP_SECONDS = 180;
+
+export const QUICK_MIX_DURATION_CAP_NOTICE =
+  "Quick Mix processes up to the first 180 seconds of each song in this MVP — not a full-length song export.";
+
+export const QUICK_MIX_MP3_FAILED_AFTER_WAV =
+  "WAV created. MP3 reference failed — download the WAV above.";
+
 export const QUICK_MIX_DEFAULT_MIX_SETTINGS: MixSettings = {
   vocalGainDb: 0,
   instrumentalGainDb: 0,
@@ -76,6 +87,7 @@ export interface QuickMixOutputModel {
   mp3DownloadUrl: string | null;
   exportLabel: string;
   timingNotice: string;
+  durationCapNotice: string | null;
   wavArtifactId: string | null;
   mp3ArtifactId: string | null;
   durationSeconds: number | null;
@@ -153,23 +165,70 @@ export function advanceQuickMixStep(
   });
 }
 
+export function failQuickMixProgress(
+  steps: QuickMixProgressStep[],
+  failedId: QuickMixStepId
+): QuickMixProgressStep[] {
+  const failedIndex = steps.findIndex((step) => step.id === failedId);
+  if (failedIndex < 0) {
+    return steps;
+  }
+
+  return steps.map((step, index) => {
+    if (index < failedIndex) {
+      return step.status === "complete" || step.status === "active"
+        ? { ...step, status: "complete" as const }
+        : step;
+    }
+    if (index === failedIndex) {
+      return { ...step, status: "failed" as const };
+    }
+    return { ...step, status: "pending" as const };
+  });
+}
+
+export function succeedQuickMixProgress(steps: QuickMixProgressStep[]): QuickMixProgressStep[] {
+  return steps.map((step) => ({ ...step, status: "complete" as const }));
+}
+
+export function quickMixProgressStepHint(
+  stepId: QuickMixStepId,
+  status: QuickMixProgressStep["status"]
+): string | null {
+  if (status !== "active") {
+    return null;
+  }
+  if (stepId === "separating_vocal" || stepId === "preparing_instrumental") {
+    return QUICK_MIX_STEM_ACTIVE_HINT;
+  }
+  return null;
+}
+
+export function buildQuickMixDurationCapNotice(
+  vocalDurationSeconds: number | null,
+  instrumentalDurationSeconds: number | null
+): string | null {
+  const exceedsCap =
+    (vocalDurationSeconds !== null && vocalDurationSeconds > QUICK_MIX_DURATION_CAP_SECONDS) ||
+    (instrumentalDurationSeconds !== null && instrumentalDurationSeconds > QUICK_MIX_DURATION_CAP_SECONDS);
+  return exceedsCap ? QUICK_MIX_DURATION_CAP_NOTICE : null;
+}
+
+export function quickMixPipelineShowsDone(steps: QuickMixProgressStep[]): boolean {
+  const doneStep = steps.find((step) => step.id === "done");
+  return doneStep?.status === "complete";
+}
+
 export function markQuickMixStepFailed(
   steps: QuickMixProgressStep[],
   failedId: QuickMixStepId
 ): QuickMixProgressStep[] {
-  return steps.map((step) => {
-    if (step.id === failedId) {
-      return { ...step, status: "failed" };
-    }
-    if (step.status === "active") {
-      return { ...step, status: "pending" };
-    }
-    return step;
-  });
+  return failQuickMixProgress(steps, failedId);
 }
 
+/** @deprecated Use succeedQuickMixProgress after WAV export succeeds. */
 export function completeQuickMixProgress(steps: QuickMixProgressStep[]): QuickMixProgressStep[] {
-  return steps.map((step) => ({ ...step, status: "complete" as const }));
+  return succeedQuickMixProgress(steps);
 }
 
 export function includesQuickMixRightsLanguage(text: string): boolean {

@@ -3308,6 +3308,18 @@ audio {
   background: rgba(17, 23, 34, 0.75);
 }
 
+.quick-mix-progress-hint {
+  margin: 0 0 10px;
+  color: #ffe9b8;
+  font-size: 14px;
+}
+
+.quick-mix-duration-cap-note,
+.quick-mix-mp3-skipped-note {
+  color: #ffe9b8;
+  font-size: 14px;
+}
+
 .quick-mix-progress-list {
   margin: 0;
   padding: 0;

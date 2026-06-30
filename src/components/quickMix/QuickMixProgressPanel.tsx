@@ -1,5 +1,5 @@
 import { CheckCircle2, Circle, LoaderCircle, XCircle } from "lucide-react";
-import type { QuickMixProgressStep } from "../../domain/quickMix.ts";
+import { quickMixProgressStepHint, type QuickMixProgressStep } from "../../domain/quickMix.ts";
 
 interface QuickMixProgressPanelProps {
   steps: QuickMixProgressStep[];
@@ -11,8 +11,12 @@ export function QuickMixProgressPanel({ steps, active }: QuickMixProgressPanelPr
     return null;
   }
 
+  const activeStep = steps.find((step) => step.status === "active");
+  const activeHint = activeStep ? quickMixProgressStepHint(activeStep.id, activeStep.status) : null;
+
   return (
     <section aria-label="Mix progress" className="quick-mix-progress-panel">
+      {activeHint ? <p className="quick-mix-progress-hint">{activeHint}</p> : null}
       <ol className="quick-mix-progress-list">
         {steps.map((step) => (
           <li className={`quick-mix-progress-item quick-mix-progress-${step.status}`} key={step.id}>

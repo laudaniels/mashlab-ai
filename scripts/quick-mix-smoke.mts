@@ -79,7 +79,7 @@ async function postStem(filePath: string, maxSeconds = 15): Promise<Record<strin
   const response = await fetch(`${BASE}/v1/process/stem-preview`, {
     method: "POST",
     body: form,
-    signal: AbortSignal.timeout(600_000),
+    signal: AbortSignal.timeout(1_800_000),
   });
   return (await response.json()) as Record<string, unknown>;
 }

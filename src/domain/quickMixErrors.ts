@@ -1,7 +1,7 @@
 import type { QuickMixSource } from "./quickMixPipeline.ts";
 import { quickMixSourceLabel } from "./quickMixPipeline.ts";
 import type { QuickMixFailureViewModel, QuickMixStepId } from "./quickMix.ts";
-import { QUICK_MIX_PROGRESS_STEPS } from "./quickMix.ts";
+import { QUICK_MIX_MP3_FAILED_AFTER_WAV, QUICK_MIX_PROGRESS_STEPS } from "./quickMix.ts";
 
 export type QuickMixRecoveryTopic =
   | "sidecar"
@@ -9,11 +9,19 @@ export type QuickMixRecoveryTopic =
   | "rubberband"
   | "demucs"
   | "files"
+  | "timeout"
   | "unknown";
+
+export interface QuickMixErrorContext {
+  demucsAvailable?: boolean;
+  noResponse?: boolean;
+  timedOut?: boolean;
+}
 
 export interface QuickMixPlainError {
   headline: string;
   detail: string;
+  recoveryMessage: string;
   recoveryTopic: QuickMixRecoveryTopic;
   failedStepId: QuickMixStepId | null;
   failedSource: QuickMixSource | null;
@@ -28,8 +36,13 @@ const RECOVERY_MESSAGES: Record<QuickMixRecoveryTopic, string> = {
   rubberband: "Install Rubber Band to adjust pitch/time.",
   demucs: "Install Demucs/PyTorch to separate stems.",
   files: "Choose two local audio files you own or are authorized to use.",
+  timeout:
+    "Stem separation can take several minutes on CPU. Check that the sidecar is still running, then try Mix again.",
   unknown: "Check Advanced Studio for dependency details, then try again.",
 };
+
+const STEM_NO_RESPONSE_DETAIL =
+  "The local engine did not respond while separating this track.";
 
 export function mapQuickMixError(input: {
   message?: string | null;
@@ -39,6 +52,7 @@ export function mapQuickMixError(input: {
   failedStepId?: QuickMixStepId | null;
   failedSource?: QuickMixSource | null;
   responseBody?: string | null;
+  context?: QuickMixErrorContext;
 }): QuickMixPlainError {
   const validationErrors = (input.validationErrors ?? []).filter(Boolean);
   const blob = [
@@ -50,20 +64,25 @@ export function mapQuickMixError(input: {
     .join(" ")
     .toLowerCase();
 
-  const detailFromValidation =
-    validationErrors.length > 0
-      ? validationErrors.join(" ")
-      : input.message?.trim() || input.setupGuidance?.trim() || null;
-
+  const context = input.context ?? {};
   let recoveryTopic: QuickMixRecoveryTopic = "unknown";
-  if (/demucs|pytorch|torch|stem separation/.test(blob)) {
-    recoveryTopic = "demucs";
+
+  if (context.noResponse || context.timedOut || input.status === "no_response" || input.status === "timeout") {
+    recoveryTopic = "timeout";
+  } else if (input.status === "missing_dependency") {
+    if (/demucs|pytorch|torch/.test(blob) && context.demucsAvailable !== true) {
+      recoveryTopic = "demucs";
+    } else if (/ffmpeg|ffprobe/.test(blob)) {
+      recoveryTopic = "ffmpeg";
+    } else if (/rubber band|rubberband/.test(blob)) {
+      recoveryTopic = "rubberband";
+    }
+  } else if (/offline|sidecar|127\.0\.0\.1:47831|not reachable|connection|local helper/.test(blob)) {
+    recoveryTopic = "sidecar";
   } else if (/rubber band|rubberband|pitch|time stretch/.test(blob)) {
     recoveryTopic = "rubberband";
   } else if (/ffmpeg|ffprobe/.test(blob)) {
     recoveryTopic = "ffmpeg";
-  } else if (/offline|sidecar|127\.0\.0\.1:47831|not reachable|connection|local helper/.test(blob)) {
-    recoveryTopic = "sidecar";
   } else if (/upload|file|empty|audio file/.test(blob)) {
     recoveryTopic = "files";
   }
@@ -94,16 +113,23 @@ export function mapQuickMixError(input: {
       : "Stem preview settings rejected";
   }
 
-  const detail =
-    detailFromValidation && !/failed validation$/i.test(detailFromValidation)
-      ? detailFromValidation
-      : detailFromValidation
-        ? `${detailFromValidation}${validationErrors.length ? `: ${validationErrors.join(" ")}` : ""}`
-        : RECOVERY_MESSAGES[recoveryTopic];
+  let detail =
+    validationErrors.length > 0
+      ? validationErrors.join(" ")
+      : input.message?.trim() || input.setupGuidance?.trim() || "Mix could not finish.";
+
+  if (context.noResponse || context.timedOut) {
+    detail = STEM_NO_RESPONSE_DETAIL;
+  } else if (input.status === "processing_failed" && input.setupGuidance?.trim()) {
+    detail = input.setupGuidance.trim();
+  }
+
+  const recoveryMessage = RECOVERY_MESSAGES[recoveryTopic];
 
   return {
     headline,
     detail,
+    recoveryMessage,
     recoveryTopic,
     failedStepId: input.failedStepId ?? null,
     failedSource: input.failedSource ?? null,
@@ -115,20 +141,56 @@ export function mapQuickMixError(input: {
 
 export function mapQuickMixException(error: unknown): QuickMixPlainError {
   if (error instanceof Error) {
-    return mapQuickMixError({ message: error.message });
+    const timedOut = /timeout|aborted|abort/i.test(error.message);
+    return mapQuickMixError({
+      message: error.message,
+      status: timedOut ? "timeout" : null,
+      context: { timedOut, noResponse: timedOut },
+    });
   }
   return mapQuickMixError({ message: String(error) });
 }
 
 export function mapQuickMixDependencyFailure(
   missingLabels: string[],
-  failedStepId: QuickMixStepId = "checking_files"
+  failedStepId: QuickMixStepId = "checking_files",
+  context?: QuickMixErrorContext
 ): QuickMixPlainError {
   return mapQuickMixError({
     message: `Setup needed: ${missingLabels.join(", ")}.`,
     status: "setup_needed",
     failedStepId,
     validationErrors: missingLabels.map((label) => `${label} is not ready.`),
+    context,
+  });
+}
+
+export function mapQuickMixSidecarFailure(
+  message: string,
+  failedStepId: QuickMixStepId
+): QuickMixPlainError {
+  const mapped = mapQuickMixError({
+    message,
+    status: "sidecar_offline",
+    failedStepId,
+  });
+  return {
+    ...mapped,
+    recoveryTopic: "sidecar",
+    recoveryMessage: RECOVERY_MESSAGES.sidecar,
+  };
+}
+
+export function mapQuickMixNoResponseStemFailure(
+  source: QuickMixSource,
+  context?: QuickMixErrorContext
+): QuickMixPlainError {
+  return mapQuickMixError({
+    message: STEM_NO_RESPONSE_DETAIL,
+    status: "no_response",
+    failedStepId: source === "vocal" ? "separating_vocal" : "preparing_instrumental",
+    failedSource: source,
+    context: { noResponse: true, ...context },
   });
 }
 
@@ -139,7 +201,8 @@ export function mapQuickMixStemFailure(
     setupGuidance?: string | null;
     validationErrors?: string[];
   },
-  source: QuickMixSource
+  source: QuickMixSource,
+  context?: QuickMixErrorContext
 ): QuickMixPlainError {
   return mapQuickMixError({
     message: result.message,
@@ -149,6 +212,7 @@ export function mapQuickMixStemFailure(
     failedStepId: source === "vocal" ? "separating_vocal" : "preparing_instrumental",
     failedSource: source,
     responseBody: JSON.stringify(result, null, 2),
+    context,
   });
 }
 
@@ -182,7 +246,7 @@ export function buildQuickMixFailureView(error: QuickMixPlainError): QuickMixFai
   return {
     headline: error.headline,
     detail: error.detail,
-    recovery: recoveryMessageForTopic(error.recoveryTopic),
+    recovery: error.recoveryMessage,
     failedStepLabel: failedStep?.label ?? null,
     failedSourceLabel: error.failedSource ? quickMixSourceLabel(error.failedSource) : null,
     validationErrors: error.validationErrors,
@@ -191,29 +255,6 @@ export function buildQuickMixFailureView(error: QuickMixPlainError): QuickMixFai
   };
 }
 
-function plainError(
-  headline: string,
-  detail: string,
-  recoveryTopic: QuickMixRecoveryTopic
-): QuickMixPlainError {
-  return {
-    headline,
-    detail,
-    recoveryTopic,
-    failedStepId: null,
-    failedSource: null,
-    validationErrors: [],
-    statusCode: null,
-    responseBody: null,
-  };
+export function mp3SkippedMessageAfterWavSuccess(reason: string | null): string {
+  return reason ? `${QUICK_MIX_MP3_FAILED_AFTER_WAV} ${reason}` : QUICK_MIX_MP3_FAILED_AFTER_WAV;
 }
-
-export function mapQuickMixErrorLegacy(input: {
-  message?: string | null;
-  status?: string | null;
-  setupGuidance?: string | null;
-}): QuickMixPlainError {
-  return mapQuickMixError(input);
-}
-
-export { plainError };

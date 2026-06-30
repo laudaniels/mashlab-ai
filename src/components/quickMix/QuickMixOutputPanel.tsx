@@ -21,7 +21,15 @@ export function QuickMixOutputPanel({
       <div className="quick-mix-output-header">
         <h2>Your mix is ready</h2>
         <p>{output.exportLabel}</p>
+        {output.durationCapNotice ? (
+          <p className="quick-mix-duration-cap-note">{output.durationCapNotice}</p>
+        ) : null}
         <p className="quick-mix-timing-note">{output.timingNotice}</p>
+        {output.mp3SkippedReason && !output.mp3DownloadUrl ? (
+          <p className="quick-mix-mp3-skipped-note" role="status">
+            {output.mp3SkippedReason}
+          </p>
+        ) : null}
       </div>
 
       {output.wavPlaybackUrl ? (

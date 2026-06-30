@@ -35,6 +35,7 @@ import {
   DEFAULT_LOCAL_ENGINE_URL,
   LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
   LOCAL_ENGINE_REQUEST_TIMEOUT_MS,
+  LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS,
 } from "./types.ts";
 import type { PitchTimePreviewRequestParams } from "../../domain/pitchTimePreview.ts";
 import type { PitchTimePreviewResult } from "../../domain/pitchTimePreview.ts";
@@ -256,14 +257,15 @@ export class LocalEngineClient {
 
   async processStemPreview(
     file: File,
-    params: StemPreviewRequestParams
+    params: StemPreviewRequestParams,
+    options?: { timeoutMs?: number }
   ): Promise<StemPreviewResult | null> {
     const formData = buildStemPreviewFormData(file, params);
 
     const response = await this.request("/v1/process/stem-preview", {
       method: "POST",
       body: formData,
-      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 6,
+      timeoutMs: options?.timeoutMs ?? LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS,
     });
 
     if (!response) {

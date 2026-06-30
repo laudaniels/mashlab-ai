@@ -2,10 +2,12 @@ import { buildFullLengthExportRequestParams } from "../../domain/fullLengthExpor
 import { DEFAULT_MP3_BITRATE } from "../../domain/mp3Export.ts";
 import {
   advanceQuickMixStep,
-  completeQuickMixProgress,
+  buildQuickMixDurationCapNotice,
   createInitialQuickMixProgress,
+  failQuickMixProgress,
   QUICK_MIX_DEFAULT_MIX_SETTINGS,
   QUICK_MIX_OUTPUT_LABEL,
+  succeedQuickMixProgress,
   type QuickMixOutputModel,
   type QuickMixProgressStep,
   type QuickMixStepId,
@@ -16,10 +18,18 @@ import {
   mapQuickMixError,
   mapQuickMixException,
   mapQuickMixExportFailure,
+  mapQuickMixNoResponseStemFailure,
+  mapQuickMixSidecarFailure,
   mapQuickMixStemFailure,
+  mp3SkippedMessageAfterWavSuccess,
   type QuickMixPlainError,
 } from "../../domain/quickMixErrors.ts";
-import { librosaAvailableForQuickMix, buildQuickMixReadiness, isQuickMixReady } from "../../domain/quickMixReadiness.ts";
+import { isDemucsAvailable } from "../../lib/localEngine/capabilities.ts";
+import {
+  librosaAvailableForQuickMix,
+  buildQuickMixReadiness,
+  isQuickMixReady,
+} from "../../domain/quickMixReadiness.ts";
 import {
   buildQuickMixStemRequestParams,
   missingQuickMixDependencyLabels,
@@ -33,6 +43,8 @@ import {
 } from "../../domain/quickMixStrategy.ts";
 import { validateAudioFile } from "../audioMetadata.ts";
 import { localEngineClient } from "../localEngine/client.ts";
+import type { LocalEngineConnectionStatus } from "../localEngine/types.ts";
+import { LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS } from "../localEngine/types.ts";
 import type { StemPreviewResult } from "../../domain/stemPreview.ts";
 import type { FullLengthExportResult } from "../../domain/fullLengthExport.ts";
 
@@ -54,9 +66,29 @@ function throwMapped(error: QuickMixPlainError): never {
   throw error;
 }
 
+async function requireQuickMixSidecar(
+  failedStepId: QuickMixStepId
+): Promise<LocalEngineConnectionStatus> {
+  const connection = await localEngineClient.probeConnection();
+  if (!connection.online || !connection.health?.ok) {
+    throw mapQuickMixSidecarFailure(
+      connection.error ?? "Local helper service is offline.",
+      failedStepId
+    );
+  }
+  return connection;
+}
+
+function demucsAvailableFromCapabilities(
+  capabilities: LocalEngineConnectionStatus["capabilities"]
+): boolean {
+  return isDemucsAvailable(capabilities);
+}
+
 async function runStemStep(
   source: QuickMixSource,
-  file: File
+  file: File,
+  demucsAvailable: boolean
 ): Promise<StemPreviewResult> {
   const params = buildQuickMixStemRequestParams(source, file);
   const clientErrors = validateQuickMixStemRequest(params);
@@ -68,23 +100,25 @@ async function runStemStep(
           status: "validation_error",
           validationErrors: clientErrors,
         },
-        source
+        source,
+        { demucsAvailable }
       )
     );
   }
 
-  const result = await localEngineClient.processStemPreview(file, params);
+  const result = await localEngineClient.processStemPreview(file, params, {
+    timeoutMs: LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS,
+  });
   if (!result) {
-    throwMapped(
-      mapQuickMixStemFailure(
-        { message: "No response from local engine for stem separation.", status: "offline" },
-        source
-      )
-    );
+    throwMapped(mapQuickMixNoResponseStemFailure(source, { demucsAvailable, timedOut: true }));
   }
 
   if (!result.ok || !result.artifactId || !result.audioProcessed) {
-    throwMapped(mapQuickMixStemFailure(result, source));
+    throwMapped(
+      mapQuickMixStemFailure(result, source, {
+        demucsAvailable,
+      })
+    );
   }
 
   const stemRole = source === "vocal" ? result.vocals : result.noVocals;
@@ -99,7 +133,8 @@ async function runStemStep(
           status: "processing_failed",
           validationErrors: [],
         },
-        source
+        source,
+        { demucsAvailable }
       )
     );
   }
@@ -122,6 +157,10 @@ export async function runQuickMixPipeline(
     steps = advanceQuickMixStep(steps, id, "complete");
     onProgress([...steps]);
   };
+
+  let connection: LocalEngineConnectionStatus | null = null;
+  let demucsAvailable = false;
+  let durationCapNotice: string | null = null;
 
   try {
     setStep("checking_files");
@@ -149,25 +188,39 @@ export async function runQuickMixPipeline(
       }
     }
 
-    const connection = await localEngineClient.probeConnection();
+    connection = await requireQuickMixSidecar("checking_files");
+    demucsAvailable = demucsAvailableFromCapabilities(connection.capabilities);
+
     const readiness = buildQuickMixReadiness({
       sidecarOnline: connection.online,
       capabilities: connection.capabilities,
     });
     if (!isQuickMixReady(readiness)) {
-      throw mapQuickMixDependencyFailure(missingQuickMixDependencyLabels(readiness), "checking_files");
+      throw mapQuickMixDependencyFailure(missingQuickMixDependencyLabels(readiness), "checking_files", {
+        demucsAvailable,
+      });
     }
+
+    const vocalMeta = await localEngineClient.analyzeMetadata(input.vocalFile);
+    const beatMeta = await localEngineClient.analyzeMetadata(input.instrumentalFile);
+    durationCapNotice = buildQuickMixDurationCapNotice(
+      vocalMeta?.result?.duration_seconds ?? null,
+      beatMeta?.result?.duration_seconds ?? null
+    );
 
     completeStep("checking_files");
 
+    await requireQuickMixSidecar("separating_vocal");
     setStep("separating_vocal");
-    const vocalStem = await runStemStep("vocal", input.vocalFile);
+    const vocalStem = await runStemStep("vocal", input.vocalFile, demucsAvailable);
     completeStep("separating_vocal");
 
+    await requireQuickMixSidecar("preparing_instrumental");
     setStep("preparing_instrumental");
-    const beatStem = await runStemStep("instrumental", input.instrumentalFile);
+    const beatStem = await runStemStep("instrumental", input.instrumentalFile, demucsAvailable);
     completeStep("preparing_instrumental");
 
+    await requireQuickMixSidecar("matching_timing");
     setStep("matching_timing");
     const librosaUsed = librosaAvailableForQuickMix(connection.capabilities);
     let vocalBpm: number | null = null;
@@ -203,9 +256,11 @@ export async function runQuickMixPipeline(
 
     completeStep("matching_timing");
 
+    await requireQuickMixSidecar("mixing_track");
     setStep("mixing_track");
     completeStep("mixing_track");
 
+    await requireQuickMixSidecar("creating_wav_export");
     setStep("creating_wav_export");
 
     const exportParams = buildFullLengthExportRequestParams(
@@ -241,12 +296,12 @@ export async function runQuickMixPipeline(
       mp3DownloadUrl = mp3Export.downloadUrl;
       mp3ArtifactId = mp3Export.exportArtifactId;
     } else {
-      mp3SkippedReason = mp3Export?.message ?? "MP3 reference export was not created — WAV export is still available.";
+      mp3SkippedReason = mp3SkippedMessageAfterWavSuccess(mp3Export?.message ?? null);
     }
 
     completeStep("creating_mp3_reference");
 
-    steps = completeQuickMixProgress(steps);
+    steps = succeedQuickMixProgress(steps);
     onProgress([...steps]);
 
     const output: QuickMixOutputModel = {
@@ -256,11 +311,13 @@ export async function runQuickMixPipeline(
       mp3DownloadUrl,
       exportLabel: QUICK_MIX_OUTPUT_LABEL,
       timingNotice: strategy.timingNotice,
+      durationCapNotice,
       wavArtifactId: wavExport.exportArtifactId,
       mp3ArtifactId,
       durationSeconds: wavExport.durationSeconds,
       mp3SkippedReason,
       technicalSummary: [
+        durationCapNotice ?? "Duration within Quick Mix MVP cap (180 seconds).",
         `Vocal stem (vocals.wav): ${vocalStem.artifactId}`,
         `Instrumental stem (no_vocals.wav): ${beatStem.artifactId}`,
         `WAV export: ${wavExport.exportArtifactId}`,
@@ -279,8 +336,8 @@ export async function runQuickMixPipeline(
     const failedStep =
       mapped.failedStepId ??
       steps.find((step: QuickMixProgressStep) => step.status === "active")?.id ??
-      "creating_wav_export";
-    steps = advanceQuickMixStep(steps, failedStep, "failed");
+      "checking_files";
+    steps = failQuickMixProgress(steps, failedStep);
     onProgress([...steps]);
 
     return { ok: false, output: null, error: mapped, steps };

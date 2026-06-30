@@ -55,7 +55,9 @@ Do not rely on Streamlabs bundled FFmpeg for permanent setup — install a stand
 
 ### Rubber Band CLI (required for pitch/time + combined preview)
 
-Install `rubberband-cli` and ensure `rubberband` (or `rubberband.exe`) is on PATH.
+Download the official [Rubber Band v4.0.0 Windows command-line utility](https://breakfastquay.com/files/releases/rubberband-4.0.0-gpl-executable-windows.zip). Extract and add the folder containing `rubberband.exe` and `sndfile.dll` to PATH. Verify: `rubberband --version` and `npm run setup:windows:check`.
+
+Linux packages may provide `rubberband-cli`; on Windows use the Breakfast Quay executable release.
 
 ### Demucs + PyTorch (required for stem preview)
 

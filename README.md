@@ -52,6 +52,7 @@ Implemented:
 - **Rhythm engine self-test** — `GET /v1/capabilities/rhythm-selftest`, WSL/Linux setup docs (Phase 26).
 - **WSL rhythm sidecar dev profile** — optional `npm run sidecar:wsl:*` scripts, Linux validation harness (Phase 27).
 - **Windows runtime setup + MVP UX polish** — `setup:windows:*`, `start:local`, first-run guidance, dependency tier labels (Phase 28).
+- **Windows FFmpeg + Rubber Band PATH validation** — official BtbN FFmpeg and Breakfast Quay Rubber Band CLI; pitch/time preview validated with synthetic audio (Phase 29–30).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 

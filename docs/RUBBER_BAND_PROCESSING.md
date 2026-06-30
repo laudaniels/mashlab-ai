@@ -29,6 +29,8 @@ The UI labels all output as **processed preview** — not a finished mashup.
 
 Rubber Band must be on PATH as `rubberband`, `rubberband-cli`, `rubberband.exe`, or `rubberband-cli.exe`.
 
+**Windows:** Download [rubberband-4.0.0-gpl-executable-windows.zip](https://breakfastquay.com/files/releases/rubberband-4.0.0-gpl-executable-windows.zip), extract, and add the folder containing `rubberband.exe` + `sndfile.dll` to PATH. Verify with `rubberband --version`.
+
 Detection is reported via `GET /v1/capabilities` (`rubberband` capability).
 
 ## Sidecar Endpoint
@@ -118,7 +120,7 @@ Upload audio you own or are authorized to use. MashLab AI helps process and arra
 
 Symptom: `missing_dependency` with setup guidance.
 
-Fix: Install [Rubber Band CLI](https://breakfastquay.com/rubberband/) and ensure the binary is on PATH. Planning and other analysis lanes still work without it.
+Fix: Download the [official Windows executable zip](https://breakfastquay.com/files/releases/rubberband-4.0.0-gpl-executable-windows.zip), keep `sndfile.dll` beside `rubberband.exe`, add the folder to PATH, and restart the sidecar. Run `npm run setup:windows:check`. Planning and other analysis lanes still work without it.
 
 ### FFmpeg missing
 

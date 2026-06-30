@@ -23,7 +23,7 @@ console.log("");
 console.log("## Optional sidecar packages (inside local-engine/service venv)");
 console.log("- requirements-analysis.txt — librosa BPM/key prototype");
 console.log("- requirements-stems.txt — Demucs + PyTorch stem preview");
-console.log("- Rubber Band CLI — pitch/time and combined preview");
+console.log("- Rubber Band CLI — pitch/time and combined preview (Breakfast Quay Windows zip on Windows)");
 console.log("");
 console.log("## Verify installation");
 console.log("npm run setup:windows:check");

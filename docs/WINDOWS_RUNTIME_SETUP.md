@@ -102,7 +102,33 @@ npm run check:local-engine
 
 ## Rubber Band setup
 
-Install `rubberband-cli` and ensure `rubberband.exe` or `rubberband` is on PATH. Required for pitch/time processing and combined preview.
+Required for **pitch/time preview** and combined preview (after stem artifacts exist). Not required for browser MVP upload/planning.
+
+1. Download the official [Rubber Band v4.0.0 Windows command-line utility](https://breakfastquay.com/files/releases/rubberband-4.0.0-gpl-executable-windows.zip) from Breakfast Quay (not bundled app binaries).
+2. Extract the zip and keep `rubberband.exe` and `sndfile.dll` in the **same folder**.
+3. Add that folder to user PATH.
+
+   Example on this dev host:
+
+   ```text
+   C:\Users\<you>\tools\rubberband\rubberband-4.0.0-gpl-executable-windows
+   ```
+
+   ```powershell
+   $bin = "C:\Users\<you>\tools\rubberband\rubberband-4.0.0-gpl-executable-windows"
+   [Environment]::SetEnvironmentVariable("Path", "$([Environment]::GetEnvironmentVariable('Path','User'));$bin", "User")
+   ```
+
+4. Open a **new** terminal and verify:
+
+```powershell
+rubberband --version
+npm run setup:windows:check
+```
+
+Restart the Python sidecar after PATH changes so it inherits Rubber Band.
+
+**Demucs remains separate** — stem preview still requires `requirements-stems.txt` in the sidecar venv.
 
 ## Start MashLab locally
 

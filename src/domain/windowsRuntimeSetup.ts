@@ -131,7 +131,7 @@ export function buildLocalStartChecklist(): string[] {
     "   python -m uvicorn main:app --host 127.0.0.1 --port 47831",
     "3. Verify PATH: npm run setup:windows:check",
     "4. Optional stems: pip install -r requirements-stems.txt (Demucs + PyTorch)",
-    "5. Optional Rubber Band: install rubberband-cli and add to PATH",
+    "5. Optional Rubber Band: download Breakfast Quay Windows CLI zip; add folder with rubberband.exe + sndfile.dll to PATH",
     "6. Optional WSL rhythm: npm run sidecar:wsl:check (advanced verified downbeats only)",
     "7. Open http://127.0.0.1:5173 — load two tracks and follow the session checklist",
     LOCAL_ONLY_PROCESSING_NOTICE,

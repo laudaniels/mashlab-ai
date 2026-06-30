@@ -4325,6 +4325,51 @@ describe("Production hardening (Phase 33)", async () => {
   });
 });
 
+describe("Release documentation and local demo (Phase 34)", async () => {
+  const {
+    APP_DEV_URL,
+    buildDemoNextSteps,
+    buildDemoStartBanner,
+    buildLocalDemoUrls,
+    evaluateDemoPreflight,
+    formatDemoPreflightLine,
+    formatLibrosaCapabilityStatus,
+    includesDemoReleaseSafetyLanguage,
+    includesNoPublicSharingInDemoCopy,
+  } = await importSrc("src/domain/localDemoStart.ts");
+  const { SIDECAR_CAPABILITIES_URL, SIDECAR_HEALTH_URL } = await importSrc("src/domain/sidecarLifecycle.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+
+  it("formats demo URLs and preflight lines", () => {
+    const urls = buildLocalDemoUrls();
+    assert.equal(urls.app, APP_DEV_URL);
+    assert.equal(urls.sidecarHealth, SIDECAR_HEALTH_URL);
+    assert.equal(urls.sidecarCapabilities, SIDECAR_CAPABILITIES_URL);
+    const preflight = evaluateDemoPreflight({
+      venvPythonExists: true,
+      ffmpegAvailable: true,
+      ffprobeAvailable: true,
+      sidecarHealthy: false,
+    });
+    assert.equal(preflight.ok, true);
+    assert.match(formatDemoPreflightLine(preflight.checks[0]!), /Sidecar venv/);
+  });
+
+  it("demo banner and next steps include rights and local-only notices", () => {
+    const banner = buildDemoStartBanner().join("\n");
+    const steps = buildDemoNextSteps().join("\n");
+    assert.ok(banner.includes(requiredRightsNotice));
+    assert.ok(steps.includes("sidecar:status"));
+    assert.ok(includesDemoReleaseSafetyLanguage(banner));
+    assert.ok(includesNoPublicSharingInDemoCopy(banner));
+  });
+
+  it("formats librosa capability status honestly", () => {
+    assert.match(formatLibrosaCapabilityStatus("available", "0.10.2"), /librosa available/i);
+    assert.match(formatLibrosaCapabilityStatus("missing", null), /not installed/i);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

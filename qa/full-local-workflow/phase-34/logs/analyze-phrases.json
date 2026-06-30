@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "status": "failed",
+  "message": "No beat times available for phrase analysis.",
+  "result": null,
+  "setup_guidance": null,
+  "validation_errors": null
+}

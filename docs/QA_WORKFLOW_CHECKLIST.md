@@ -74,6 +74,31 @@ Evidence: `qa/full-local-workflow/phase-32/logs/`
 - [x] `npm run setup:analysis:dry-run` documents optional librosa path
 - [ ] Manual UI screenshots — see `qa/full-local-workflow/phase-33/screenshots/README.md`
 
+## Phase 34 verified (release documentation)
+
+- [x] `npm run start:local:windows` — preflight, sidecar, Vite in new window
+- [x] `npm run setup:analysis` — librosa 0.11.0 in sidecar venv
+- [x] `npm run validate:analysis-lane` — beat/key PASS; phrases honest on sine clip
+- [x] Capabilities show librosa + beat/key lanes available after sidecar restart
+- [ ] Manual UI screenshots — see `qa/full-local-workflow/phase-34/screenshots/README.md`
+
+### Phase 34 local demo checklist
+
+- [ ] `npm run setup:windows:check:strict` passes
+- [ ] `npm run start:local:windows` opens app + sidecar URLs printed
+- [ ] `npm run sidecar:status` → healthy
+- [ ] Upload two synthetic/non-copyright tracks
+- [ ] Session checklist progresses (user-initiated steps)
+- [ ] Optional: BPM/key analysis after `setup:analysis`
+
+### Phase 34 optional librosa checklist
+
+- [ ] `npm run setup:analysis`
+- [ ] Restart sidecar (`sidecar:stop` / kill 47831 / `sidecar:start`)
+- [ ] `/v1/capabilities` → librosa available
+- [ ] Beat/key analysis on test WAV — not missing_dependency
+- [ ] Phrase lane honest when no beats detected (sine clip)
+
 ## End-to-End Workflow Checklist
 
 ### 1. Upload Track A and Track B

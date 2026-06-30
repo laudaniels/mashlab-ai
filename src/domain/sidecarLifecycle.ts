@@ -2,6 +2,7 @@ export const SIDECAR_DEFAULT_HOST = "127.0.0.1";
 export const SIDECAR_DEFAULT_PORT = 47831;
 export const SIDECAR_BIND = `http://${SIDECAR_DEFAULT_HOST}:${SIDECAR_DEFAULT_PORT}`;
 export const SIDECAR_HEALTH_URL = `${SIDECAR_BIND}/health`;
+export const SIDECAR_CAPABILITIES_URL = `${SIDECAR_BIND}/v1/capabilities`;
 export const SIDECAR_STATUS_RELATIVE_PATH = "local-engine/service/.work/sidecar-status.json";
 
 export type SidecarLifecycleState =

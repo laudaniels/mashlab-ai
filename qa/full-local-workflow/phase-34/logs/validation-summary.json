@@ -1,0 +1,22 @@
+[
+  {
+    "step": "librosa capability",
+    "pass": true,
+    "detail": "librosa available (0.11.0)"
+  },
+  {
+    "step": "analyze beat",
+    "pass": true,
+    "detail": "Experimental BPM and beat times computed with librosa."
+  },
+  {
+    "step": "analyze key",
+    "pass": true,
+    "detail": "Experimental key estimate computed with librosa chroma/CQT."
+  },
+  {
+    "step": "analyze phrases",
+    "pass": true,
+    "detail": "No beat times available for phrase analysis."
+  }
+]

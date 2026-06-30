@@ -1,0 +1,10 @@
+Phase 34 environment snapshot (2026-06-30)
+Windows: Microsoft Windows 11 Home build 26200
+Python venv: 3.12.10
+PyTorch: 2.5.1+cpu
+Demucs: 4.0.1
+FFmpeg: N-125365-g9a01c1cb6a-20260630
+Rubber Band: 4.0.0
+librosa: 0.11.0
+numpy: 2.4.6
+soundfile: 0.14.0

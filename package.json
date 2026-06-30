@@ -22,6 +22,8 @@
     "setup:analysis": "node --experimental-strip-types scripts/setup-analysis.mts",
     "setup:analysis:dry-run": "node --experimental-strip-types scripts/setup-analysis.mts --dry-run",
     "start:local": "node --experimental-strip-types scripts/start-mashlab-local.mts",
+    "start:local:windows": "node --experimental-strip-types scripts/start-local-windows.mts",
+    "validate:analysis-lane": "node --experimental-strip-types scripts/validate-analysis-lane.mts",
     "check:local-engine": "node --experimental-strip-types local-engine/check-binaries.mts",
     "check:python-service": "node --experimental-strip-types scripts/python-service-check.mts compile",
     "check:python-service:test": "node --experimental-strip-types scripts/python-service-check.mts test",

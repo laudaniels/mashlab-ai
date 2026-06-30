@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "status": "implemented",
+  "message": "Experimental BPM and beat times computed with librosa.",
+  "result": {
+    "file_name": "track-a-vocal-like-15s.wav",
+    "bpm": 0,
+    "beat_times": [],
+    "beat_count": 0,
+    "method": "librosa.beat.beat_track (experimental prototype)",
+    "limitations": [
+      "Experimental prototype using librosa beat_track; not a pro-grade DJ grid.",
+      "Downbeat detection and phrase markers are not implemented in this phase.",
+      "Tempo doubles/halves and sparse percussion can reduce accuracy."
+    ],
+    "confidence": null,
+    "downbeat_status": "not_implemented",
+    "phrase_marker_status": "not_implemented"
+  },
+  "setup_guidance": null
+}

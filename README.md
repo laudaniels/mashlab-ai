@@ -56,6 +56,7 @@ Implemented:
 - **Demucs / PyTorch stem preview validation** — CPU torch 2.5.1 + Demucs 4.x in sidecar venv; two-stem preview validated with synthetic lavfi audio (Phase 31).
 - **Full end-to-end local QA** — stem → combined → WAV → MP3 → master → package validated with synthetic audio; evidence in `qa/full-local-workflow/phase-32/` (Phase 32).
 - **Production hardening** — venv-aware Python checks, `sidecar:start|stop|status`, optional `setup:analysis`, strict setup accepts venv Python (Phase 33).
+- **Release documentation pass** — `start:local:windows`, librosa validation, manual UI screenshot checklist (Phase 34).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
@@ -90,6 +91,34 @@ npm run check:local-engine     # FFmpeg/ffprobe PATH only
 ```
 
 See **`docs/WINDOWS_RUNTIME_SETUP.md`** for PATH requirements and interpreting check failures. Browser MVP upload works without FFmpeg or Python.
+
+### Run local demo on Windows
+
+One-command start (preflight + sidecar + Vite in new window):
+
+```powershell
+npm install
+npm run setup:windows:check:strict   # venv python + FFmpeg/ffprobe
+npm run start:local:windows            # sidecar + dev server
+```
+
+Open **http://127.0.0.1:5173/** — upload tracks you own or are authorized to use. Each processing step is **user-initiated only**.
+
+| URL | Purpose |
+|-----|---------|
+| http://127.0.0.1:5173/ | Vite app |
+| http://127.0.0.1:47831/health | Sidecar health |
+| http://127.0.0.1:47831/v1/capabilities | Engine status |
+
+```powershell
+npm run sidecar:status                 # verify sidecar
+npm run setup:analysis                 # optional librosa BPM/key
+npm run sidecar:wsl:check              # optional WSL rhythm (not required)
+```
+
+**Limitations:** No public sharing, cloud upload, downloader, or streaming. librosa analysis is experimental. See **`docs/PHASE_34_RELEASE_DOCUMENTATION.md`**.
+
+Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 
 ## Local Helper Service (Optional)
 

@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "status": "implemented",
+  "message": "Experimental key estimate computed with librosa chroma/CQT.",
+  "result": {
+    "file_name": "track-a-vocal-like-15s.wav",
+    "key": "A",
+    "mode": "minor",
+    "camelot": "8A",
+    "method": "librosa chroma_cqt + Krumhansl-style correlation (experimental prototype)",
+    "limitations": [
+      "Experimental prototype using chroma/CQT correlation; not pro-grade key detection.",
+      "Short clips, atonal material, and heavy FX can reduce reliability.",
+      "Camelot codes are heuristic mappings for DJ reference only."
+    ],
+    "confidence": 0.84
+  },
+  "setup_guidance": null
+}

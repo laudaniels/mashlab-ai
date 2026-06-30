@@ -4304,15 +4304,23 @@ describe("Production hardening (Phase 33)", async () => {
 
   it("evaluates sidecar lifecycle states", () => {
     assert.equal(
-      evaluateSidecarStatus({ health: { ok: true, service: "mashlab-local-engine" }, portInUse: true, recordedPid: 1 })
-        .state,
+      evaluateSidecarStatus({
+        health: { ok: true, service: "mashlab-local-engine" },
+        portListening: true,
+        recordedPid: 1,
+      }).state,
       "healthy"
     );
     assert.equal(
-      evaluateSidecarStatus({ health: null, portInUse: true, recordedPid: null }).state,
+      evaluateSidecarStatus({ health: null, portListening: true, recordedPid: null }).state,
       "port_occupied_unknown"
     );
+    assert.equal(
+      evaluateSidecarStatus({ health: null, portListening: true, recordedPid: 42 }).state,
+      "stale_mashlab_sidecar"
+    );
     assert.match(formatSidecarLifecycleMessage("port_occupied_unknown"), /47831|Port/i);
+    assert.match(formatSidecarLifecycleMessage("stale_mashlab_sidecar"), /stale|MashLab/i);
     assert.equal(isMashlabSidecarHealthy({ ok: true, service: "other" }), false);
   });
 
@@ -4719,6 +4727,53 @@ describe("Quick Mix reliability (Phase 36 hotfix)", async () => {
 
   it("allows long CPU stem requests up to 30 minutes", () => {
     assert.equal(LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS, 30 * 60 * 1000);
+  });
+});
+
+describe("Sidecar lifecycle reliability (Phase 37)", async () => {
+  const {
+    evaluateSidecarStatus,
+    isSidecarPortBusyFromNetstat,
+    isSidecarPortListeningFromNetstat,
+    parseSidecarListenerPidFromNetstat,
+    sidecarRecoveryPid,
+  } = await importSrc("src/domain/sidecarLifecycle.ts");
+
+  const sampleNetstat = [
+    "  TCP    127.0.0.1:47831        0.0.0.0:0              LISTENING       26004",
+    "  TCP    127.0.0.1:47831        127.0.0.1:53102        TIME_WAIT       0",
+    "  TCP    127.0.0.1:51203        127.0.0.1:47831        CLOSE_WAIT      2644",
+  ].join("\n");
+
+  it("detects LISTENING without TIME_WAIT false positives", () => {
+    assert.equal(isSidecarPortListeningFromNetstat(sampleNetstat), true);
+    assert.equal(parseSidecarListenerPidFromNetstat(sampleNetstat), 26004);
+    assert.equal(isSidecarPortBusyFromNetstat(sampleNetstat), true);
+    assert.equal(
+      isSidecarPortListeningFromNetstat(
+        "  TCP    127.0.0.1:47831        127.0.0.1:53102        TIME_WAIT       0"
+      ),
+      false
+    );
+  });
+
+  it("does not treat TIME_WAIT-only sockets as blocking sidecar start", () => {
+    const timeWaitOnly =
+      "  TCP    127.0.0.1:47831        127.0.0.1:53102        TIME_WAIT       0\n";
+    assert.equal(
+      evaluateSidecarStatus({
+        health: null,
+        portListening: isSidecarPortListeningFromNetstat(timeWaitOnly),
+        portBusy: isSidecarPortBusyFromNetstat(timeWaitOnly),
+        recordedPid: null,
+      }).state,
+      "not_running"
+    );
+  });
+
+  it("selects recovery pid from recorded or listener", () => {
+    assert.equal(sidecarRecoveryPid({ recordedPid: 12, listenerPid: 99 }), 12);
+    assert.equal(sidecarRecoveryPid({ recordedPid: null, listenerPid: 99 }), 99);
   });
 });
 

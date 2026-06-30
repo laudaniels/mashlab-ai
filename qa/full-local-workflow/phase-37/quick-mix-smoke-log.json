@@ -1,0 +1,219 @@
+{
+  "health": {
+    "ok": true,
+    "service": "mashlab-local-engine",
+    "version": "0.1.0",
+    "bind": "http://127.0.0.1:47831",
+    "privacy": "Local helper service only. Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute remain the user's responsibility."
+  },
+  "vocalStem": {
+    "ok": true,
+    "status": "preview_complete",
+    "message": "Vocal/instrumental stem preview processed locally. Preview only — not final export.",
+    "method": "demucs-two-stems-vocals",
+    "audio_processed": true,
+    "artifact_id": "9327ac152c6d47d9ba2bc7e9e6f4e639",
+    "input_summary": {
+      "file_name": "track-a-vocal-like-15s.wav",
+      "duration_seconds": 15,
+      "sample_rate": 44100,
+      "channel_count": 2,
+      "split_mode": "vocals_no_vocals",
+      "max_preview_seconds": 15
+    },
+    "vocals": {
+      "file_name": "vocals.wav",
+      "duration_seconds": 15,
+      "sample_rate": 44100,
+      "channel_count": 2,
+      "artifact_url": "/v1/artifacts/stems/9327ac152c6d47d9ba2bc7e9e6f4e639/vocals"
+    },
+    "no_vocals": {
+      "file_name": "no_vocals.wav",
+      "duration_seconds": 15,
+      "sample_rate": 44100,
+      "channel_count": 2,
+      "artifact_url": "/v1/artifacts/stems/9327ac152c6d47d9ba2bc7e9e6f4e639/no_vocals"
+    },
+    "warnings": [
+      "Demucs preview output is not studio-quality. Use for arrangement testing only."
+    ],
+    "limitations": [
+      "Preview only — not studio-quality stem separation, final mashup, or export.",
+      "Demucs two-stem output is heuristic. DJ review required before any publish decision.",
+      "One uploaded track at a time. No batch or library processing."
+    ],
+    "setup_guidance": null,
+    "validation_errors": null
+  },
+  "beatStem": {
+    "ok": true,
+    "status": "preview_complete",
+    "message": "Vocal/instrumental stem preview processed locally. Preview only — not final export.",
+    "method": "demucs-two-stems-vocals",
+    "audio_processed": true,
+    "artifact_id": "c2fc9acf9f9c4382a4e84d201b978201",
+    "input_summary": {
+      "file_name": "track-b-instrumental-15s.wav",
+      "duration_seconds": 15,
+      "sample_rate": 44100,
+      "channel_count": 2,
+      "split_mode": "vocals_no_vocals",
+      "max_preview_seconds": 15
+    },
+    "vocals": {
+      "file_name": "vocals.wav",
+      "duration_seconds": 15,
+      "sample_rate": 44100,
+      "channel_count": 2,
+      "artifact_url": "/v1/artifacts/stems/c2fc9acf9f9c4382a4e84d201b978201/vocals"
+    },
+    "no_vocals": {
+      "file_name": "no_vocals.wav",
+      "duration_seconds": 15,
+      "sample_rate": 44100,
+      "channel_count": 2,
+      "artifact_url": "/v1/artifacts/stems/c2fc9acf9f9c4382a4e84d201b978201/no_vocals"
+    },
+    "warnings": [
+      "Demucs preview output is not studio-quality. Use for arrangement testing only."
+    ],
+    "limitations": [
+      "Preview only — not studio-quality stem separation, final mashup, or export.",
+      "Demucs two-stem output is heuristic. DJ review required before any publish decision.",
+      "One uploaded track at a time. No batch or library processing."
+    ],
+    "setup_guidance": null,
+    "validation_errors": null
+  },
+  "wav": {
+    "ok": true,
+    "status": "ready",
+    "message": "Full-length local WAV export rendered from stem artifacts.",
+    "export_artifact_id": "9065910b4e2047c0b51a2fa57f3ea7ea",
+    "artifact_url": "/v1/artifacts/exports/9065910b4e2047c0b51a2fa57f3ea7ea/export",
+    "download_url": "/v1/artifacts/exports/9065910b4e2047c0b51a2fa57f3ea7ea/export",
+    "input_summary": {
+      "mash_intent": "vocal_a_over_beat_b",
+      "source_vocal_stem_artifact_id": "9327ac152c6d47d9ba2bc7e9e6f4e639",
+      "target_instrumental_stem_artifact_id": "c2fc9acf9f9c4382a4e84d201b978201",
+      "tempo_ratio": 1,
+      "pitch_shift_semitones": 0,
+      "alignment_offset_ms": 0,
+      "neutral_processing": true,
+      "mix_settings": {
+        "vocal_gain_db": 0,
+        "instrumental_gain_db": 0,
+        "master_gain_db": 0,
+        "vocal_fade_in_ms": 0,
+        "vocal_fade_out_ms": 0,
+        "instrumental_fade_in_ms": 0,
+        "instrumental_fade_out_ms": 0,
+        "limiter_safety": true,
+        "clipping_guard": true
+      }
+    },
+    "processing_summary": {
+      "method": "rubberband-vocal + ffmpeg-full-mix",
+      "vocal_rubberband_ratio": 1,
+      "pitch_shift_semitones": 0,
+      "alignment_offset_ms": 0,
+      "full_length": true,
+      "max_test_seconds": null,
+      "mix_settings": {
+        "vocal_gain_db": 0,
+        "instrumental_gain_db": 0,
+        "master_gain_db": 0,
+        "vocal_fade_in_ms": 0,
+        "vocal_fade_out_ms": 0,
+        "instrumental_fade_in_ms": 0,
+        "instrumental_fade_out_ms": 0,
+        "limiter_safety": true,
+        "clipping_guard": true
+      },
+      "limiter_safety_applied": true,
+      "clipping_guard_applied": true
+    },
+    "file_size_bytes": 2646078,
+    "duration_seconds": 15,
+    "sample_rate": 44100,
+    "channel_count": 2,
+    "codec": "pcm_s16le",
+    "loudness": {
+      "integrated_lufs": -32.19,
+      "true_peak_dbtp": -30.14,
+      "peak_level_db": -30.1,
+      "status": "available",
+      "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
+    },
+    "loudness_gate": {
+      "status": "warn",
+      "message": "integrated loudness -32.2 LUFS differs from general target -14 LUFS — not a mastering pass or club-ready claim.",
+      "integrated_lufs": -32.19,
+      "true_peak_dbtp": -30.14,
+      "target_integrated_lufs": -14,
+      "target_true_peak_dbtp": -1
+    },
+    "final_export": true,
+    "public_share": false,
+    "rights_notice": "Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.",
+    "warnings": [
+      "Full-length local WAV export — user-generated, not a published release.",
+      "Processing may take longer than preview lanes; no auto-export occurred.",
+      "Not a club-ready mastered release unless a future mastering lane is implemented.",
+      "Conservative FFmpeg alimiter prototype applied on master bus — not professional mastering.",
+      "Clipping guard prototype applied (~-1 dBTP ceiling) — DJ review required.",
+      "Integrated loudness -32.2 LUFS (available)."
+    ],
+    "limitations": [
+      "No MP3, stem package export, public sharing, or distribution rights granted.",
+      "Loudness gate is informational only — not a mastering pass.",
+      "Loudness measured only; no normalization unless a normalize mode is selected."
+    ],
+    "export_label": "quick-mix-smoke",
+    "validation_errors": null,
+    "setup_guidance": null
+  },
+  "mp3": {
+    "ok": true,
+    "status": "ready",
+    "message": "Local MP3 reference export created from WAV export artifact.",
+    "export_artifact_id": "4de60606e29c4e68816b2dac53ad4f43",
+    "source_wav_export_artifact_id": "9065910b4e2047c0b51a2fa57f3ea7ea",
+    "artifact_url": "/v1/artifacts/exports/4de60606e29c4e68816b2dac53ad4f43/export.mp3",
+    "download_url": "/v1/artifacts/exports/4de60606e29c4e68816b2dac53ad4f43/export.mp3",
+    "export_format": "mp3",
+    "bitrate_kbps": 192,
+    "file_size_bytes": 361786,
+    "duration_seconds": 15,
+    "sample_rate": 44100,
+    "channel_count": 2,
+    "codec": "mp3",
+    "loudness": {
+      "integrated_lufs": -32.45,
+      "true_peak_dbtp": -30.41,
+      "peak_level_db": -30.4,
+      "status": "available",
+      "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
+    },
+    "final_export": true,
+    "public_share": false,
+    "rights_notice": "Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.",
+    "warnings": [
+      "Local MP3 reference export — user-generated, not a published release.",
+      "MP3 is a reference/export format, not proof of distribution rights.",
+      "MP3 is not a mastered club version."
+    ],
+    "limitations": [
+      "No public sharing, streaming integration, or distribution rights granted.",
+      "Lossy MP3 encoding — use WAV export for primary local master reference."
+    ],
+    "export_label": "quick-mix-smoke-mp3",
+    "validation_errors": null,
+    "setup_guidance": null
+  },
+  "mp3Ok": true,
+  "wavArtifactId": "9065910b4e2047c0b51a2fa57f3ea7ea",
+  "mp3ArtifactId": "4de60606e29c4e68816b2dac53ad4f43",
+  "at": "2026-06-30T23:42:20.308Z"
+}

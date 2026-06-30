@@ -9,16 +9,21 @@ import {
   evaluateSidecarStatus,
   formatSidecarLifecycleMessage,
   isMashlabSidecarHealthy,
+  isSidecarPortBusyFromNetstat,
+  isSidecarPortListeningFromNetstat,
   parseSidecarHealthPayload,
+  parseSidecarListenerPidFromNetstat,
   SIDECAR_BIND,
   SIDECAR_DEFAULT_HOST,
   SIDECAR_DEFAULT_PORT,
   SIDECAR_EXTERNAL_KILL_NOTICE,
   SIDECAR_HEALTH_URL,
   SIDECAR_STATUS_RELATIVE_PATH,
+  sidecarRecoveryPid,
   sidecarStopSafetyNotice,
   type SidecarHealthPayload,
   type SidecarStatusFile,
+  type SidecarStatusEvaluation,
 } from "../src/domain/sidecarLifecycle.ts";
 
 const execFileAsync = promisify(execFile);
@@ -40,21 +45,38 @@ async function fetchHealth(): Promise<SidecarHealthPayload | null> {
   }
 }
 
-async function isPortInUse(): Promise<boolean> {
+async function readNetstat(): Promise<string> {
   if (process.platform === "win32") {
     try {
       const { stdout } = await execFileAsync("netstat", ["-ano"], { timeout: 8000 });
-      return stdout.includes(`${SIDECAR_DEFAULT_HOST}:${SIDECAR_DEFAULT_PORT}`);
+      return stdout;
     } catch {
-      return false;
+      return "";
     }
   }
   try {
     const { stdout } = await execFileAsync("ss", ["-ltn"], { timeout: 8000 });
-    return stdout.includes(`:${SIDECAR_DEFAULT_PORT}`);
+    return stdout;
   } catch {
-    return false;
+    return "";
   }
+}
+
+async function inspectSidecar(): Promise<SidecarStatusEvaluation> {
+  const health = await fetchHealth();
+  const netstat = await readNetstat();
+  const recorded = readStatusFile();
+  const portListening = isSidecarPortListeningFromNetstat(netstat);
+  const portBusy = isSidecarPortBusyFromNetstat(netstat);
+  const listenerPid = parseSidecarListenerPidFromNetstat(netstat);
+
+  return evaluateSidecarStatus({
+    health,
+    portListening,
+    portBusy,
+    recordedPid: recorded?.pid ?? null,
+    listenerPid,
+  });
 }
 
 function readStatusFile(): SidecarStatusFile | null {
@@ -79,6 +101,19 @@ function clearStatusFile(): void {
   }
 }
 
+async function killPid(pid: number): Promise<boolean> {
+  try {
+    if (process.platform === "win32") {
+      await execFileAsync("taskkill", ["/PID", String(pid), "/T", "/F"], { timeout: 10000 });
+    } else {
+      process.kill(pid, "SIGTERM");
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function waitForHealthy(timeoutMs = 20000): Promise<boolean> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
@@ -91,44 +126,94 @@ async function waitForHealthy(timeoutMs = 20000): Promise<boolean> {
   return false;
 }
 
-async function runStatus(): Promise<number> {
-  const health = await fetchHealth();
-  const portInUse = await isPortInUse();
-  const recorded = readStatusFile();
-  const evaluation = evaluateSidecarStatus({
-    health,
-    portInUse,
-    recordedPid: recorded?.pid ?? null,
+async function waitForPortFree(timeoutMs = 15000): Promise<boolean> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const netstat = await readNetstat();
+    if (!isSidecarPortListeningFromNetstat(netstat)) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  return !isSidecarPortListeningFromNetstat(await readNetstat());
+}
+
+async function recoverStaleSidecar(evaluation: SidecarStatusEvaluation): Promise<boolean> {
+  const pid = sidecarRecoveryPid({
+    recordedPid: evaluation.pid,
+    listenerPid: evaluation.listenerPid,
   });
+  if (!pid) {
+    return false;
+  }
+
+  console.log(`Recovering stale MashLab sidecar (pid ${pid})…`);
+  const stopped = await killPid(pid);
+  clearStatusFile();
+  const portFree = await waitForPortFree();
+  if (!stopped) {
+    console.error(`Could not stop stale sidecar pid ${pid}.`);
+    return false;
+  }
+  if (!portFree) {
+    console.error("Port 47831 is still listening after stale recovery attempt.");
+    return false;
+  }
+  console.log("Stale sidecar cleared.");
+  return true;
+}
+
+async function runStatus(): Promise<number> {
+  const evaluation = await inspectSidecar();
+  const recorded = readStatusFile();
 
   console.log("MashLab sidecar status");
   console.log(`Bind: ${SIDECAR_BIND}`);
   console.log(`State: ${evaluation.state}`);
   console.log(evaluation.message);
+  if (evaluation.portListening) {
+    console.log(`Port listening: yes${evaluation.listenerPid ? ` (pid ${evaluation.listenerPid})` : ""}`);
+  } else if (evaluation.portBusy) {
+    console.log("Port busy (TIME_WAIT or other non-listening socket): yes — not blocking start");
+  } else {
+    console.log("Port listening: no");
+  }
   if (recorded) {
     console.log(`Recorded pid: ${recorded.pid}`);
     console.log(`Recorded python: ${recorded.python}`);
     console.log(`Started: ${recorded.started_at}`);
   }
-  if (isMashlabSidecarHealthy(health)) {
-    console.log(`Service: ${health?.service} v${health?.version ?? "?"}`);
+  if (isMashlabSidecarHealthy(evaluation.health)) {
+    console.log(`Service: ${evaluation.health?.service} v${evaluation.health?.version ?? "?"}`);
   }
   console.log(SIDECAR_EXTERNAL_KILL_NOTICE);
   return evaluation.state === "healthy" ? 0 : evaluation.state === "not_running" ? 0 : 1;
 }
 
 async function runStart(): Promise<number> {
-  const health = await fetchHealth();
-  const portInUse = await isPortInUse();
+  let evaluation = await inspectSidecar();
 
-  if (isMashlabSidecarHealthy(health)) {
+  if (evaluation.state === "healthy") {
     console.log(formatSidecarLifecycleMessage("healthy"));
     console.log(`No action taken — ${SIDECAR_BIND} is ready.`);
     return 0;
   }
 
-  if (portInUse) {
+  if (evaluation.state === "stale_mashlab_sidecar") {
+    const recovered = await recoverStaleSidecar(evaluation);
+    if (!recovered) {
+      console.error("Could not recover stale MashLab sidecar automatically.");
+      console.error(sidecarStopSafetyNotice());
+      return 1;
+    }
+    evaluation = await inspectSidecar();
+  }
+
+  if (evaluation.portListening) {
     console.error(formatSidecarLifecycleMessage("port_occupied_unknown"));
+    if (evaluation.listenerPid) {
+      console.error(`Listener pid: ${evaluation.listenerPid}`);
+    }
     console.error("Stop the other process or choose a different port before starting MashLab sidecar.");
     return 1;
   }
@@ -178,35 +263,43 @@ async function runStart(): Promise<number> {
 
 async function runStop(): Promise<number> {
   console.log(sidecarStopSafetyNotice());
-  const health = await fetchHealth();
-  if (!isMashlabSidecarHealthy(health)) {
+  const evaluation = await inspectSidecar();
+
+  if (evaluation.state === "healthy") {
+    const recorded = readStatusFile();
+    const pid = recorded?.pid;
+    if (!pid) {
+      console.error("Sidecar is healthy but no pid is recorded. Stop the uvicorn process manually.");
+      return 1;
+    }
+
+    const stopped = await killPid(pid);
+    if (!stopped) {
+      console.error(`Failed to stop pid ${pid}.`);
+      return 1;
+    }
     clearStatusFile();
-    console.log(formatSidecarLifecycleMessage("not_running"));
+    console.log(formatSidecarLifecycleMessage("stopped"));
+    console.log(`Stopped MashLab sidecar pid ${pid}.`);
     return 0;
   }
 
-  const recorded = readStatusFile();
-  const pid = recorded?.pid;
-  if (!pid) {
-    console.error("Sidecar is healthy but no pid is recorded. Stop the uvicorn process manually.");
-    return 1;
-  }
-
-  try {
-    if (process.platform === "win32") {
-      await execFileAsync("taskkill", ["/PID", String(pid), "/T", "/F"], { timeout: 10000 });
-    } else {
-      process.kill(pid, "SIGTERM");
+  if (evaluation.state === "stale_mashlab_sidecar") {
+    const pid = sidecarRecoveryPid({
+      recordedPid: evaluation.pid,
+      listenerPid: evaluation.listenerPid,
+    });
+    if (pid) {
+      await killPid(pid);
+      console.log(`Stopped stale MashLab sidecar pid ${pid}.`);
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`Failed to stop pid ${pid}: ${message}`);
-    return 1;
+    clearStatusFile();
+    console.log(formatSidecarLifecycleMessage("stopped"));
+    return 0;
   }
 
   clearStatusFile();
-  console.log(formatSidecarLifecycleMessage("stopped"));
-  console.log(`Stopped MashLab sidecar pid ${pid}.`);
+  console.log(formatSidecarLifecycleMessage("not_running"));
   return 0;
 }
 

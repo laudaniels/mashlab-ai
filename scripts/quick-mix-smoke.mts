@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Quick Mix smoke test — one-click orchestrated pipeline via sidecar API.
+ * Quick Mix smoke test — orchestrated pipeline via sidecar API.
  * Uses synthetic non-copyright test audio (generated if missing).
  *
  * Run: npm run smoke:quick-mix
@@ -15,7 +15,8 @@ const BASE = "http://127.0.0.1:47831";
 const AUDIO_DIR = join(ROOT, "qa/full-local-workflow/phase-32/test-audio");
 const TRACK_A = join(AUDIO_DIR, "track-a-vocal-like-15s.wav");
 const TRACK_B = join(AUDIO_DIR, "track-b-instrumental-15s.wav");
-const OUT_LOG = join(ROOT, "qa/full-local-workflow/phase-36/quick-mix-smoke-log.json");
+const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-37");
+const OUT_LOG = join(OUT_DIR, "quick-mix-smoke-log.json");
 
 function ensureSyntheticAudio(): void {
   mkdirSync(AUDIO_DIR, { recursive: true });
@@ -94,12 +95,31 @@ async function postFullWav(body: Record<string, unknown>): Promise<Record<string
   return (await response.json()) as Record<string, unknown>;
 }
 
+async function postMp3(sourceWavExportArtifactId: string): Promise<Record<string, unknown>> {
+  const response = await fetch(`${BASE}/v1/export/mp3`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source_wav_export_artifact_id: sourceWavExportArtifactId,
+      bitrate_kbps: 192,
+      export_label: "quick-mix-smoke-mp3",
+    }),
+    signal: AbortSignal.timeout(120_000),
+  });
+  return (await response.json()) as Record<string, unknown>;
+}
+
 async function main(): Promise<void> {
   ensureSyntheticAudio();
 
-  const health = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(5000) });
-  if (!health.ok) {
+  const healthResponse = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(5000) });
+  if (!healthResponse.ok) {
     console.error("Sidecar health check failed. Start with: npm run sidecar:start");
+    process.exit(1);
+  }
+  const health = (await healthResponse.json()) as Record<string, unknown>;
+  if (health.service !== "mashlab-local-engine") {
+    console.error("Sidecar health response is not MashLab:", health);
     process.exit(1);
   }
 
@@ -145,16 +165,34 @@ async function main(): Promise<void> {
     clipping_guard: true,
   });
 
-  mkdirSync(join(ROOT, "qa/full-local-workflow/phase-36"), { recursive: true });
-  const log = { vocalStem, beatStem, wav, at: new Date().toISOString() };
-  await import("node:fs/promises").then((fs) => fs.writeFile(OUT_LOG, `${JSON.stringify(log, null, 2)}\n`, "utf8"));
-
   if (!wav.ok || !wav.export_artifact_id) {
     console.error("WAV export failed:", wav.message, wav.validation_errors);
     process.exit(1);
   }
 
+  console.log("Quick Mix smoke — optional MP3 reference…");
+  const mp3 = await postMp3(wav.export_artifact_id as string);
+
+  mkdirSync(OUT_DIR, { recursive: true });
+  const log = {
+    health,
+    vocalStem,
+    beatStem,
+    wav,
+    mp3,
+    mp3Ok: mp3.ok === true,
+    wavArtifactId: wav.export_artifact_id,
+    mp3ArtifactId: mp3.export_artifact_id ?? null,
+    at: new Date().toISOString(),
+  };
+  await import("node:fs/promises").then((fs) => fs.writeFile(OUT_LOG, `${JSON.stringify(log, null, 2)}\n`, "utf8"));
+
   console.log("PASS — Quick Mix smoke produced local WAV export:", wav.export_artifact_id);
+  if (mp3.ok) {
+    console.log("PASS — optional MP3 reference:", mp3.export_artifact_id);
+  } else {
+    console.log("NOTE — MP3 reference skipped/failed (WAV still valid):", mp3.message ?? mp3.status);
+  }
   console.log("Log:", OUT_LOG);
 }
 

@@ -110,6 +110,21 @@ See `docs/COMBINED_PREVIEW.md`, `docs/LOCAL_EXPORTS.md`, `docs/MIX_CONTROLS.md`,
 - No training use, no public sharing, no distribution rights granted
 - Health endpoint includes the required rights doctrine string
 
+## WSL/Linux optional profile (Phase 27)
+
+Windows MVP works without WSL. Optional verified rhythm engines use WSL/Linux:
+
+```powershell
+npm run sidecar:wsl:check
+npm run sidecar:wsl:setup
+npm run sidecar:wsl
+npm run sidecar:wsl:selftest
+```
+
+Bootstrap creates `.venv-rhythm`, attempts madmom then Essentia without failing the repo. Self-test uses synthetic click track only — no user audio. See `docs/WSL_RHYTHM_ENGINE_SETUP.md`.
+
+Manual CI: GitHub Actions workflow `Rhythm Linux Validation` (`workflow_dispatch`, `continue-on-error: true`).
+
 ## Quality Checks
 
 ```bash

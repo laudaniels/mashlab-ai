@@ -7,6 +7,7 @@ import {
 import { findCapability } from "../lib/localEngine/capabilities.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import { RhythmSelfTestPanel } from "./RhythmSelfTestPanel.tsx";
+import { WSL_OPTIONAL_RHYTHM_NOTICE, WINDOWS_MVP_RHYTHM_NOTICE } from "../domain/wslSidecarProfile.ts";
 
 export function LocalEngineStatus() {
   const { status, isChecking } = useLocalEngineStatus();
@@ -84,6 +85,11 @@ export function LocalEngineStatus() {
       {status.online ? (
         <RhythmSelfTestPanel capabilities={status.capabilities} online={status.online} />
       ) : null}
+
+      <p className="local-engine-rhythm-profile-note">
+        {WINDOWS_MVP_RHYTHM_NOTICE} {WSL_OPTIONAL_RHYTHM_NOTICE} Optional:{" "}
+        <code>npm run sidecar:wsl:check</code>
+      </p>
     </section>
   );
 }

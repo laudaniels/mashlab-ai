@@ -7,6 +7,11 @@ import {
   RHYTHM_SELF_TEST_NO_USER_AUDIO_NOTICE,
   type RhythmSelfTestResponse,
 } from "../domain/rhythmSelfTest.ts";
+import {
+  VERIFIED_RHYTHM_LABEL_NOTICE,
+  WINDOWS_MVP_RHYTHM_NOTICE,
+  WSL_OPTIONAL_RHYTHM_NOTICE,
+} from "../domain/wslSidecarProfile.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
 import {
   isBeatnetAvailable,
@@ -77,6 +82,9 @@ export function RhythmSelfTestPanel({
         <div>
           <h4>Rhythm engine self-test</h4>
           <p>{RHYTHM_SELF_TEST_NO_USER_AUDIO_NOTICE}</p>
+          <p className="rhythm-selftest-platform-note">{WINDOWS_MVP_RHYTHM_NOTICE}</p>
+          <p className="rhythm-selftest-platform-note">{WSL_OPTIONAL_RHYTHM_NOTICE}</p>
+          <p className="rhythm-selftest-platform-note">{VERIFIED_RHYTHM_LABEL_NOTICE}</p>
         </div>
       </div>
 

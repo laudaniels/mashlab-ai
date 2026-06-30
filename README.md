@@ -50,6 +50,7 @@ Implemented:
 - **Section window export + context diff guard** — advisory planning-window WAV from stems; bound vs current diff before export (Phase 23).
 - **Phrase/downbeat analysis upgrade path** — optional `/v1/analyze/phrases`, heuristic fallback, rhythm engine adapters (Phase 24–25).
 - **Rhythm engine self-test** — `GET /v1/capabilities/rhythm-selftest`, WSL/Linux setup docs (Phase 26).
+- **WSL rhythm sidecar dev profile** — optional `npm run sidecar:wsl:*` scripts, Linux validation harness (Phase 27).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
@@ -100,5 +101,16 @@ npm run check:local-engine
 npm run check:python-service
 npm run check:python-service:test
 ```
+
+### Optional WSL/Linux rhythm profile (not required for Windows MVP)
+
+```powershell
+npm run sidecar:wsl:check      # detect WSL, print guidance
+npm run sidecar:wsl:setup      # bootstrap .venv-rhythm in WSL (when installed)
+npm run sidecar:wsl            # start sidecar in WSL
+npm run sidecar:wsl:selftest   # rhythm self-test harness (non-strict)
+```
+
+See `docs/WSL_RHYTHM_ENGINE_SETUP.md`.
 
 **Environment note:** Python and FFmpeg may not be on the default Windows PATH. See `docs/QA_WORKFLOW_CHECKLIST.md` and `docs/LOCAL_ENGINE_SERVICE.md`. If `check:local-engine` fails only because FFmpeg/ffprobe are missing from PATH, add FFmpeg and rerun.

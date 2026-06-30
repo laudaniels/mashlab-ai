@@ -1,118 +1,152 @@
-# WSL / Linux Rhythm Engine Setup (Phase 26)
+# WSL / Linux Rhythm Engine Setup (Phase 26–27)
 
 Optional advanced rhythm engines (Essentia, madmom) are **not required** for MashLab AI. The Windows browser MVP and heuristic phrase planning work without them. Use this guide to validate verified downbeat/phrase analysis on Linux or WSL.
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 
-## Known Windows Python 3.12 limitations
+## Windows default path (no WSL required)
 
-Phase 25 install attempts on **Windows Python 3.12** failed:
+```powershell
+npm install
+npm run dev
+# Optional Windows sidecar (heuristic phrase planning when librosa installed):
+cd local-engine\service
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+pip install -r requirements-analysis.txt
+python -m uvicorn main:app --host 127.0.0.1 --port 47831
+```
 
-| Package | Result |
-|---------|--------|
-| Essentia | Source build failed — needs Unix `rm`/waf tooling |
-| madmom | Build failed — needs Cython + native compile chain |
+Windows MVP works without madmom/Essentia. Heuristic phrase planning remains the default fallback.
 
-**Windows MVP is unaffected.** Heuristic phrase planning via librosa remains the default. Use WSL2 or native Linux for optional verified engines.
+Check optional WSL profile:
 
-## Recommended environment
+```powershell
+npm run sidecar:wsl:check
+```
 
-- **OS:** Ubuntu 22.04+ in WSL2, or native Linux/macOS
-- **Python:** 3.10 or 3.11 (3.12 may work on Linux with pre-built wheels; test first)
-- **FFmpeg:** required on PATH for sidecar metadata/decode lanes
-- **Virtualenv:** recommended to isolate optional rhythm deps
+## WSL optional path (verified rhythm engines)
 
-## Setup steps (WSL2 Ubuntu example)
+### npm scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run sidecar:wsl:check` | Detect WSL; print Windows fallback guidance |
+| `npm run sidecar:wsl:setup` | Bootstrap `.venv-rhythm` inside WSL |
+| `npm run sidecar:wsl` | Start sidecar in WSL on port 47831 |
+| `npm run sidecar:wsl:selftest` | Call rhythm self-test (non-strict by default) |
+
+Strict mode (Linux CI / WSL when sidecar running):
 
 ```bash
-# 1. System packages
-sudo apt update
-sudo apt install -y python3-venv python3-pip ffmpeg \
-  build-essential libfftw3-dev libavcodec-dev libavformat-dev \
-  libavutil-dev libswresample-dev libyaml-dev
-
-# 2. Project virtualenv
-cd /path/to/mashlab-ai
-python3 -m venv .venv-rhythm
-source .venv-rhythm/bin/activate
-pip install -U pip
-
-# 3. Sidecar base deps (if not already installed)
-pip install fastapi uvicorn librosa numpy scipy pydantic python-multipart
-
-# 4. Optional rhythm engines (pick one or both)
-pip install cython
-pip install madmom          # verified downbeat/phrase via DBNDownBeatTracker
-pip install essentia        # or: conda install -c conda-forge essentia
-
-# 5. Start sidecar
-cd local-engine/service
-uvicorn main:app --host 127.0.0.1 --port 47831
+node --experimental-strip-types scripts/rhythm-selftest-harness.mts --strict
 ```
+
+### Bash scripts (Linux / WSL direct)
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/setup-rhythm-linux.sh` | Create `.venv-rhythm`, install base + optional madmom/Essentia |
+| `scripts/run-sidecar-linux.sh` | Start uvicorn with `.venv-rhythm` |
+| `scripts/rhythm-selftest-linux.sh` | curl self-test + synthetic phrase validation |
+
+PowerShell WSL wrappers:
+
+- `scripts/setup-wsl-rhythm.ps1`
+- `scripts/run-wsl-sidecar.ps1`
+
+## Known Windows Python 3.12 limitations
+
+| Package | Windows py3.12 | Linux/WSL |
+|---------|----------------|-----------|
+| Essentia | Build failed | Often installable |
+| madmom | Build failed | Installable with Cython + build tools |
+
+**Windows MVP is unaffected.**
+
+## Bootstrap behavior (`setup-rhythm-linux.sh`)
+
+1. Creates `.venv-rhythm` at repo root
+2. Installs `requirements.txt` + `requirements-analysis.txt`
+3. Attempts `requirements-rhythm-linux.txt` (madmom stack) — **does not fail repo if this fails**
+4. Optionally attempts `pip install essentia` — **does not fail repo if this fails**
+5. Prints summary: `madmom: installed | install_failed`, `essentia: installed | install_failed`
 
 ## Rhythm self-test (no user audio)
 
-After starting the sidecar:
+**Endpoint:** `GET /v1/capabilities/rhythm-selftest`
+
+Or:
 
 ```bash
+npm run sidecar:wsl:selftest
 curl -s http://127.0.0.1:47831/v1/capabilities/rhythm-selftest | python3 -m json.tool
 ```
 
-Or click **Run rhythm self-test** in the MashLab UI (Phrase Analysis or Local Engine Status).
+The self-test generates a synthetic 120 BPM click track in `.work/temp`, tests each engine, deletes the temp file. **No user uploads are processed.**
 
-The self-test:
+### Status meanings
 
-- Generates a synthetic 120 BPM click track in `.work/temp`
-- Tests heuristic, Essentia, madmom, and BeatNet+ stub independently
-- **Never processes user uploads**
-- Deletes the temp WAV after the run
-- Reports `pass` / `missing_dependency` / `failed` / `not_implemented` per engine
+| Status | Meaning |
+|--------|---------|
+| `pass` | Engine ran on synthetic signal and returned usable markers |
+| `missing_dependency` | Required package missing (e.g. librosa for heuristic) |
+| `not_configured` | Optional engine not installed — normal on Windows |
+| `failed` | Importable but no valid markers on synthetic signal |
+| `not_implemented` | Stub only (BeatNet+) |
+| `skipped` | Not tested this run |
 
-## Phrase analysis validation (generated clip)
+Verified labels (`Verified phrase`, `Verified downbeat`) appear **only** when real markers are returned — never from heuristic output.
 
-Use a short synthetic WAV you generate locally — not copyrighted material:
+## Phrase validation fixture (synthetic, no copyright)
+
+`local-engine/service/rhythm_fixtures.py` generates:
+
+- 120 BPM click track
+- Optional accented downbeats (louder click every bar 1)
+- Runtime-only in `.work/temp` — not committed
+
+Linux validation script:
 
 ```bash
-# After self-test passes for madmom/Essentia, test phrase endpoint with the same synthetic file:
-python3 - <<'PY'
-from pathlib import Path
-from rhythm_selftest import generate_click_track_wav, run_rhythm_selftest
-from phrase_analysis import analyze_phrase_file
-
-p = Path(".work/temp/manual-phrase-test.wav")
-p.parent.mkdir(parents=True, exist_ok=True)
-generate_click_track_wav(p)
-r = analyze_phrase_file(p, "manual-test.wav", method="auto", phrase_length_bars=8)
-print(r.model_dump())
-p.unlink(missing_ok=True)
-PY
+cd local-engine/service
+source ../../.venv-rhythm/bin/activate
+python validate_rhythm_linux.py
+python validate_rhythm_linux.py --strict   # exit 1 if heuristic self-test fails
 ```
 
-## Fallback behavior
+Tests: self-test endpoint, phrase analysis `auto`, explicit `madmom` when installed.
 
-When advanced engines are missing or fail self-test:
+## GitHub Actions (optional)
 
-- `method=auto` falls back to **heuristic_from_beats**
-- Explicit advanced methods return `missing_dependency` with setup guidance
-- Verified labels appear **only** when engines return real markers
-- DJ review is always required
+Manual workflow: `.github/workflows/rhythm-linux-validation.yml`
 
-## Manual validation log template
+- Trigger: `workflow_dispatch` only
+- `continue-on-error: true` — does not block PRs
+- Runs bootstrap, sidecar, self-test, synthetic phrase validation on Ubuntu
 
-Record results when validating on WSL/Linux:
+## Troubleshooting
+
+| Issue | Action |
+|-------|--------|
+| WSL not installed | Use Windows path; run `npm run sidecar:wsl:check` |
+| Sidecar unreachable | Start with `npm run sidecar:wsl` or `run-sidecar-linux.sh` |
+| madmom install fails | Heuristic fallback still works; check build-essential, Cython |
+| heuristic `missing_dependency` | `pip install -r requirements-analysis.txt` in venv |
+| Verified label missing | Expected without madmom — install on Linux/WSL |
+
+## Manual validation log (this host: Phase 27)
 
 | Field | Value |
 |-------|-------|
-| OS | e.g. Ubuntu 22.04 WSL2 |
-| Python | e.g. 3.11.8 |
-| Engine installed | e.g. madmom 0.16.1 |
-| Self-test heuristic | pass / failed |
-| Self-test madmom | pass / missing_dependency |
-| Self-test Essentia | pass / missing_dependency |
-| Phrase analysis auto | basis + method_used |
+| OS | Windows 11 — WSL **not installed** |
+| WSL validation | **Not run** |
+| Windows checks | All standard npm/python checks pass |
+| Self-test harness | Non-strict exits 0 when sidecar offline |
 
 ## Related docs
 
-- `local-engine/service/requirements-rhythm.txt`
+- `local-engine/service/requirements-rhythm-linux.txt`
 - `docs/PHRASE_DOWNBEAT_ANALYSIS.md`
 - `docs/LOCAL_ENGINE_SERVICE.md`

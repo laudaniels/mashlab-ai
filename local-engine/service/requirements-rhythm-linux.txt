@@ -1,0 +1,10 @@
+# Optional advanced rhythm engines — Linux / WSL only
+# Installed by scripts/setup-rhythm-linux.sh after base + analysis requirements.
+# Failures here do not block Windows MVP or repo checks.
+
+cython>=3.0
+numpy>=1.26.0
+scipy>=1.11.0
+madmom>=0.16.1
+# Essentia may fail on some platforms — bootstrap script treats it as optional:
+# essentia>=2.1b6

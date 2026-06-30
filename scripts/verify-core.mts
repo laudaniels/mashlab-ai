@@ -4063,6 +4063,74 @@ describe("Rhythm engine self-test", async () => {
   });
 });
 
+describe("WSL rhythm sidecar profile", async () => {
+  const {
+    SELF_TEST_STATUS_MEANINGS,
+    WINDOWS_MVP_RHYTHM_NOTICE,
+    buildWslBashCommand,
+    buildWslSelfTestCommand,
+    evaluateSelfTestHarnessExit,
+    formatSelfTestStatusMeaning,
+    formatWindowsFallbackMessage,
+    parseSidecarUrl,
+    parseStrictModeFlag,
+    wslSidecarCheckFromAvailability,
+  } = await importSrc("src/domain/wslSidecarProfile.ts");
+
+  it("formats WSL bash commands", () => {
+    const cmd = buildWslBashCommand("/mnt/c/project", "scripts/setup-rhythm-linux.sh");
+    assert.match(cmd, /wsl bash/);
+    assert.match(cmd, /setup-rhythm-linux\.sh/);
+    assert.match(buildWslSelfTestCommand("/mnt/c/project", true), /STRICT=1/);
+  });
+
+  it("parses strict and url flags", () => {
+    assert.equal(parseStrictModeFlag(["--strict"]), true);
+    assert.equal(parseStrictModeFlag([]), false);
+    assert.equal(parseSidecarUrl(["--url", "http://127.0.0.1:47831"]), "http://127.0.0.1:47831");
+  });
+
+  it("non-strict exit when sidecar offline", () => {
+    assert.equal(evaluateSelfTestHarnessExit(null, { strict: false, sidecarReachable: false }), 0);
+    assert.equal(evaluateSelfTestHarnessExit(null, { strict: true, sidecarReachable: false }), 1);
+  });
+
+  it("strict exit when heuristic unavailable", () => {
+    assert.equal(
+      evaluateSelfTestHarnessExit(
+        {
+          ok: true,
+          service: "x",
+          pythonVersion: "3.12",
+          platform: "Linux",
+          noUserAudioProcessed: true,
+          testSignal: "synthetic",
+          djReviewRequired: true,
+          heuristicFallbackAvailable: false,
+          verifiedDownbeatAvailable: false,
+          verifiedPhraseAvailable: false,
+          results: [],
+          rightsNotice: "rights",
+          limitations: [],
+        },
+        { strict: true, sidecarReachable: true }
+      ),
+      1
+    );
+  });
+
+  it("documents self-test status meanings", () => {
+    assert.match(formatSelfTestStatusMeaning("not_configured"), /not installed/i);
+    assert.ok(SELF_TEST_STATUS_MEANINGS.pass);
+  });
+
+  it("windows fallback messaging", () => {
+    assert.match(formatWindowsFallbackMessage(false), /Windows MVP/i);
+    assert.match(wslSidecarCheckFromAvailability(false).message, /not installed/i);
+    assert.match(WINDOWS_MVP_RHYTHM_NOTICE, /Heuristic/i);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

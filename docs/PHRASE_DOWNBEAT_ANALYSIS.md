@@ -50,6 +50,15 @@ Returns per-engine: import status, smoke-test status (`pass`, `missing_dependenc
 
 See `docs/WSL_RHYTHM_ENGINE_SETUP.md` for Linux/WSL optional engine install.
 
+### WSL sidecar scripts (Phase 27)
+
+| npm script | Purpose |
+|------------|---------|
+| `sidecar:wsl:check` | WSL availability + Windows fallback message |
+| `sidecar:wsl:setup` | Bootstrap `.venv-rhythm` in WSL |
+| `sidecar:wsl` | Run sidecar in WSL |
+| `sidecar:wsl:selftest` | Self-test harness (non-strict default) |
+
 ## Endpoint
 
 ### `POST /v1/analyze/phrases`

@@ -1331,9 +1331,20 @@ audio {
 .rhythm-selftest-limitation,
 .rhythm-selftest-setup,
 .rhythm-selftest-rights,
-.rhythm-selftest-dj {
+.rhythm-selftest-dj,
+.rhythm-selftest-platform-note {
   color: #9eb0cb;
   font-size: 11px;
+}
+
+.local-engine-rhythm-profile-note {
+  margin: 10px 0 0;
+  color: #9eb0cb;
+  font-size: 12px;
+}
+
+.local-engine-rhythm-profile-note code {
+  color: #b8c4d9;
 }
 
 .timeline-summary-list p {

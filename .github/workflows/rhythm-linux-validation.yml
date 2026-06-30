@@ -1,0 +1,51 @@
+# Manual Linux rhythm validation — does NOT run on every PR.
+# Optional verified-engine installs may fail; job uses continue-on-error.
+name: Rhythm Linux Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: "Fail job if heuristic self-test does not pass"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  rhythm-linux:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-venv python3-pip \
+            build-essential libfftw3-dev libavcodec-dev libavformat-dev \
+            libavutil-dev libswresample-dev libyaml-dev
+
+      - name: Bootstrap rhythm venv
+        run: bash scripts/setup-rhythm-linux.sh
+
+      - name: Start sidecar
+        run: |
+          bash scripts/run-sidecar-linux.sh &
+          sleep 5
+          curl -sf http://127.0.0.1:47831/health
+
+      - name: Rhythm self-test (non-strict)
+        run: node --experimental-strip-types scripts/rhythm-selftest-harness.mts
+
+      - name: Phrase validation (synthetic fixture)
+        working-directory: local-engine/service
+        run: |
+          source ../../.venv-rhythm/bin/activate
+          python validate_rhythm_linux.py
+
+      - name: Strict self-test (optional)
+        if: inputs.strict == 'true'
+        run: node --experimental-strip-types scripts/rhythm-selftest-harness.mts --strict

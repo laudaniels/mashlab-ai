@@ -103,7 +103,16 @@ If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for th
 - [ ] Verified labels appear only when self-test reports real markers
 - [ ] Setup guidance shown for missing engines
 - [ ] WSL/Linux path documented in `docs/WSL_RHYTHM_ENGINE_SETUP.md`
+- [ ] `npm run sidecar:wsl:check` prints Windows fallback when WSL missing
 - [ ] DJ review notice visible; rights notice unchanged
+
+## Phase 27: WSL sidecar dev profile
+
+- [ ] `npm run sidecar:wsl:setup` documented (optional, WSL only)
+- [ ] `npm run sidecar:wsl:selftest` non-strict exits 0 when sidecar offline on Windows
+- [ ] Synthetic validation fixture — no copyrighted audio
+- [ ] GitHub Actions rhythm workflow is manual (`workflow_dispatch`) only
+- [ ] Verified labels only when advanced engine returns real markers
 
 ### 6. Combined preview
 - [ ] Requires stem previews for both tracks (or documented neutral path)

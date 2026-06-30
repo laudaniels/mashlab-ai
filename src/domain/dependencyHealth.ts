@@ -7,9 +7,11 @@ import {
   isRubberBandAvailable,
   rubberBandCapabilitySummary,
 } from "../lib/localEngine/capabilities.ts";
+import type { DependencyRequirementTier } from "./windowsRuntimeSetup.ts";
+import { DEPENDENCY_TIER_ORDER } from "./windowsRuntimeSetup.ts";
 
 export const DEPENDENCY_SETUP_DOCS_HINT =
-  "See docs/QA_WORKFLOW_CHECKLIST.md and docs/LOCAL_ENGINE_SERVICE.md for PATH setup.";
+  "See docs/WINDOWS_RUNTIME_SETUP.md and docs/LOCAL_ENGINE_SERVICE.md for PATH setup.";
 
 export interface DependencyHealthItem {
   id: string;
@@ -17,6 +19,7 @@ export interface DependencyHealthItem {
   status: "online" | "available" | "missing" | "optional" | "planned" | "offline";
   message: string;
   setupGuidance: string | null;
+  requirementTier: DependencyRequirementTier;
 }
 
 export function buildDependencyHealth(
@@ -25,28 +28,33 @@ export function buildDependencyHealth(
 ): DependencyHealthItem[] {
   if (!sidecarOnline) {
     return [
+      mapBrowserMvpItem(),
       {
         id: "sidecar",
         label: "Python sidecar",
         status: "offline",
         message: "Local helper service offline — browser-only mode.",
         setupGuidance:
-          "Start the sidecar: cd local-engine/service && python -m uvicorn main:app --host 127.0.0.1 --port 47831",
+          "Start the sidecar: cd local-engine/service && python -m uvicorn main:app --host 127.0.0.1 --port 47831. Run npm run start:local for steps.",
+        requirementTier: "processing",
       },
       {
         id: "python",
         label: "Python runtime",
         status: "offline",
         message: "Not reachable until the sidecar is running.",
-        setupGuidance: "Install Python 3.12+ and add it to PATH. Verify with python --version.",
+        setupGuidance: "Install Python 3.10+ and add it to PATH. Verify with npm run setup:windows:check.",
+        requirementTier: "processing",
       },
       {
         id: "ffmpeg",
         label: "FFmpeg / ffprobe",
         status: "offline",
-        message: "Cannot verify while sidecar is offline.",
+        message: "Cannot verify while sidecar is offline. Required for processing when sidecar runs.",
         setupGuidance: "Install FFmpeg and add ffmpeg + ffprobe to PATH. Run npm run check:local-engine.",
+        requirementTier: "processing",
       },
+      mapWslRhythmItem(),
     ];
   }
 
@@ -59,6 +67,7 @@ export function buildDependencyHealth(
   const torch = findCapability(capabilities, "torch");
 
   return [
+    mapBrowserMvpItem(),
     mapSidecarItem(),
     mapCapabilityItem(python, "python", "Python runtime", {
       available: "Sidecar is running.",
@@ -68,8 +77,20 @@ export function buildDependencyHealth(
     mapRubberBandItem(rubberBand),
     mapDemucsItem(demucs, torch),
     mapOptionalPackage(librosa, "librosa", "librosa BPM/key analysis"),
-    mapOptionalPackage(findCapability(capabilities, "essentia"), "essentia", "Essentia (planned upgrade)"),
+    mapOptionalPackage(findCapability(capabilities, "essentia"), "essentia", "Essentia (optional rhythm)"),
+    mapWslRhythmItem(),
   ];
+}
+
+function mapBrowserMvpItem(): DependencyHealthItem {
+  return {
+    id: "browser",
+    label: "Browser MVP",
+    status: "available",
+    message: "Upload, overrides, and planning work without FFmpeg or the Python sidecar.",
+    setupGuidance: null,
+    requirementTier: "browser_mvp",
+  };
 }
 
 function mapSidecarItem(): DependencyHealthItem {
@@ -79,6 +100,7 @@ function mapSidecarItem(): DependencyHealthItem {
     status: "online",
     message: "Local helper service reachable at 127.0.0.1:47831.",
     setupGuidance: null,
+    requirementTier: "processing",
   };
 }
 
@@ -95,6 +117,7 @@ function mapCapabilityItem(
       status: "missing",
       message: messages.missing,
       setupGuidance: null,
+      requirementTier: "processing",
     };
   }
 
@@ -104,6 +127,7 @@ function mapCapabilityItem(
     status: capability.status === "available" ? "available" : capability.status === "planned" ? "planned" : "missing",
     message: capability.message,
     setupGuidance: capability.status === "available" ? null : DEPENDENCY_SETUP_DOCS_HINT,
+    requirementTier: id === "python" ? "processing" : "optional_analysis",
   };
 }
 
@@ -121,6 +145,7 @@ function mapBinaryPair(
       status: "available",
       message: "FFmpeg and ffprobe found on PATH.",
       setupGuidance: null,
+      requirementTier: "processing",
     };
   }
 
@@ -138,7 +163,8 @@ function mapBinaryPair(
     status: "missing",
     message: `${missing.join(" and ")} missing from PATH — required for mix, export, and loudness readout.`,
     setupGuidance:
-      "Install FFmpeg and add its bin directory to PATH. Verify with npm run check:local-engine.",
+      "Install FFmpeg and add its bin directory to PATH. Verify with npm run setup:windows:check and npm run check:local-engine.",
+    requirementTier: "processing",
   };
 }
 
@@ -155,6 +181,7 @@ function mapRubberBandItem(summary: ReturnType<typeof rubberBandCapabilitySummar
       summary.status === "available"
         ? null
         : "Install rubberband-cli and ensure rubberband or rubberband.exe is on PATH.",
+    requirementTier: "processing",
   };
 }
 
@@ -174,6 +201,7 @@ function mapDemucsItem(
       : torch?.status === "available"
         ? "pip install demucs inside the service virtualenv."
         : "pip install torch and demucs inside the service virtualenv.",
+    requirementTier: "processing",
   };
 }
 
@@ -189,6 +217,7 @@ function mapOptionalPackage(
       status: "optional",
       message: `${label} status unknown.`,
       setupGuidance: null,
+      requirementTier: id === "essentia" ? "wsl_optional" : "optional_analysis",
     };
   }
 
@@ -199,6 +228,7 @@ function mapOptionalPackage(
       status: "planned",
       message: capability.message,
       setupGuidance: null,
+      requirementTier: id === "essentia" ? "wsl_optional" : "optional_analysis",
     };
   }
 
@@ -213,7 +243,41 @@ function mapOptionalPackage(
         : id === "librosa"
           ? "pip install -r requirements-analysis.txt inside local-engine/service."
           : null,
+    requirementTier: id === "essentia" ? "wsl_optional" : "optional_analysis",
   };
+}
+
+function mapWslRhythmItem(): DependencyHealthItem {
+  return {
+    id: "wsl_rhythm",
+    label: "WSL advanced rhythm",
+    status: "optional",
+    message: "Optional — madmom/Essentia verified downbeats only. Heuristic phrase planning remains default.",
+    setupGuidance: "npm run sidecar:wsl:check — see docs/WSL_RHYTHM_ENGINE_SETUP.md",
+    requirementTier: "wsl_optional",
+  };
+}
+
+export function groupDependencyHealthByTier(
+  items: DependencyHealthItem[]
+): Map<DependencyRequirementTier, DependencyHealthItem[]> {
+  const grouped = new Map<DependencyRequirementTier, DependencyHealthItem[]>();
+  for (const item of items) {
+    const list = grouped.get(item.requirementTier) ?? [];
+    list.push(item);
+    grouped.set(item.requirementTier, list);
+  }
+  return grouped;
+}
+
+export function orderedDependencyHealthTiers(
+  items: DependencyHealthItem[]
+): Array<{ tier: DependencyRequirementTier; items: DependencyHealthItem[] }> {
+  const grouped = groupDependencyHealthByTier(items);
+  return DEPENDENCY_TIER_ORDER.flatMap((tier) => {
+    const tierItems = grouped.get(tier);
+    return tierItems?.length ? [{ tier, items: tierItems }] : [];
+  });
 }
 
 export function formatDependencyHealthSummary(items: DependencyHealthItem[]): string {

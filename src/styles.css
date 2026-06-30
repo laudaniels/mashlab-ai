@@ -1347,6 +1347,124 @@ audio {
   color: #b8c4d9;
 }
 
+.local-engine-tier-group {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(132, 146, 176, 0.12);
+}
+
+.local-engine-tier-label {
+  margin: 0 0 2px;
+  color: #d8e0ef;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.local-engine-tier-hint {
+  margin: 0 0 6px;
+  color: #8fa0bb;
+  font-size: 11px;
+}
+
+.first-run-guidance-panel {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid rgba(100, 180, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(18, 28, 44, 0.92);
+}
+
+.first-run-guidance-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.first-run-guidance-header strong {
+  display: block;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.first-run-guidance-header span {
+  color: #9eb0cb;
+  font-size: 12px;
+}
+
+.first-run-dismiss {
+  margin-left: auto;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9eb0cb;
+  cursor: pointer;
+}
+
+.first-run-dismiss:hover {
+  color: #ffffff;
+  background: rgba(132, 146, 176, 0.16);
+}
+
+.first-run-step-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.first-run-step-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(8, 12, 20, 0.55);
+}
+
+.first-run-step-list strong {
+  display: block;
+  color: #e8edf5;
+  font-size: 13px;
+}
+
+.first-run-step-list p {
+  margin: 4px 0 0;
+  color: #9eb0cb;
+  font-size: 12px;
+}
+
+.first-run-step-action {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.first-run-notices {
+  display: grid;
+  gap: 6px;
+}
+
+.first-run-notices p {
+  margin: 0;
+  color: #8fa0bb;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.intro-setup-hint {
+  margin-top: 14px;
+  color: #9eb0cb;
+  font-size: 13px;
+}
+
+.intro-setup-hint code {
+  color: #b8c4d9;
+}
+
 .timeline-summary-list p {
   margin: 0;
   color: #b8c4d9;

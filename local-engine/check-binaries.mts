@@ -12,21 +12,24 @@ interface BinaryCheck {
 
 async function checkBinary(name: string): Promise<BinaryCheck> {
   try {
-    const { stdout } = await execFileAsync(name, ["-version"], { timeout: 5000 });
+    const { stdout } = await execFileAsync(name, ["-version"], {
+      timeout: 5000,
+      shell: process.platform === "win32",
+    });
     const versionLine = stdout.split("\n").find((line) => line.trim().length > 0) ?? null;
 
     return {
       name,
       available: true,
       version: versionLine,
-      message: `${name} is available.`,
+      message: `${name} is available on PATH.`,
     };
   } catch {
     return {
       name,
       available: false,
       version: null,
-      message: `${name} was not found on PATH. Install FFmpeg and ensure ${name} is available for the future local engine service.`,
+      message: `${name} was not found on PATH. Install FFmpeg and add its bin directory to PATH.`,
     };
   }
 }
@@ -47,7 +50,10 @@ for (const result of [ffmpeg, ffprobe]) {
 
 if (!ffmpeg.available || !ffprobe.available) {
   console.log("");
-  console.log("The browser MVP still works without FFmpeg.");
-  console.log("FFmpeg/ffprobe will be required for the future local processing service.");
+  console.log("Browser MVP upload and planning still work without FFmpeg.");
+  console.log("FFmpeg and ffprobe are required for stem preview, combined preview, export, and loudness readout.");
+  console.log("Setup: npm run setup:windows:check");
+  console.log("Guide: npm run setup:windows:guide");
+  console.log("Docs:  docs/WINDOWS_RUNTIME_SETUP.md");
   process.exitCode = 1;
 }

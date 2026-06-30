@@ -3,19 +3,24 @@ import {
   buildDependencyHealth,
   collectMissingSetupGuidance,
   formatDependencyHealthSummary,
+  orderedDependencyHealthTiers,
 } from "../domain/dependencyHealth.ts";
+import {
+  dependencyRequirementExplanation,
+  formatDependencyTierLabel,
+} from "../domain/windowsRuntimeSetup.ts";
 import { findCapability } from "../lib/localEngine/capabilities.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import { RhythmSelfTestPanel } from "./RhythmSelfTestPanel.tsx";
-import { WSL_OPTIONAL_RHYTHM_NOTICE, WINDOWS_MVP_RHYTHM_NOTICE } from "../domain/wslSidecarProfile.ts";
 
 export function LocalEngineStatus() {
   const { status, isChecking } = useLocalEngineStatus();
 
   const healthItems = buildDependencyHealth(status.online, status.capabilities);
+  const tierGroups = orderedDependencyHealthTiers(healthItems);
   const summary = status.online
     ? formatDependencyHealthSummary(healthItems)
-    : "Browser-only mode. Local helper service offline.";
+    : "Browser MVP active — sidecar offline.";
   const setupGuidance = collectMissingSetupGuidance(healthItems);
 
   return (
@@ -32,38 +37,42 @@ export function LocalEngineStatus() {
           <ServerOff aria-hidden="true" size={18} />
         )}
         <div>
-          <strong>{status.online ? "Local service online" : "Browser-only mode"}</strong>
+          <strong>{status.online ? "Local service online" : "Browser MVP mode"}</strong>
           <span>{summary}</span>
         </div>
       </div>
 
-      {status.online ? (
-        <ul className="local-engine-capability-list">
-          {healthItems.map((item) => (
-            <li key={item.id}>
-              <span>{item.label}</span>
-              <span className={`status-pill status-${dependencyStatusClass(item.status)}`}>
-                {item.status.replace(/_/g, " ")}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
+      {!status.online ? (
         <p className="local-engine-offline-note">
-          Upload and browser metadata still work without the sidecar. Start the Python helper on
-          `127.0.0.1:47831` to enable ffprobe-backed metadata, stem preview, and export lanes.
+          Upload and planning work without the sidecar. Start the Python helper on 127.0.0.1:47831
+          for ffprobe metadata, stem preview, and export. Run <code>npm run start:local</code> for
+          steps.
         </p>
-      )}
-
-      {status.online ? (
-        <ul className="local-engine-guidance-list">
-          {healthItems
-            .filter((item) => item.status === "missing" || item.status === "offline")
-            .map((item) => (
-              <li key={`${item.id}-message`}>{item.message}</li>
-            ))}
-        </ul>
       ) : null}
+
+      {tierGroups.map(({ tier, items }) => (
+        <div className="local-engine-tier-group" key={tier}>
+          <p className="local-engine-tier-label">{formatDependencyTierLabel(tier)}</p>
+          <p className="local-engine-tier-hint">{dependencyRequirementExplanation(tier)}</p>
+          <ul className="local-engine-capability-list">
+            {items.map((item) => (
+              <li key={item.id}>
+                <span>{item.label}</span>
+                <span className={`status-pill status-${dependencyStatusClass(item.status)}`}>
+                  {item.status.replace(/_/g, " ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <ul className="local-engine-guidance-list">
+            {items
+              .filter((item) => item.status === "missing" || item.status === "offline")
+              .map((item) => (
+                <li key={`${item.id}-message`}>{item.message}</li>
+              ))}
+          </ul>
+        </div>
+      ))}
 
       {setupGuidance.length > 0 ? (
         <div className="local-engine-setup-guidance">
@@ -78,18 +87,13 @@ export function LocalEngineStatus() {
 
       {status.online && findCapability(status.capabilities, "rubberband")?.status === "available" ? (
         <p className="local-engine-offline-note">
-          Rubber Band, FFmpeg, and Demucs lanes are user-initiated only — nothing auto-processes.
+          Processing lanes are user-initiated only — nothing auto-processes.
         </p>
       ) : null}
 
       {status.online ? (
         <RhythmSelfTestPanel capabilities={status.capabilities} online={status.online} />
       ) : null}
-
-      <p className="local-engine-rhythm-profile-note">
-        {WINDOWS_MVP_RHYTHM_NOTICE} {WSL_OPTIONAL_RHYTHM_NOTICE} Optional:{" "}
-        <code>npm run sidecar:wsl:check</code>
-      </p>
     </section>
   );
 }

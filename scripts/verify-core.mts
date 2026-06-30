@@ -2723,7 +2723,7 @@ describe("End-to-end workflow QA hardening", async () => {
     const items = buildDependencyHealth(false, []);
     assert.match(formatDependencyHealthSummary(items), /dependency checks/i);
     assert.ok(collectMissingSetupGuidance(items).length > 0);
-    assert.match(items[0]!.message, /offline/i);
+    assert.match(items[0]!.message, /without FFmpeg/i);
   });
 
   it("formats actionable user-facing errors", () => {
@@ -4128,6 +4128,116 @@ describe("WSL rhythm sidecar profile", async () => {
     assert.match(formatWindowsFallbackMessage(false), /Windows MVP/i);
     assert.match(wslSidecarCheckFromAvailability(false).message, /not installed/i);
     assert.match(WINDOWS_MVP_RHYTHM_NOTICE, /Heuristic/i);
+  });
+});
+
+describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
+  const {
+    DEPENDENCY_TIER_LABELS,
+    DEPENDENCY_TIER_ORDER,
+    FIRST_RUN_STEPS,
+    LOCAL_ONLY_PROCESSING_NOTICE,
+    WINDOWS_FFMPEG_PATH_NOTICE,
+    buildLocalStartChecklist,
+    dependencyRequirementExplanation,
+    dismissFirstRun,
+    evaluateWindowsCheckExitCode,
+    firstRunPanelLines,
+    formatDependencyTierLabel,
+    formatWindowsRuntimeCheckLine,
+    formatWindowsRuntimeSummary,
+    includesNoPublicSharingLanguage,
+    isFirstRunDismissed,
+  } = await importSrc("src/domain/windowsRuntimeSetup.ts");
+  const {
+    buildDependencyHealth,
+    orderedDependencyHealthTiers,
+  } = await importSrc("src/domain/dependencyHealth.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+  const { WSL_OPTIONAL_RHYTHM_NOTICE } = await importSrc("src/domain/wslSidecarProfile.ts");
+
+  it("formats Windows runtime check lines and summary", () => {
+    const item = {
+      id: "ffmpeg",
+      label: "FFmpeg / ffprobe",
+      tier: "processing" as const,
+      status: "missing" as const,
+      message: "ffmpeg missing",
+      setupGuidance: WINDOWS_FFMPEG_PATH_NOTICE,
+    };
+    assert.match(formatWindowsRuntimeCheckLine(item), /FFmpeg/);
+    assert.match(formatWindowsRuntimeSummary([item, { ...item, status: "available" }]), /1\/2/);
+  });
+
+  it("strict exit only blocks python and ffmpeg processing tier", () => {
+    const items = [
+      {
+        id: "python",
+        label: "Python",
+        tier: "processing",
+        status: "missing",
+        message: "missing",
+        setupGuidance: null,
+      },
+      {
+        id: "rubberband",
+        label: "Rubber Band",
+        tier: "processing",
+        status: "missing",
+        message: "missing",
+        setupGuidance: null,
+      },
+    ];
+    assert.equal(evaluateWindowsCheckExitCode(items, true), 1);
+    assert.equal(evaluateWindowsCheckExitCode(items, false), 0);
+  });
+
+  it("labels dependency requirement tiers", () => {
+    for (const tier of DEPENDENCY_TIER_ORDER) {
+      assert.ok(formatDependencyTierLabel(tier).length > 0);
+      assert.ok(dependencyRequirementExplanation(tier).length > 0);
+      assert.ok(DEPENDENCY_TIER_LABELS[tier]);
+    }
+    assert.match(formatDependencyTierLabel("browser_mvp"), /Browser MVP/i);
+    assert.match(dependencyRequirementExplanation("wsl_optional"), /not required/i);
+  });
+
+  it("builds first-run checklist content with rights doctrine", () => {
+    assert.equal(FIRST_RUN_STEPS.length, 5);
+    assert.match(FIRST_RUN_STEPS[0]!.label, /Load two tracks/i);
+    assert.match(FIRST_RUN_STEPS[4]!.label, /Export/i);
+    const lines = firstRunPanelLines();
+    assert.ok(lines.some((line) => line.includes(requiredRightsNotice)));
+    assert.match(LOCAL_ONLY_PROCESSING_NOTICE, /No cloud upload/i);
+    assert.ok(includesNoPublicSharingLanguage(LOCAL_ONLY_PROCESSING_NOTICE));
+  });
+
+  it("tracks first-run dismiss state in storage", () => {
+    const storage = new Map<string, string>();
+    const adapter = {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value);
+      },
+    };
+    assert.equal(isFirstRunDismissed(adapter), false);
+    dismissFirstRun(adapter);
+    assert.equal(isFirstRunDismissed(adapter), true);
+  });
+
+  it("groups dependency health by tier with browser MVP first", () => {
+    const items = buildDependencyHealth(false, []);
+    const ordered = orderedDependencyHealthTiers(items);
+    assert.equal(ordered[0]!.tier, "browser_mvp");
+    assert.ok(ordered.some((group) => group.tier === "wsl_optional"));
+    assert.match(items[0]!.message, /without FFmpeg/i);
+  });
+
+  it("local start checklist mentions sidecar and WSL optional", () => {
+    const checklist = buildLocalStartChecklist();
+    assert.ok(checklist.some((line) => /uvicorn/i.test(line)));
+    assert.ok(checklist.some((line) => /sidecar:wsl:check/i.test(line)));
+    assert.match(WSL_OPTIONAL_RHYTHM_NOTICE, /Optional/i);
   });
 });
 

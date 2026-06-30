@@ -24,6 +24,7 @@ Check optional WSL profile:
 
 ```powershell
 npm run sidecar:wsl:check
+npm run setup:windows:check   # browser MVP works without WSL
 ```
 
 ## WSL optional path (verified rhythm engines)

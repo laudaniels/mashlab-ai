@@ -1,16 +1,27 @@
-# QA Workflow Checklist (Phase 19–20)
+# QA Workflow Checklist (Phase 19–28)
 
 Manual and automated verification for the full local DJ workflow in MashLab AI / CyphaBlend AI. **Nothing auto-processes** — each step requires explicit user action.
 
 ## Environment Setup (run first)
 
-| Dependency | Required for | PATH / install |
-|------------|--------------|----------------|
-| **Python 3.12+** | Sidecar service | Add `Python312` and `Scripts` to PATH. Verify: `python --version` |
-| **FFmpeg + ffprobe** | Mix, export, loudness readout | Install FFmpeg; add bin dir to PATH. Verify: `npm run check:local-engine` |
-| **Rubber Band CLI** | Pitch/time + combined preview | Install `rubberband-cli`; ensure `rubberband` on PATH |
-| **Demucs + PyTorch** | Stem preview separation | `pip install torch demucs` in `local-engine/service` venv |
-| **librosa** (optional) | BPM/key analysis lanes | `pip install -r requirements-analysis.txt` |
+**Windows:** see `docs/WINDOWS_RUNTIME_SETUP.md` for PATH setup, npm scripts, and interpreting failures.
+
+```powershell
+npm run setup:windows:check
+npm run setup:windows:guide
+npm run start:local
+npm run check:local-engine
+```
+
+| Dependency | Tier | Required for | PATH / install |
+|------------|------|--------------|----------------|
+| **Browser MVP** | Always | Upload, overrides, planning | `npm run dev` only |
+| **Python 3.10+** | Processing | Sidecar service | PATH + venv in `local-engine/service` |
+| **FFmpeg + ffprobe** | Processing | Mix, export, loudness readout | Standard FFmpeg release on PATH |
+| **Rubber Band CLI** | Processing | Pitch/time + combined preview | `rubberband-cli` on PATH |
+| **Demucs + PyTorch** | Processing | Stem preview separation | `requirements-stems.txt` in venv |
+| **librosa** | Optional | BPM/key analysis lanes | `requirements-analysis.txt` |
+| **WSL rhythm** | Optional | Verified madmom/Essentia downbeats | `npm run sidecar:wsl:check` |
 
 Start sidecar:
 
@@ -25,9 +36,10 @@ Quality commands:
 npm run lint && npm run typecheck && npm test && npm run build
 npm run check:python-service && npm run check:python-service:test
 npm run check:local-engine
+npm run setup:windows:check
 ```
 
-If `check:local-engine` fails only because FFmpeg is off PATH, add FFmpeg for the session and rerun — do not treat PATH misconfiguration as a product defect.
+If `check:local-engine` or `setup:windows:check` reports FFmpeg missing, install FFmpeg, add its bin folder to PATH, open a new terminal, and rerun — do not treat PATH misconfiguration as a product defect.
 
 ## End-to-End Workflow Checklist
 

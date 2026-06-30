@@ -51,6 +51,7 @@ Implemented:
 - **Phrase/downbeat analysis upgrade path** — optional `/v1/analyze/phrases`, heuristic fallback, rhythm engine adapters (Phase 24–25).
 - **Rhythm engine self-test** — `GET /v1/capabilities/rhythm-selftest`, WSL/Linux setup docs (Phase 26).
 - **WSL rhythm sidecar dev profile** — optional `npm run sidecar:wsl:*` scripts, Linux validation harness (Phase 27).
+- **Windows runtime setup + MVP UX polish** — `setup:windows:*`, `start:local`, first-run guidance, dependency tier labels (Phase 28).
 - SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
@@ -75,6 +76,17 @@ npm run dev
 
 Then open the local URL printed by Vite.
 
+### Windows setup (optional processing)
+
+```powershell
+npm run setup:windows:check    # detect Python, FFmpeg, Rubber Band, etc.
+npm run setup:windows:guide    # print setup guide
+npm run start:local            # step-by-step start checklist
+npm run check:local-engine     # FFmpeg/ffprobe PATH only
+```
+
+See **`docs/WINDOWS_RUNTIME_SETUP.md`** for PATH requirements and interpreting check failures. Browser MVP upload works without FFmpeg or Python.
+
 ## Local Helper Service (Optional)
 
 The browser MVP works without this service. To run the localhost analysis sidecar:
@@ -88,7 +100,7 @@ pip install -r requirements-analysis.txt
 python -m uvicorn main:app --host 127.0.0.1 --port 47831
 ```
 
-See `local-engine/service/README.md`, `docs/QA_WORKFLOW_CHECKLIST.md`, `docs/ARRANGEMENT_DRAFTS.md`, `docs/SECTION_EXPORTS.md`, `docs/PHRASE_DOWNBEAT_ANALYSIS.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/MIX_CONTROLS.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, `docs/LOCAL_ENGINE_SERVICE.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, PATH requirements, workflow QA, arrangement drafts, preview processing, mix controls, local exports, mastering presets, project packages, session artifacts, and timeline alignment.
+See `local-engine/service/README.md`, **`docs/WINDOWS_RUNTIME_SETUP.md`**, `docs/QA_WORKFLOW_CHECKLIST.md`, `docs/ARRANGEMENT_DRAFTS.md`, `docs/SECTION_EXPORTS.md`, `docs/PHRASE_DOWNBEAT_ANALYSIS.md`, `docs/BPM_KEY_ANALYSIS.md`, `docs/BEAT_GRID_AND_HARMONIC_PLANNING.md`, `docs/PITCH_TIME_PLANNING.md`, `docs/RUBBER_BAND_PROCESSING.md`, `docs/STEM_SEPARATION.md`, `docs/COMBINED_PREVIEW.md`, `docs/MIX_CONTROLS.md`, `docs/PREVIEW_SESSION_MANAGEMENT.md`, `docs/LOCAL_EXPORTS.md`, `docs/MASTERING_PRESETS.md`, `docs/PROJECT_PACKAGE_EXPORT.md`, `docs/LOCAL_ENGINE_SERVICE.md`, `docs/EXPORT_AND_MASTERING_PLAN.md`, `docs/SESSION_ARTIFACTS.md`, and `docs/TIMELINE_ALIGNMENT.md` for setup, PATH requirements, workflow QA, arrangement drafts, preview processing, mix controls, local exports, mastering presets, project packages, session artifacts, and timeline alignment.
 
 ## Quality Commands
 
@@ -98,6 +110,9 @@ npm run typecheck
 npm run build
 npm test
 npm run check:local-engine
+npm run setup:windows:check
+npm run setup:windows:guide
+npm run start:local
 npm run check:python-service
 npm run check:python-service:test
 ```
@@ -113,4 +128,4 @@ npm run sidecar:wsl:selftest   # rhythm self-test harness (non-strict)
 
 See `docs/WSL_RHYTHM_ENGINE_SETUP.md`.
 
-**Environment note:** Python and FFmpeg may not be on the default Windows PATH. See `docs/QA_WORKFLOW_CHECKLIST.md` and `docs/LOCAL_ENGINE_SERVICE.md`. If `check:local-engine` fails only because FFmpeg/ffprobe are missing from PATH, add FFmpeg and rerun.
+**Environment note:** Python and FFmpeg may not be on the default Windows PATH. See **`docs/WINDOWS_RUNTIME_SETUP.md`**, `docs/QA_WORKFLOW_CHECKLIST.md`, and `docs/LOCAL_ENGINE_SERVICE.md`. If `check:local-engine` or `setup:windows:check` reports FFmpeg/ffprobe missing, install FFmpeg, add its bin folder to PATH, and rerun — the browser MVP still works without FFmpeg.

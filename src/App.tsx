@@ -41,6 +41,7 @@ import {
 import { legalDoctrineBullets, requiredRightsNotice } from "./lib/legal";
 import { clearAnalysisCache } from "./lib/localEngine/analysisCache.ts";
 import { TrackAnalysisPanel } from "./components/TrackAnalysisPanel";
+import { FirstRunGuidancePanel } from "./components/FirstRunGuidancePanel";
 import { LocalEngineStatus } from "./components/LocalEngineStatus";
 import { ArrangementPlanPanel } from "./components/ArrangementPlanPanel.tsx";
 import { WorkflowReadinessPanel } from "./components/WorkflowReadinessPanel";
@@ -497,7 +498,10 @@ function App() {
           </div>
         </aside>
 
-        <main className="main-stage">{renderScreen()}</main>
+        <main className="main-stage">
+          <FirstRunGuidancePanel onNavigate={setActiveScreen} />
+          {renderScreen()}
+        </main>
       </div>
     </div>
   );
@@ -511,9 +515,8 @@ function App() {
               <p className="eyebrow">Neutral private audio-processing tool</p>
               <h2>Build the mashup workflow before claiming the magic.</h2>
               <p className="lead">
-                This MVP foundation accepts two user-supplied audio files, reads safe local
-                metadata, and maps the future engines for stems, beat grids, key matching,
-                arrangement drafts, and DJ-safe export.
+                Load two tracks you own or are authorized to use, plan the mashup locally, and
+                create previews or exports on your machine. No cloud upload or public sharing.
               </p>
               <div className="hero-actions">
                 <button className="primary-action" onClick={() => setActiveScreen("upload")} type="button">
@@ -525,12 +528,16 @@ function App() {
                   Review use notice
                 </button>
               </div>
+              <p className="intro-setup-hint">
+                Optional processing needs FFmpeg and the Python sidecar on PATH. Run{" "}
+                <code>npm run setup:windows:check</code> or <code>npm run start:local</code>.
+              </p>
             </div>
 
             <div className="studio-visual" aria-label="Audio workflow signal preview">
               <div className="meter-header">
-                <span>Mash Engine Map</span>
-                <span>Prototype</span>
+                <span>Engine map</span>
+                <span>Local lanes</span>
               </div>
               <div className="meter-stack">
                 {engineCapabilities.slice(0, 5).map((capability, index) => (
@@ -550,10 +557,10 @@ function App() {
         return (
           <section className="screen">
             <ScreenTitle
-              eyebrow="Phase 2 prototype"
+              eyebrow="Step 1 — Upload"
               icon={UploadCloud}
               title="Upload Two Local Tracks"
-              subtitle="Files are inspected in this browser. No downloader, streaming import, or remote training path exists in this MVP."
+              subtitle="Files stay in this browser session. No downloader, streaming import, or cloud upload. Sidecar and FFmpeg are not required to load tracks."
             />
             <div className="upload-grid">
               <TrackUploadSlot
@@ -578,10 +585,10 @@ function App() {
         return (
           <section className="screen">
             <ScreenTitle
-              eyebrow="Analysis dashboard"
+              eyebrow="Step 2 — Analysis"
               icon={Activity}
               title="Track Analysis and Mashup Planning"
-              subtitle="Browser metadata is local. BPM/key prototypes run through the optional sidecar when librosa is installed. Harmonic and phrase planning are advisory and require DJ review."
+              subtitle="Browser metadata is always local. BPM/key prototypes require sidecar + librosa. Harmonic and phrase planning are advisory — DJ review required."
             />
             <div className="stats-grid">
               <StatTile icon={FileAudio2} label="Loaded files" value={`${loadedTracks.length}/2`} />
@@ -646,10 +653,10 @@ function App() {
         return (
           <section className="screen">
             <ScreenTitle
-              eyebrow="Stem separation"
+              eyebrow="Step 3 — Stems"
               icon={Layers3}
               title="Vocal / Instrumental Preview"
-              subtitle="User-initiated Demucs two-stem preview on one uploaded track. Not studio-quality output. Full mashup rendering remains future work."
+              subtitle="User-initiated Demucs two-stem preview. Requires sidecar, FFmpeg, and Demucs. One track at a time."
             />
             <StemPreviewPanel
               onStemPreviewComplete={updateStemPreviewArtifact}
@@ -678,10 +685,10 @@ function App() {
         return (
           <section className="screen">
             <ScreenTitle
-              eyebrow="Arrangement drafts"
+              eyebrow="Step 2b — Drafts"
               icon={Sparkles}
-              title="Arrangement Draft Intelligence (Prototype)"
-              subtitle="Planning templates for Clean Blend, Club Edit, and Creative Blend. No audio is generated until you create preview or export."
+              title="Arrangement Draft Planning"
+              subtitle="Clean Blend, Club Edit, and Creative Blend templates. Planning only — no audio until you create preview or export."
             />
             {readyTracks.length === 2 ? (
               <ArrangementPlanPanel
@@ -703,10 +710,10 @@ function App() {
         return (
           <section className="screen">
             <ScreenTitle
-              eyebrow="Arrangement preview"
+              eyebrow="Step 4 — Timeline & preview"
               icon={SlidersHorizontal}
-              title="Timeline Alignment and DJ Overrides"
-              subtitle="Read-only beat and phrase planning with manual override controls. Intro/verse/drop structure and stem lanes remain future work."
+              title="Timeline Alignment and Combined Preview"
+              subtitle="Beat and phrase planning with DJ overrides. Combined preview needs stem previews on both tracks and Rubber Band."
             />
             <TimelineAlignmentPanel artifactStore={artifactStore} tracks={readyTracks} />
             {readyTracks.length > 0 ? (
@@ -758,10 +765,10 @@ function App() {
         return (
           <section className="screen">
             <ScreenTitle
-              eyebrow="Export panel"
+              eyebrow="Step 5 — Export"
               icon={Download}
               title="Preview Session and Local Export"
-              subtitle="Manage local preview and export artifacts. WAV export unlocks after stem previews or a combined preview exists."
+              subtitle="Manage local artifacts. WAV/MP3/master/package export requires FFmpeg and prior previews. Artifacts stay on your machine."
             />
             <PreviewArtifactBrowser />
             {readyTracks.length === 2 ? (

@@ -23,6 +23,17 @@ The browser MVP still works without the sidecar (metadata-only mode).
 
 ## Environment Setup
 
+See **`docs/WINDOWS_RUNTIME_SETUP.md`** for the full Windows PATH guide, npm check scripts, and failure interpretation.
+
+Quick verify:
+
+```powershell
+npm run setup:windows:check
+npm run setup:windows:guide
+npm run start:local
+npm run check:local-engine
+```
+
 ### Python (required for sidecar)
 
 Install **Python 3.12+** and add to PATH:
@@ -38,7 +49,9 @@ Verify: `python --version`
 
 Install FFmpeg and add the `bin` directory to PATH.
 
-Verify: `npm run check:local-engine`
+Verify: `npm run check:local-engine` (also covered by `npm run setup:windows:check`)
+
+Do not rely on Streamlabs bundled FFmpeg for permanent setup — install a standard FFmpeg release.
 
 ### Rubber Band CLI (required for pitch/time + combined preview)
 
@@ -131,6 +144,7 @@ Manual CI: GitHub Actions workflow `Rhythm Linux Validation` (`workflow_dispatch
 npm run check:python-service
 npm run check:python-service:test
 npm run check:local-engine
+npm run setup:windows:check
 ```
 
 If `check:local-engine` fails because FFmpeg/ffprobe are not on PATH, fix PATH for the session and rerun.

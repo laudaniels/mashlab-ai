@@ -294,8 +294,7 @@ async function runCase(
   };
 
   if (!spec.expectSuccess) {
-    const dropError = page.locator(".quick-mix-drop-error").first();
-        await page.waitForTimeout(1500);
+    await page.waitForTimeout(1500);
     const errorText =
       (await page.locator(".quick-mix-drop-error").first().textContent({ timeout: 5000 }).catch(() => null))?.trim() ??
       null;
@@ -384,7 +383,6 @@ async function runCase(
   result.mp3SkippedReason = mp3Skipped?.trim() ?? null;
   result.playableOutput = playable;
   result.falseDone = falseDone;
-    result.mixingStarted = mixingVisible;
   result.consoleErrors = [...consoleErrors];
   return result;
 }

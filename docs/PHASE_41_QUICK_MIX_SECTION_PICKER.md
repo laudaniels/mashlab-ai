@@ -108,26 +108,22 @@ npm run smoke:quick-mix
 npm run smoke:quick-mix:browser
 ```
 
-Real-file browser QA (operator machine, filenames redacted):
+Real-file browser QA (**2026-07-01**, Track A / Track B only — ~201 s / ~205 s MP3 pair, 22 candidates found in bounded local search; no filenames in repo):
 
-| Case | Result |
-|------|--------|
-| Default First 3:00 | PASS |
-| Custom vocal section | PASS (Track A @ 1:05) |
-| Custom instrumental section | PASS (Track B @ 0:42) |
-| Different starts per source | PASS |
-| WAV export | PASS |
-| MP3 export or non-blocking skip | PASS |
-| No false Done on failure | PASS (unit + browser; no error-panel false Done) |
-| Sidecar healthy after run | PASS |
+| Case | Starts (vocal / instrumental) | Time (s) | WAV artifact | MP3 artifact | Sidecar | Console | Playable |
+|------|----------------------------------|----------|--------------|--------------|---------|---------|----------|
+| Default First 3:00 | 0:00 / 0:00 | 115 | `fbb9fadc04fe4729b3e973247f844550` | `6bb0e969abcd4897a2c8ac70d7d7d652` | healthy | none | yes |
+| Custom vocal 1:05 | 1:05 / 0:00 | 99 | `82e85a9c0ccd43f18ccd0cbd01cf6657` | `167fa4046bb84c598f8fc8dbad3bd644` | healthy | none | yes |
+| Custom instrumental 0:42 | 0:00 / 0:42 | 116 | `ae53117c0c6e4c2c85b6835732acc229` | `a2ef94ca676644f989a1d2b01795d2fd` | healthy | none | yes |
+| Different starts | 1:05 / 0:42 | 103 | `6ec74243b9fd486f9437fc67073919fb` | `07681197db324cb59c4b7d75a35eb43b` | healthy | none | yes |
+| Shorter synthetic (15 s) | 0:00 / 0:00 | 24 | `51a79c8f4f9e48eb95def7454770c980` | `20be92ff904e45a1a270f8cd02d050bc` | healthy | none | yes |
+| Invalid start (10:00 vocal) | — | 6 | — | — | healthy | none | blocked (`Start time is past the end of this file.`; no mix, no false Done) |
+| MP3 optional | 0:00 / 0:00 | 115 | `8e28d97190114a4895518c348bacc15e` | `5fd711fb11634ef6b14e4821b4959056` | healthy | none | yes |
+| Sidecar during processing | 0:30 / 0:00 | 115 | `b03f74cdd3224f8fa83d01f7cc2c8ccf` | `81955c09d5ff4eb79d2ffec299c634c1` | **22× `/health` OK** | none | yes |
 
-**Operator notes (2026-07-01):** `D:\PATRICK FOLDER` top level has subfolders only (no audio files at root). Real-file browser QA used **Track A** / **Track B** MP3s from a child folder via `MASHLAB_QM_VOCAL` / `MASHLAB_QM_BEAT` (filenames not recorded in repo). Vocal section output **1:05?3:25** (partial window on ~205 s source); instrumental **0:42?3:42**.
+Evidence JSON: `qa/full-local-workflow/phase-41/quick-mix-section-browser-qa.json` (`npm run smoke:quick-mix:section-qa` with `MASHLAB_QM_VOCAL` / `MASHLAB_QM_BEAT`). Browser smoke (real audio): `qa/full-local-workflow/phase-40/quick-mix-real-audio-browser-log.json` — **110 s**, `uiChecksPass: true`, console errors **0**.
 
-**Artifact IDs (smoke):** WAV `537fb7327d16464dbe9dd86049212270`, MP3 `2834120bdb4746bfb27271138296979e`, stems `6e1168b342134a8ba5cd35a0403a51db` / `138115e2b5c649f1b524c88cc9c06276`.
-
-**Artifact ID (real-file section browser QA):** WAV export `c095084d7e4c4d749228b8e18d047089` (~120 s run).
-
-Tracks referenced as **Track A** (vocal) / **Track B** (instrumental) only ? no commercial filenames in repo.
+**Operator notes:** Use ~3-minute sources for section validation; very long files make “invalid start” cases harder to trigger. Custom-start **Mix** stays disabled until browser duration metadata is available (`sectionDurationsReady` in `QuickMixApp`).
 
 ## Remaining limitations
 

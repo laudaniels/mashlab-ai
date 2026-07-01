@@ -76,7 +76,15 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
   );
 
   const readyToMix = isQuickMixReady(readiness);
-  const canMix = canStartQuickMix(uploads, readyToMix) && !mixing;
+  const sectionNeedsDuration =
+    sectionDrafts.vocal.mode === "custom_start" ||
+    (!useSameStart && sectionDrafts.instrumental.mode === "custom_start");
+  const sectionDurationsReady =
+    !sectionNeedsDuration ||
+    (sourceDurations.vocal !== null &&
+      (useSameStart || sourceDurations.instrumental !== null));
+  const canMix =
+    canStartQuickMix(uploads, readyToMix) && sectionDurationsReady && !mixing;
 
   function updateSectionDraft(slot: "vocal" | "instrumental", draft: QuickMixSectionDraft) {
     setSectionDrafts((current) => {

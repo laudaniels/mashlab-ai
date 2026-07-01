@@ -5098,7 +5098,13 @@ describe("Quick Mix section picker (Phase 41)", async () => {
     assert.equal(quickMixPipelineShowsDone(failed), false);
   });
 
-  it("keeps 180-second cap disclosure and local-only copy", () => {
+
+  it("requires source duration before enabling custom-start mix", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const appSource = await readFile(new URL("../src/components/QuickMixApp.tsx", import.meta.url), "utf8");
+    assert.match(appSource, /sectionNeedsDuration/);
+    assert.match(appSource, /sectionDurationsReady/);
+  });  it("keeps 180-second cap disclosure and local-only copy", () => {
     assert.match(QUICK_MIX_DURATION_CAP_NOTICE, /180 seconds|3:00/i);
     const copy = [QUICK_MIX_DURATION_CAP_NOTICE, QUICK_MIX_LOCAL_ONLY_NOTICE, requiredRightsNotice].join("\n");
     assert.ok(includesNoPublicSharingInQuickMixCopy(copy));

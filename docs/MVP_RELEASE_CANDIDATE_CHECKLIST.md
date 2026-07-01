@@ -39,12 +39,12 @@ See [QUICK_MIX_MODE.md](./QUICK_MIX_MODE.md) · [PHASE_40_TRUE_PEAK_SAFETY.md](.
 | **Default unchanged** | First 3:00, Phase 40 mix profile |
 | **Doc** | [PHASE_41_QUICK_MIX_SECTION_PICKER.md](./PHASE_41_QUICK_MIX_SECTION_PICKER.md) |
 
-- [ ] Section picker UI under upload cards  
-- [ ] Custom start per source + optional same-start toggle  
-- [ ] Trim before Demucs via prep / `preview_start_seconds`  
-- [ ] Output shows vocal/instrumental section ranges  
-- [ ] Full QA suite + real-file browser (Track A / Track B redacted)  
-- [ ] Commit `Add Quick Mix section picker` — **RC4 tag only after explicit approval**
+- [x] Section picker UI under upload cards  
+- [x] Custom start per source + optional same-start toggle  
+- [x] Trim before Demucs via prep / `preview_start_seconds`  
+- [x] Output shows vocal/instrumental section ranges  
+- [x] Full QA suite + real-file browser (Track A / Track B redacted)  
+- [x] Commit `Add Quick Mix section picker` — **RC4 tag only after explicit approval**
 
 ---
 

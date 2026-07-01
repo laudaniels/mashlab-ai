@@ -1,0 +1,354 @@
+{
+  "startedAt": "2026-07-01T04:50:55.124Z",
+  "appUrl": "http://127.0.0.1:5173/",
+  "phase": "phase-41-section-picker",
+  "trackA": "Track A (vocal source)",
+  "trackB": "Track B (instrumental source)",
+  "cases": [
+    {
+      "caseId": "default_first_180",
+      "label": "Default First 3:00",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": true,
+      "section": {},
+      "expectSuccess": true,
+      "vocalStart": "0:00 (First 3:00)",
+      "instrumentalStart": "0:00 (First 3:00)",
+      "totalSeconds": 115,
+      "sidecarHealthSamples": [],
+      "sidecarHealthyDuringMix": null,
+      "ok": true,
+      "outcome": "completed",
+      "sectionSummaryLines": [
+        "Vocal section: 0:00–3:00",
+        "Instrumental section: 0:00–3:00",
+        "Length: 3:00 MVP cap"
+      ],
+      "wavArtifactId": "fbb9fadc04fe4729b3e973247f844550",
+      "mp3ArtifactId": "6bb0e969abcd4897a2c8ac70d7d7d652",
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": []
+    },
+    {
+      "caseId": "custom_vocal_1_05",
+      "label": "Custom vocal 1:05",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": true,
+      "section": {
+        "vocal": {
+          "mode": "custom_start",
+          "minutes": "1",
+          "seconds": "5"
+        }
+      },
+      "expectSuccess": true,
+      "vocalStart": "1:05",
+      "instrumentalStart": "0:00 (First 3:00)",
+      "totalSeconds": 99,
+      "sidecarHealthSamples": [],
+      "sidecarHealthyDuringMix": null,
+      "ok": true,
+      "outcome": "completed",
+      "sectionSummaryLines": [
+        "Vocal section: 1:05–3:21",
+        "Instrumental section: 0:00–3:00",
+        "Length: 3:00 MVP cap"
+      ],
+      "wavArtifactId": "82e85a9c0ccd43f18ccd0cbd01cf6657",
+      "mp3ArtifactId": "167fa4046bb84c598f8fc8dbad3bd644",
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": []
+    },
+    {
+      "caseId": "custom_instrumental_0_42",
+      "label": "Custom instrumental 0:42",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": true,
+      "section": {
+        "instrumental": {
+          "mode": "custom_start",
+          "minutes": "0",
+          "seconds": "42"
+        }
+      },
+      "expectSuccess": true,
+      "vocalStart": "0:00 (First 3:00)",
+      "instrumentalStart": "0:42",
+      "totalSeconds": 116,
+      "sidecarHealthSamples": [],
+      "sidecarHealthyDuringMix": null,
+      "ok": true,
+      "outcome": "completed",
+      "sectionSummaryLines": [
+        "Vocal section: 0:00–3:00",
+        "Instrumental section: 0:42–3:25",
+        "Length: 3:00 MVP cap"
+      ],
+      "wavArtifactId": "ae53117c0c6e4c2c85b6835732acc229",
+      "mp3ArtifactId": "a2ef94ca676644f989a1d2b01795d2fd",
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": []
+    },
+    {
+      "caseId": "different_starts",
+      "label": "Different vocal/instrumental starts",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": true,
+      "section": {
+        "vocal": {
+          "mode": "custom_start",
+          "minutes": "1",
+          "seconds": "5"
+        },
+        "instrumental": {
+          "mode": "custom_start",
+          "minutes": "0",
+          "seconds": "42"
+        }
+      },
+      "expectSuccess": true,
+      "vocalStart": "1:05",
+      "instrumentalStart": "0:42",
+      "totalSeconds": 103,
+      "sidecarHealthSamples": [],
+      "sidecarHealthyDuringMix": null,
+      "ok": true,
+      "outcome": "completed",
+      "sectionSummaryLines": [
+        "Vocal section: 1:05–3:21",
+        "Instrumental section: 0:42–3:25",
+        "Length: 3:00 MVP cap"
+      ],
+      "wavArtifactId": "6ec74243b9fd486f9437fc67073919fb",
+      "mp3ArtifactId": "07681197db324cb59c4b7d75a35eb43b",
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": []
+    },
+    {
+      "caseId": "shorter_synthetic",
+      "label": "Shorter 15s synthetic pair",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": false,
+      "section": {},
+      "expectSuccess": true,
+      "vocalStart": "0:00 (First 3:00)",
+      "instrumentalStart": "0:00 (First 3:00)",
+      "totalSeconds": 24,
+      "sidecarHealthSamples": [],
+      "sidecarHealthyDuringMix": null,
+      "ok": true,
+      "outcome": "completed",
+      "sectionSummaryLines": [
+        "Vocal section: 0:00–0:15",
+        "Instrumental section: 0:00–0:15",
+        "Length: 3:00 MVP cap"
+      ],
+      "wavArtifactId": "51a79c8f4f9e48eb95def7454770c980",
+      "mp3ArtifactId": "20be92ff904e45a1a270f8cd02d050bc",
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": []
+    },
+    {
+      "caseId": "invalid_start",
+      "label": "Invalid start past file end",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": true,
+      "section": {
+        "vocal": {
+          "mode": "custom_start",
+          "minutes": "10",
+          "seconds": "0"
+        }
+      },
+      "expectSuccess": false,
+      "vocalStart": "10:00",
+      "instrumentalStart": "0:00 (First 3:00)",
+      "ok": true,
+      "errorText": "Start time is past the end of this file.",
+      "falseDone": false,
+      "mixingStarted": false,
+      "totalSeconds": 6
+    },
+    {
+      "caseId": "mp3_optional",
+      "label": "MP3 optional (WAV required)",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": true,
+      "section": {},
+      "expectSuccess": true,
+      "vocalStart": "0:00 (First 3:00)",
+      "instrumentalStart": "0:00 (First 3:00)",
+      "totalSeconds": 115,
+      "sidecarHealthSamples": [],
+      "sidecarHealthyDuringMix": null,
+      "ok": true,
+      "outcome": "completed",
+      "sectionSummaryLines": [
+        "Vocal section: 0:00–3:00",
+        "Instrumental section: 0:00–3:00",
+        "Length: 3:00 MVP cap"
+      ],
+      "wavArtifactId": "8e28d97190114a4895518c348bacc15e",
+      "mp3ArtifactId": "5fd711fb11634ef6b14e4821b4959056",
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": []
+    },
+    {
+      "caseId": "sidecar_health",
+      "label": "Sidecar health during processing",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "useRealAudio": true,
+      "section": {
+        "vocal": {
+          "mode": "custom_start",
+          "minutes": "0",
+          "seconds": "30"
+        }
+      },
+      "expectSuccess": true,
+      "vocalStart": "0:30",
+      "instrumentalStart": "0:00 (First 3:00)",
+      "totalSeconds": 115,
+      "sidecarHealthSamples": [
+        {
+          "tSec": 9,
+          "ok": true
+        },
+        {
+          "tSec": 14,
+          "ok": true
+        },
+        {
+          "tSec": 19,
+          "ok": true
+        },
+        {
+          "tSec": 24,
+          "ok": true
+        },
+        {
+          "tSec": 29,
+          "ok": true
+        },
+        {
+          "tSec": 34,
+          "ok": true
+        },
+        {
+          "tSec": 39,
+          "ok": true
+        },
+        {
+          "tSec": 44,
+          "ok": true
+        },
+        {
+          "tSec": 49,
+          "ok": true
+        },
+        {
+          "tSec": 54,
+          "ok": true
+        },
+        {
+          "tSec": 59,
+          "ok": true
+        },
+        {
+          "tSec": 64,
+          "ok": true
+        },
+        {
+          "tSec": 69,
+          "ok": true
+        },
+        {
+          "tSec": 74,
+          "ok": true
+        },
+        {
+          "tSec": 79,
+          "ok": true
+        },
+        {
+          "tSec": 84,
+          "ok": true
+        },
+        {
+          "tSec": 89,
+          "ok": true
+        },
+        {
+          "tSec": 94,
+          "ok": true
+        },
+        {
+          "tSec": 99,
+          "ok": true
+        },
+        {
+          "tSec": 104,
+          "ok": true
+        },
+        {
+          "tSec": 109,
+          "ok": true
+        },
+        {
+          "tSec": 114,
+          "ok": true
+        }
+      ],
+      "sidecarHealthyDuringMix": true,
+      "ok": true,
+      "outcome": "completed",
+      "sectionSummaryLines": [
+        "Vocal section: 0:30–3:21",
+        "Instrumental section: 0:00–3:00",
+        "Length: 3:00 MVP cap"
+      ],
+      "wavArtifactId": "b03f74cdd3224f8fa83d01f7cc2c8ccf",
+      "mp3ArtifactId": "81955c09d5ff4eb79d2ffec299c634c1",
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": []
+    }
+  ],
+  "allOk": true,
+  "finishedAt": "2026-07-01T05:05:57.154Z"
+}

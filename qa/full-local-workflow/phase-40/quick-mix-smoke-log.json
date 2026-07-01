@@ -25,7 +25,7 @@
     "message": "Vocal/instrumental stem preview processed locally. Preview only — not final export.",
     "method": "demucs-two-stems-vocals",
     "audio_processed": true,
-    "artifact_id": "6e1168b342134a8ba5cd35a0403a51db",
+    "artifact_id": "7ae1c939eef74fce8f26386514466f51",
     "input_summary": {
       "file_name": "track-a-vocal-like-15s.wav",
       "duration_seconds": 15,
@@ -40,14 +40,14 @@
       "duration_seconds": 15,
       "sample_rate": 44100,
       "channel_count": 2,
-      "artifact_url": "/v1/artifacts/stems/6e1168b342134a8ba5cd35a0403a51db/vocals"
+      "artifact_url": "/v1/artifacts/stems/7ae1c939eef74fce8f26386514466f51/vocals"
     },
     "no_vocals": {
       "file_name": "no_vocals.wav",
       "duration_seconds": 15,
       "sample_rate": 44100,
       "channel_count": 2,
-      "artifact_url": "/v1/artifacts/stems/6e1168b342134a8ba5cd35a0403a51db/no_vocals"
+      "artifact_url": "/v1/artifacts/stems/7ae1c939eef74fce8f26386514466f51/no_vocals"
     },
     "warnings": [
       "Demucs preview output is not studio-quality. Use for arrangement testing only."
@@ -66,7 +66,7 @@
     "message": "Vocal/instrumental stem preview processed locally. Preview only — not final export.",
     "method": "demucs-two-stems-vocals",
     "audio_processed": true,
-    "artifact_id": "138115e2b5c649f1b524c88cc9c06276",
+    "artifact_id": "da8e931806c643f6956cb9f08f435e88",
     "input_summary": {
       "file_name": "track-b-instrumental-15s.wav",
       "duration_seconds": 15,
@@ -81,14 +81,14 @@
       "duration_seconds": 15,
       "sample_rate": 44100,
       "channel_count": 2,
-      "artifact_url": "/v1/artifacts/stems/138115e2b5c649f1b524c88cc9c06276/vocals"
+      "artifact_url": "/v1/artifacts/stems/da8e931806c643f6956cb9f08f435e88/vocals"
     },
     "no_vocals": {
       "file_name": "no_vocals.wav",
       "duration_seconds": 15,
       "sample_rate": 44100,
       "channel_count": 2,
-      "artifact_url": "/v1/artifacts/stems/138115e2b5c649f1b524c88cc9c06276/no_vocals"
+      "artifact_url": "/v1/artifacts/stems/da8e931806c643f6956cb9f08f435e88/no_vocals"
     },
     "warnings": [
       "Demucs preview output is not studio-quality. Use for arrangement testing only."
@@ -105,13 +105,13 @@
     "ok": true,
     "status": "ready",
     "message": "Full-length local WAV export rendered from stem artifacts.",
-    "export_artifact_id": "537fb7327d16464dbe9dd86049212270",
-    "artifact_url": "/v1/artifacts/exports/537fb7327d16464dbe9dd86049212270/export",
-    "download_url": "/v1/artifacts/exports/537fb7327d16464dbe9dd86049212270/export",
+    "export_artifact_id": "a3571377516e4fdeb0ca7ae220a1b82a",
+    "artifact_url": "/v1/artifacts/exports/a3571377516e4fdeb0ca7ae220a1b82a/export",
+    "download_url": "/v1/artifacts/exports/a3571377516e4fdeb0ca7ae220a1b82a/export",
     "input_summary": {
       "mash_intent": "vocal_a_over_beat_b",
-      "source_vocal_stem_artifact_id": "6e1168b342134a8ba5cd35a0403a51db",
-      "target_instrumental_stem_artifact_id": "138115e2b5c649f1b524c88cc9c06276",
+      "source_vocal_stem_artifact_id": "7ae1c939eef74fce8f26386514466f51",
+      "target_instrumental_stem_artifact_id": "da8e931806c643f6956cb9f08f435e88",
       "tempo_ratio": 1,
       "pitch_shift_semitones": 0,
       "alignment_offset_ms": 0,
@@ -152,14 +152,14 @@
       "clipping_guard_applied": true,
       "instrumental_duck_applied": true
     },
-    "file_size_bytes": 2646078,
-    "duration_seconds": 15,
+    "file_size_bytes": 2637902,
+    "duration_seconds": 14.953650793650795,
     "sample_rate": 44100,
     "channel_count": 2,
     "codec": "pcm_s16le",
     "loudness": {
       "integrated_lufs": -29.55,
-      "true_peak_dbtp": -27.53,
+      "true_peak_dbtp": -27.52,
       "peak_level_db": -27.5,
       "status": "available",
       "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
@@ -168,7 +168,7 @@
       "status": "warn",
       "message": "integrated loudness -29.6 LUFS differs from general target -14 LUFS — not a mastering pass or club-ready claim.",
       "integrated_lufs": -29.55,
-      "true_peak_dbtp": -27.53,
+      "true_peak_dbtp": -27.52,
       "target_integrated_lufs": -14,
       "target_true_peak_dbtp": -1
     },
@@ -197,21 +197,21 @@
     "ok": true,
     "status": "ready",
     "message": "Local MP3 reference export created from WAV export artifact.",
-    "export_artifact_id": "2834120bdb4746bfb27271138296979e",
-    "source_wav_export_artifact_id": "537fb7327d16464dbe9dd86049212270",
-    "artifact_url": "/v1/artifacts/exports/2834120bdb4746bfb27271138296979e/export.mp3",
-    "download_url": "/v1/artifacts/exports/2834120bdb4746bfb27271138296979e/export.mp3",
+    "export_artifact_id": "cac2bf8272074960aa63b3249945cf5f",
+    "source_wav_export_artifact_id": "a3571377516e4fdeb0ca7ae220a1b82a",
+    "artifact_url": "/v1/artifacts/exports/cac2bf8272074960aa63b3249945cf5f/export.mp3",
+    "download_url": "/v1/artifacts/exports/cac2bf8272074960aa63b3249945cf5f/export.mp3",
     "export_format": "mp3",
     "bitrate_kbps": 192,
-    "file_size_bytes": 361786,
-    "duration_seconds": 15,
+    "file_size_bytes": 360532,
+    "duration_seconds": 14.953651,
     "sample_rate": 44100,
     "channel_count": 2,
     "codec": "mp3",
     "loudness": {
       "integrated_lufs": -29.85,
-      "true_peak_dbtp": -27.42,
-      "peak_level_db": -27.5,
+      "true_peak_dbtp": -27.8,
+      "peak_level_db": -27.8,
       "status": "available",
       "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
     },
@@ -232,11 +232,11 @@
     "setup_guidance": null
   },
   "mp3Ok": true,
-  "wavArtifactId": "537fb7327d16464dbe9dd86049212270",
-  "mp3ArtifactId": "2834120bdb4746bfb27271138296979e",
+  "wavArtifactId": "a3571377516e4fdeb0ca7ae220a1b82a",
+  "mp3ArtifactId": "cac2bf8272074960aa63b3249945cf5f",
   "loudness": {
     "integrated_lufs": -29.55,
-    "true_peak_dbtp": -27.53,
+    "true_peak_dbtp": -27.52,
     "peak_level_db": -27.5,
     "status": "available",
     "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
@@ -245,7 +245,7 @@
     "status": "warn",
     "message": "integrated loudness -29.6 LUFS differs from general target -14 LUFS — not a mastering pass or club-ready claim.",
     "integrated_lufs": -29.55,
-    "true_peak_dbtp": -27.53,
+    "true_peak_dbtp": -27.52,
     "target_integrated_lufs": -14,
     "target_true_peak_dbtp": -1
   },
@@ -258,5 +258,5 @@
     "Light instrumental duck under vocal (sidechaincompress prototype) — DJ review required.",
     "Integrated loudness -29.6 LUFS (available)."
   ],
-  "at": "2026-07-01T04:41:07.285Z"
+  "at": "2026-07-01T05:09:41.339Z"
 }

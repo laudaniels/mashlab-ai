@@ -1,7 +1,7 @@
 {
-  "startedAt": "2026-07-01T01:25:15.877Z",
+  "startedAt": "2026-07-01T05:06:53.672Z",
   "appUrl": "http://127.0.0.1:5173/",
-  "phase": "phase-40-true-peak-safety",
+  "phase": "phase-41-section-picker",
   "usingRealFiles": true,
   "trackA": "Track A (vocal source)",
   "trackB": "Track B (instrumental source)",
@@ -13,13 +13,13 @@
   "mixProfileText": "vocal +1.5 dB · bed -3.0 dB · master -1.0 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal",
   "mixProfileHasSafetyProfile": true,
   "loudnessNoticeVisible": true,
-  "loudnessNotice": "Loudness readout: -13.6 LUFS integrated, -0.5 dBTP true peak. Prototype mix — DJ review required.",
+  "loudnessNotice": "Loudness readout: -12.5 LUFS integrated, -0.9 dBTP true peak. Prototype mix — DJ review required.",
   "loudnessWarningsVisible": true,
   "loudnessWarnings": [
     "Staged limiter prototype (soft knee + -1.0 dBTP linear ceiling) on master bus — not professional mastering.",
     "Export peak-ceiling pass (~-1.0 dBTP prototype) after encode — DJ review required.",
-    "True peak warning — review before performance. Measured -0.5 dBTP exceeds prototype safe target -1.0 dBTP.",
-    "Integrated loudness -13.6 LUFS (available)."
+    "True peak warning — review before performance. Measured -0.9 dBTP exceeds prototype safe target -1.0 dBTP.",
+    "Integrated loudness -12.5 LUFS (available)."
   ],
   "listeningComparisonVisible": true,
   "listeningComparisonNotes": [
@@ -29,15 +29,15 @@
   "falseDoneBeforeOutput": false,
   "stepCompletionSeconds": {
     "Checking files": 3,
-    "Separating vocal": 49,
+    "Separating vocal": 50,
     "Preparing instrumental": 94,
-    "Matching timing/key": 102,
-    "Mixing track": 102,
-    "Creating WAV export": 110
+    "Matching timing/key": 96,
+    "Mixing track": 96,
+    "Creating WAV export": 104
   },
-  "totalSeconds": 116,
-  "lastHeartbeat": "Still separating the instrumental… 0:43 elapsed. CPU stem separation can take several minutes — this has not stopped.",
+  "totalSeconds": 110,
+  "lastHeartbeat": "Still separating the instrumental… 0:44 elapsed. CPU stem separation can take several minutes — this has not stopped.",
   "consoleErrors": [],
   "pageErrors": [],
-  "finishedAt": "2026-07-01T01:27:11.764Z"
+  "finishedAt": "2026-07-01T05:08:44.107Z"
 }

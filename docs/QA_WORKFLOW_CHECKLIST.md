@@ -129,7 +129,22 @@ Evidence: `qa/full-local-workflow/phase-32/logs/`
 ```powershell
 npm run smoke:quick-mix
 npm run smoke:quick-mix:browser
+npm run smoke:quick-mix:section-qa   # real-file section picker (MASHLAB_QM_VOCAL + MASHLAB_QM_BEAT)
 # Real-file browser: MASHLAB_QM_VOCAL + MASHLAB_QM_BEAT env vars (local only, never commit names)
+```
+
+## Phase 41 verified (section picker)
+
+- [x] Per-source **Section to use**: First 3:00 (default) or Custom start (mm:ss)
+- [x] Optional same-start toggle for both sources
+- [x] FFmpeg trim before Demucs (`start_offset_seconds` / `preview_start_seconds`)
+- [x] Output panel: vocal/instrumental section ranges + 3:00 MVP cap
+- [x] Default RC3 mix profile unchanged (+1.5 / −3 / −1, limiter, duck)
+- [x] Real-file browser QA (redacted Track A / Track B)
+- [x] Evidence: `docs/PHASE_41_QUICK_MIX_SECTION_PICKER.md`, `qa/full-local-workflow/phase-41/`
+
+```powershell
+npm run smoke:quick-mix:section-qa
 ```
 
 ### Phase 34 local demo checklist

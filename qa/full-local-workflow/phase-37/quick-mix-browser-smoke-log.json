@@ -1,9 +1,6 @@
 {
-  "startedAt": "2026-06-30T23:49:17.656Z",
-  "appUrl": "http://127.0.0.1:5173/",
-  "ok": true,
-  "outcome": "completed",
-  "hasWavDownload": true,
-  "hasMp3Download": true,
-  "finishedAt": "2026-06-30T23:49:37.592Z"
+  "startedAt": "2026-07-01T00:11:01.583Z",
+  "appUrl": "http://127.0.0.1:5175/",
+  "ok": false,
+  "finishedAt": "2026-07-01T00:11:34.156Z"
 }

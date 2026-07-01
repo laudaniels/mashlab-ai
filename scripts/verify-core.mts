@@ -4777,6 +4777,78 @@ describe("Sidecar lifecycle reliability (Phase 37)", async () => {
   });
 });
 
+describe("Quick Mix real-audio progress (Phase 38)", async () => {
+  const {
+    formatQuickMixElapsed,
+    isQuickMixLongRunningStep,
+    quickMixLongRunningHeartbeat,
+    QUICK_MIX_DURATION_CAP_SECONDS,
+    buildQuickMixDurationCapNotice,
+  } = await importSrc("src/domain/quickMix.ts");
+
+  it("formats elapsed time for long-running stem steps", () => {
+    assert.equal(formatQuickMixElapsed(0), "0:00");
+    assert.equal(formatQuickMixElapsed(9), "0:09");
+    assert.equal(formatQuickMixElapsed(75), "1:15");
+    assert.equal(formatQuickMixElapsed(600), "10:00");
+    assert.equal(formatQuickMixElapsed(-5), "0:00");
+    assert.equal(formatQuickMixElapsed(Number.NaN), "0:00");
+  });
+
+  it("identifies only stem steps as long-running", () => {
+    assert.equal(isQuickMixLongRunningStep("separating_vocal"), true);
+    assert.equal(isQuickMixLongRunningStep("preparing_instrumental"), true);
+    assert.equal(isQuickMixLongRunningStep("checking_files"), false);
+    assert.equal(isQuickMixLongRunningStep("creating_wav_export"), false);
+  });
+
+  it("keeps the UI alive with a reassuring heartbeat that does not claim failure", () => {
+    const vocal = quickMixLongRunningHeartbeat("separating_vocal", 132);
+    assert.ok(vocal);
+    assert.match(vocal, /Still separating vocals/i);
+    assert.match(vocal, /2:12 elapsed/);
+    assert.match(vocal, /has not stopped/i);
+    const beat = quickMixLongRunningHeartbeat("preparing_instrumental", 5);
+    assert.ok(beat);
+    assert.match(beat, /instrumental/i);
+    assert.equal(quickMixLongRunningHeartbeat("creating_wav_export", 5), null);
+  });
+
+  it("discloses the 180-second cap for real files longer than the MVP limit", () => {
+    assert.equal(QUICK_MIX_DURATION_CAP_SECONDS, 180);
+    const notice = buildQuickMixDurationCapNotice(291.6, 205.1);
+    assert.ok(notice);
+    assert.match(notice, /180/);
+    assert.equal(buildQuickMixDurationCapNotice(120, 90), null);
+  });
+});
+
+describe("Sidecar responsiveness under load (Phase 38)", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const mainSource = await readFile(
+    new URL("../local-engine/service/main.py", import.meta.url),
+    "utf8"
+  );
+
+  it("imports run_in_threadpool to keep the event loop responsive during heavy work", () => {
+    assert.match(mainSource, /from fastapi\.concurrency import run_in_threadpool/);
+  });
+
+  it("offloads blocking stem/analysis work off the async event loop", () => {
+    for (const call of [
+      "run_in_threadpool(\n            process_stem_preview",
+      "run_in_threadpool(analyze_beat_file",
+      "run_in_threadpool(analyze_key_file",
+      "run_in_threadpool(analyze_metadata_file",
+    ]) {
+      assert.ok(
+        mainSource.includes(call),
+        `expected main.py to offload via ${call}`
+      );
+    }
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

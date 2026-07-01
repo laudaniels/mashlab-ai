@@ -24,6 +24,34 @@ export const QUICK_MIX_LOCAL_ONLY_NOTICE =
 export const QUICK_MIX_STEM_ACTIVE_HINT =
   "This can take several minutes on CPU. Keep the local engine running.";
 
+/** Steps that run heavy local CPU work and can legitimately take minutes. */
+export const QUICK_MIX_LONG_RUNNING_STEP_IDS = [
+  "separating_vocal",
+  "preparing_instrumental",
+] as const;
+
+export function isQuickMixLongRunningStep(stepId: QuickMixStepId): boolean {
+  return (QUICK_MIX_LONG_RUNNING_STEP_IDS as readonly QuickMixStepId[]).includes(stepId);
+}
+
+export function formatQuickMixElapsed(totalSeconds: number): string {
+  const safe = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+export function quickMixLongRunningHeartbeat(
+  stepId: QuickMixStepId,
+  elapsedSeconds: number
+): string | null {
+  if (!isQuickMixLongRunningStep(stepId)) {
+    return null;
+  }
+  const source = stepId === "separating_vocal" ? "vocals" : "the instrumental";
+  return `Still separating ${source}… ${formatQuickMixElapsed(elapsedSeconds)} elapsed. CPU stem separation can take several minutes — this has not stopped.`;
+}
+
 export const QUICK_MIX_DURATION_CAP_SECONDS = 180;
 
 export const QUICK_MIX_DURATION_CAP_NOTICE =

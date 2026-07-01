@@ -267,9 +267,14 @@ async function runStop(): Promise<number> {
 
   if (evaluation.state === "healthy") {
     const recorded = readStatusFile();
-    const pid = recorded?.pid;
+    // Health already confirmed this is the MashLab sidecar, so the LISTENING pid
+    // from netstat is a safe fallback when the process was started externally
+    // (no recorded pid file).
+    const pid = recorded?.pid ?? evaluation.listenerPid ?? null;
     if (!pid) {
-      console.error("Sidecar is healthy but no pid is recorded. Stop the uvicorn process manually.");
+      console.error(
+        "Sidecar is healthy but no pid was recorded and the listener pid could not be resolved. Stop the uvicorn process manually."
+      );
       return 1;
     }
 
@@ -279,8 +284,15 @@ async function runStop(): Promise<number> {
       return 1;
     }
     clearStatusFile();
+    const portFree = await waitForPortFree();
     console.log(formatSidecarLifecycleMessage("stopped"));
-    console.log(`Stopped MashLab sidecar pid ${pid}.`);
+    console.log(
+      `Stopped MashLab sidecar pid ${pid}${recorded?.pid ? "" : " (resolved from listening port)"}.`
+    );
+    if (!portFree) {
+      console.error("Warning: port 47831 still shows a listener after stop — re-check with npm run sidecar:status.");
+      return 1;
+    }
     return 0;
   }
 

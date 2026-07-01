@@ -9,14 +9,37 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
-const DEFAULT_APP_URLS = ["http://127.0.0.1:5173/", "http://127.0.0.1:5174/"];
+const DEFAULT_APP_URLS = [
+  "http://127.0.0.1:5173/",
+  "http://127.0.0.1:5174/",
+  "http://127.0.0.1:5175/",
+  "http://127.0.0.1:5176/",
+];
 const AUDIO_DIR = join(ROOT, "qa/full-local-workflow/phase-32/test-audio");
-const TRACK_A = join(AUDIO_DIR, "track-a-vocal-like-15s.wav");
-const TRACK_B = join(AUDIO_DIR, "track-b-instrumental-15s.wav");
-const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-37");
-const OUT_LOG = join(OUT_DIR, "quick-mix-browser-smoke-log.json");
+const SYNTHETIC_TRACK_A = join(AUDIO_DIR, "track-a-vocal-like-15s.wav");
+const SYNTHETIC_TRACK_B = join(AUDIO_DIR, "track-b-instrumental-15s.wav");
+
+// Real-file operator QA: point at local files WITHOUT committing their names.
+// Filenames are never written to the log (redacted as Track A / Track B).
+const REAL_TRACK_A = process.env.MASHLAB_QM_VOCAL?.trim() || null;
+const REAL_TRACK_B = process.env.MASHLAB_QM_BEAT?.trim() || null;
+const USING_REAL_FILES = Boolean(REAL_TRACK_A && REAL_TRACK_B);
+const TRACK_A = REAL_TRACK_A ?? SYNTHETIC_TRACK_A;
+const TRACK_B = REAL_TRACK_B ?? SYNTHETIC_TRACK_B;
+
+const OUT_DIR = join(ROOT, USING_REAL_FILES ? "qa/full-local-workflow/phase-38" : "qa/full-local-workflow/phase-37");
+const OUT_LOG = join(
+  OUT_DIR,
+  USING_REAL_FILES ? "quick-mix-real-audio-browser-log.json" : "quick-mix-browser-smoke-log.json"
+);
 
 function ensureSyntheticAudio(): void {
+  if (USING_REAL_FILES) {
+    if (!existsSync(TRACK_A) || !existsSync(TRACK_B)) {
+      throw new Error("Provided MASHLAB_QM_VOCAL/MASHLAB_QM_BEAT file(s) not found.");
+    }
+    return;
+  }
   mkdirSync(AUDIO_DIR, { recursive: true });
   if (!existsSync(TRACK_A)) {
     execFileSync(
@@ -116,11 +139,18 @@ async function main(): Promise<void> {
   const context = await browser.newContext();
   const page = await context.newPage();
 
+  const mixDeadlineMs = USING_REAL_FILES ? 1_800_000 : 600_000;
   const result: Record<string, unknown> = {
     startedAt: new Date().toISOString(),
     appUrl,
+    usingRealFiles: USING_REAL_FILES,
+    // Filenames intentionally redacted — only neutral track labels are recorded.
+    trackA: "Track A (vocal source)",
+    trackB: "Track B (instrumental source)",
     ok: false,
   };
+  const stepTimings: Record<string, number> = {};
+  const startedMs = Date.now();
 
   try {
     await page.goto(appUrl, { waitUntil: "networkidle", timeout: 60000 });
@@ -132,16 +162,45 @@ async function main(): Promise<void> {
     await beatInput.setInputFiles(TRACK_B);
 
     const mixButton = page.getByRole("button", { name: "Mix", exact: true });
-    await page.waitForTimeout(1000);
-    await mixButton.click();
+    // Wait for readiness (engine reachable + deps ready) to enable the button.
+    await mixButton.waitFor({ state: "visible", timeout: 30000 });
+    const enabledDeadline = Date.now() + 60_000;
+    while ((await mixButton.isDisabled()) && Date.now() < enabledDeadline) {
+      await page.waitForTimeout(1000);
+    }
+    if (await mixButton.isDisabled()) {
+      result.outcome = "blocked_not_ready";
+      result.errorDetail =
+        "Mix button never enabled — engine readiness not satisfied (check sidecar/CORS/deps).";
+      const banner = await page.locator(".quick-mix-readiness").first().textContent();
+      result.readinessBanner = banner?.replace(/\s+/g, " ").trim() ?? null;
+      throw new Error("Mix button disabled");
+    }
 
+    await mixButton.click();
     await page.waitForSelector(".quick-mix-progress-panel", { timeout: 15000 });
 
     const output = page.locator(".quick-mix-output-panel");
     const errorPanel = page.locator(".quick-mix-error-panel");
+    const seenSteps = new Set<string>();
+    let lastHeartbeat: string | null = null;
 
-    const deadline = Date.now() + 600_000;
-    while (Date.now() < deadline) {
+    while (Date.now() < startedMs + mixDeadlineMs) {
+      // Record when each step first becomes active/complete (redacted timing evidence).
+      const completed = await page
+        .locator(".quick-mix-progress-item.quick-mix-progress-complete span")
+        .allTextContents();
+      for (const label of completed) {
+        if (!seenSteps.has(label)) {
+          seenSteps.add(label);
+          stepTimings[label] = Math.round((Date.now() - startedMs) / 1000);
+        }
+      }
+      const heartbeat = await page.locator(".quick-mix-progress-heartbeat").first();
+      if (await heartbeat.isVisible()) {
+        lastHeartbeat = (await heartbeat.textContent())?.trim() ?? lastHeartbeat;
+      }
+
       if (await output.isVisible()) {
         result.ok = true;
         result.outcome = "completed";
@@ -162,11 +221,15 @@ async function main(): Promise<void> {
     if (!result.outcome) {
       result.ok = false;
       result.outcome = "timeout";
-      result.errorDetail = "Browser Quick Mix did not finish within 10 minutes.";
+      result.errorDetail = `Browser Quick Mix did not finish within ${Math.round(mixDeadlineMs / 60000)} minutes.`;
     }
 
+    result.stepCompletionSeconds = stepTimings;
+    result.totalSeconds = Math.round((Date.now() - startedMs) / 1000);
+    result.lastHeartbeat = lastHeartbeat;
+
     await page.screenshot({
-      path: join(OUT_DIR, "quick-mix-browser-smoke.png"),
+      path: join(OUT_DIR, USING_REAL_FILES ? "quick-mix-real-audio-browser.png" : "quick-mix-browser-smoke.png"),
       fullPage: true,
     });
   } finally {

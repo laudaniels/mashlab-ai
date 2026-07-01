@@ -1,0 +1,22 @@
+{
+  "startedAt": "2026-07-01T00:15:44.706Z",
+  "appUrl": "http://127.0.0.1:5175/",
+  "usingRealFiles": true,
+  "trackA": "Track A (vocal source)",
+  "trackB": "Track B (instrumental source)",
+  "ok": true,
+  "outcome": "completed",
+  "hasWavDownload": true,
+  "hasMp3Download": true,
+  "stepCompletionSeconds": {
+    "Checking files": 5,
+    "Separating vocal": 45,
+    "Preparing instrumental": 84,
+    "Matching timing/key": 92,
+    "Mixing track": 92,
+    "Creating WAV export": 98
+  },
+  "totalSeconds": 104,
+  "lastHeartbeat": "Still separating the instrumental… 0:38 elapsed. CPU stem separation can take several minutes — this has not stopped.",
+  "finishedAt": "2026-07-01T00:17:28.411Z"
+}

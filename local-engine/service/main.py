@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -205,7 +206,7 @@ async def analyze_metadata(
     temp_path, filename = await save_upload(file, "metadata")
 
     try:
-        response = analyze_metadata_file(temp_path, filename)
+        response = await run_in_threadpool(analyze_metadata_file, temp_path, filename)
 
         if job_id is not None:
             if response.ok and response.result is not None:
@@ -223,7 +224,7 @@ async def analyze_beat(file: UploadFile = File(...)) -> BeatAnalysisResponse:
     temp_path, filename = await save_upload(file, "beat")
 
     try:
-        return analyze_beat_file(temp_path, filename)
+        return await run_in_threadpool(analyze_beat_file, temp_path, filename)
     finally:
         cleanup_path(temp_path)
 
@@ -233,7 +234,7 @@ async def analyze_key(file: UploadFile = File(...)) -> KeyAnalysisResponse:
     temp_path, filename = await save_upload(file, "key")
 
     try:
-        return analyze_key_file(temp_path, filename)
+        return await run_in_threadpool(analyze_key_file, temp_path, filename)
     finally:
         cleanup_path(temp_path)
 
@@ -251,7 +252,8 @@ async def analyze_phrases(
     try:
         if file is not None and file.filename:
             temp_path, filename = await save_upload(file, "phrases")
-        return analyze_phrase_file(
+        return await run_in_threadpool(
+            analyze_phrase_file,
             temp_path,
             filename,
             bpm=bpm,
@@ -288,7 +290,8 @@ async def process_pitch_time_preview_endpoint(
     temp_path, filename = await save_upload(file, "pitch-time-preview")
 
     try:
-        result = process_pitch_time_preview(
+        result = await run_in_threadpool(
+            process_pitch_time_preview,
             temp_path,
             filename,
             tempo_ratio=tempo_ratio,
@@ -368,7 +371,8 @@ async def process_stem_preview_endpoint(
     temp_path, filename = await save_upload(file, "stem-preview")
 
     try:
-        result = process_stem_preview(
+        result = await run_in_threadpool(
+            process_stem_preview,
             temp_path,
             filename,
             split_mode=split_mode,

@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-07-01T00:58:39.347Z",
+  "startedAt": "2026-07-01T01:05:25.996Z",
   "appUrl": "http://127.0.0.1:5173/",
   "phase": "phase-39-listening-polish",
   "usingRealFiles": false,
@@ -28,15 +28,15 @@
   "falseDoneBeforeOutput": false,
   "stepCompletionSeconds": {
     "Checking files": 3,
-    "Separating vocal": 13,
-    "Preparing instrumental": 21,
-    "Matching timing/key": 23,
-    "Mixing track": 23,
-    "Creating WAV export": 23
+    "Separating vocal": 9,
+    "Preparing instrumental": 17,
+    "Matching timing/key": 19,
+    "Mixing track": 19,
+    "Creating WAV export": 19
   },
-  "totalSeconds": 25,
-  "lastHeartbeat": "Still separating the instrumental… 0:07 elapsed. CPU stem separation can take several minutes — this has not stopped.",
+  "totalSeconds": 21,
+  "lastHeartbeat": "Still separating the instrumental… 0:06 elapsed. CPU stem separation can take several minutes — this has not stopped.",
   "consoleErrors": [],
   "pageErrors": [],
-  "finishedAt": "2026-07-01T00:59:04.617Z"
+  "finishedAt": "2026-07-01T01:05:47.138Z"
 }

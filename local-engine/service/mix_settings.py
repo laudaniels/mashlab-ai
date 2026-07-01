@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+from pathlib import Path
 from typing import Protocol
 
 GAIN_MIN_DB = -24.0
 GAIN_MAX_DB = 12.0
 FADE_MAX_MS = 30_000.0
-CLIP_THRESHOLD_DBTP = -0.5
-NEAR_CEILING_DBTP = -1.0
+CLIP_THRESHOLD_DBTP = -1.0
+NEAR_CEILING_DBTP = -1.5
+# FFmpeg alimiter `limit` uses linear amplitude (0–1), not dB suffix, on this build.
+LIMITER_SAFETY_LEVEL = 0.88
+CLIPPING_GUARD_LIMIT = 0.794
+EXPORT_PEAK_CEILING = 0.794
+CLIPPING_GUARD_LIMIT_DBTP = -1.0
+EXPORT_PEAK_CEILING_DBTP = -1.0
 
 STEREO_MONO_SAFETY_NOTE = (
     "Stereo/mono safety check is display-only in this phase — verify phase/mono compatibility manually."
@@ -206,24 +213,39 @@ def build_mix_filter_complex(
         parts.append(f"{current_label}volume={mix_settings.master_gain_db:.2f}dB[mixgain]")
         current_label = "[mixgain]"
 
+    if mix_settings.limiter_safety:
+        parts.append(
+            f"{current_label}alimiter=limit={LIMITER_SAFETY_LEVEL}:attack=5:release=80:level=disabled[limsafe]"
+        )
+        current_label = "[limsafe]"
+
     if mix_settings.clipping_guard:
-        parts.append(f"{current_label}alimiter=limit=-1dB:attack=1:release=50[out]")
-    elif mix_settings.limiter_safety:
-        parts.append(f"{current_label}alimiter=limit=0.95:attack=5:release=50[out]")
-    elif current_label != "[out]":
+        parts.append(
+            f"{current_label}alimiter=limit={CLIPPING_GUARD_LIMIT}:attack=1:release=50:level=disabled[out]"
+        )
+    elif current_label not in ("[out]",):
         parts.append(f"{current_label}anull[out]")
-    else:
-        parts[-1] = parts[-1].replace("[mix]", "[out]")
 
     return ";".join(parts)
 
 
 def build_mix_processing_notes(settings: MixSettings) -> list[str]:
     notes: list[str] = []
-    if settings.limiter_safety:
+    if settings.limiter_safety and settings.clipping_guard:
+        notes.append(
+            "Staged limiter prototype (soft knee + "
+            f"{CLIPPING_GUARD_LIMIT_DBTP:.1f} dBTP linear ceiling) on master bus — not professional mastering."
+        )
+    elif settings.limiter_safety:
         notes.append("Conservative FFmpeg alimiter prototype applied on master bus — not professional mastering.")
-    if settings.clipping_guard:
-        notes.append("Clipping guard prototype applied (~-1 dBTP ceiling) — DJ review required.")
+    if settings.clipping_guard and not settings.limiter_safety:
+        notes.append(
+            f"Clipping guard prototype applied (~{CLIPPING_GUARD_LIMIT_DBTP:.1f} dBTP ceiling) — DJ review required."
+        )
+    elif settings.clipping_guard and settings.limiter_safety:
+        notes.append(
+            f"Export peak-ceiling pass (~{EXPORT_PEAK_CEILING_DBTP:.1f} dBTP prototype) after encode — DJ review required."
+        )
     if settings.instrumental_duck_under_vocal:
         notes.append(
             "Light instrumental duck under vocal (sidechaincompress prototype) — DJ review required."
@@ -261,7 +283,8 @@ def build_loudness_clipping_warnings(loudness: LoudnessLike) -> list[str]:
     if display_peak is not None:
         if display_peak > CLIP_THRESHOLD_DBTP:
             warnings.append(
-                f"True peak {display_peak:.1f} dBTP exceeds safe threshold — possible clipping. DJ review required."
+                "True peak warning — review before performance. "
+                f"Measured {display_peak:.1f} dBTP exceeds prototype safe target {CLIP_THRESHOLD_DBTP:.1f} dBTP."
             )
         elif display_peak > NEAR_CEILING_DBTP:
             warnings.append(
@@ -278,6 +301,27 @@ def build_loudness_clipping_warnings(loudness: LoudnessLike) -> list[str]:
         warnings.append("Integrated LUFS not_available — peak-only readout.")
 
     return warnings
+
+
+def build_peak_ceiling_ffmpeg_command(
+    ffmpeg_binary: str,
+    input_path: Path,
+    output_path: Path,
+    *,
+    ceiling: float = EXPORT_PEAK_CEILING,
+) -> list[str]:
+    """Final in-place safety pass after pcm_s16le encode — linear alimiter ceiling."""
+    return [
+        ffmpeg_binary,
+        "-y",
+        "-i",
+        str(input_path),
+        "-af",
+        f"alimiter=limit={ceiling}:attack=1:release=50:level=disabled",
+        "-acodec",
+        "pcm_s16le",
+        str(output_path),
+    ]
 
 
 def _safe_float(value: object, default: float) -> float:

@@ -18,8 +18,21 @@ export const QUICK_MIX_RC2_BASELINE_MIX_SETTINGS: MixSettings = {
   instrumentalDuckUnderVocal: false,
 };
 
+export const QUICK_MIX_PHASE39_MIX_SETTINGS: MixSettings = {
+  vocalGainDb: 1.5,
+  instrumentalGainDb: -3,
+  masterGainDb: -0.5,
+  vocalFadeInMs: 0,
+  vocalFadeOutMs: 0,
+  instrumentalFadeInMs: 0,
+  instrumentalFadeOutMs: 0,
+  limiterSafety: true,
+  clippingGuard: true,
+  instrumentalDuckUnderVocal: true,
+};
+
 export const QUICK_MIX_LISTENING_MIX_NOTICE =
-  "Listening-test mix profile: vocal slightly forward, bed tucked, light duck under vocal, conservative limiter + clip guard. DJ review required — not professional mastering.";
+  "Listening-test mix profile: vocal slightly forward, bed tucked, light duck under vocal, staged limiter + clip guard. DJ review required — not professional mastering.";
 
 export const QUICK_MIX_PROCESSING_PATIENCE_NOTICE =
   "Processing may take several minutes on CPU — especially stem separation. Keep the local engine running; this tab can stay open while MashLab works.";
@@ -38,7 +51,7 @@ export function buildQuickMixListeningComparisonNotes(
 ): string[] {
   return [
     `RC2 baseline: ${formatMixSettingsSummary(baseline)}${baseline.instrumentalDuckUnderVocal ? " · light bed duck" : ""}`,
-    `Phase 39 listening profile: ${buildQuickMixMixProfileSummary(applied)}`,
+    `Phase 40 safety profile: ${buildQuickMixMixProfileSummary(applied)}`,
   ];
 }
 

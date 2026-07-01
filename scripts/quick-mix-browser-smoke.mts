@@ -27,10 +27,7 @@ const USING_REAL_FILES = Boolean(REAL_TRACK_A && REAL_TRACK_B);
 const TRACK_A = REAL_TRACK_A ?? SYNTHETIC_TRACK_A;
 const TRACK_B = REAL_TRACK_B ?? SYNTHETIC_TRACK_B;
 
-const OUT_DIR = join(
-  ROOT,
-  USING_REAL_FILES ? "qa/full-local-workflow/phase-39" : "qa/full-local-workflow/phase-39"
-);
+const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-40");
 const OUT_LOG = join(
   OUT_DIR,
   USING_REAL_FILES ? "quick-mix-real-audio-browser-log.json" : "quick-mix-browser-smoke-log.json"
@@ -160,7 +157,7 @@ async function main(): Promise<void> {
   const result: Record<string, unknown> = {
     startedAt: new Date().toISOString(),
     appUrl,
-    phase: "phase-39-listening-polish",
+    phase: "phase-40-true-peak-safety",
     usingRealFiles: USING_REAL_FILES,
     // Filenames intentionally redacted — only neutral track labels are recorded.
     trackA: "Track A (vocal source)",
@@ -229,9 +226,10 @@ async function main(): Promise<void> {
           (await page.locator(".quick-mix-mix-profile-note").textContent())?.trim() ?? "";
         result.mixProfileVisible = mixProfileText.length > 0;
         result.mixProfileText = mixProfileText;
-        result.mixProfileHasPhase39Gains =
+        result.mixProfileHasSafetyProfile =
           /vocal \+1\.5 dB/i.test(mixProfileText) &&
           /bed -3(\.0)? dB/i.test(mixProfileText) &&
+          /master -1(\.0)? dB/i.test(mixProfileText) &&
           /bed duck/i.test(mixProfileText);
 
         const loudnessNote =
@@ -291,7 +289,7 @@ async function main(): Promise<void> {
     result.ok === true &&
     result.hasWavDownload === true &&
     result.hasMp3Download === true &&
-    result.mixProfileHasPhase39Gains === true &&
+    result.mixProfileHasSafetyProfile === true &&
     (result.loudnessNoticeVisible === true || result.loudnessWarningsVisible === true) &&
     result.listeningComparisonVisible === true &&
     result.falseDoneBeforeOutput !== true &&

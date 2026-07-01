@@ -21,6 +21,7 @@ from mix_settings import (
     MixSettings,
     build_loudness_clipping_warnings,
     build_mix_processing_notes,
+    build_peak_ceiling_ffmpeg_command,
     default_mix_settings,
     mix_settings_to_dict,
     validate_mix_settings,
@@ -365,6 +366,27 @@ def create_full_wav_export(
             limitations.append(
                 "Loudness measured only; no normalization unless a normalize mode is selected."
             )
+
+        if mix_settings.clipping_guard:
+            peak_safe_path = config.TEMP_DIR / f"full-export-peak-safe-{export_id}.wav"
+            ceiling_command = build_peak_ceiling_ffmpeg_command(
+                ffmpeg, export_path, peak_safe_path
+            )
+            ceiling_result = subprocess.run(
+                ceiling_command,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if ceiling_result.returncode != 0:
+                return FullWavExportFailure(
+                    ok=False,
+                    status="processing_failed",
+                    message="Export peak-ceiling safety pass failed.",
+                    setup_guidance=ceiling_result.stderr.strip() or None,
+                )
+            shutil.copy2(peak_safe_path, export_path)
+            peak_safe_path.unlink(missing_ok=True)
 
         warnings.extend(build_mix_processing_notes(mix_settings))
 

@@ -66,7 +66,7 @@ export const QUICK_MIX_MP3_FAILED_AFTER_WAV =
 export const QUICK_MIX_DEFAULT_MIX_SETTINGS: MixSettings = {
   vocalGainDb: 1.5,
   instrumentalGainDb: -3,
-  masterGainDb: -0.5,
+  masterGainDb: -1,
   vocalFadeInMs: 0,
   vocalFadeOutMs: 0,
   instrumentalFadeInMs: 0,

@@ -47,18 +47,19 @@ class MixSettingsTests(unittest.TestCase):
         self.assertIn("volume=2.00dB", graph)
         self.assertIn("volume=-1.00dB", graph)
         self.assertIn("volume=1.00dB", graph)
-        self.assertIn("alimiter=limit=0.95", graph)
+        self.assertIn("alimiter=limit=0.88:attack=5:release=80:level=disabled", graph)
         self.assertIn("adelay=100|100", graph)
 
-    def test_clipping_guard_takes_priority_over_limiter_safety(self) -> None:
+    def test_clipping_guard_stages_after_limiter_safety(self) -> None:
         settings = MixSettings(limiter_safety=True, clipping_guard=True)
         graph = build_mix_filter_complex(
             alignment_offset_ms=0,
             mix_settings=settings,
             max_seconds=10,
         )
-        self.assertIn("alimiter=limit=-1dB", graph)
-        self.assertNotIn("limit=0.95", graph)
+        self.assertIn("alimiter=limit=0.88:attack=5:release=80:level=disabled", graph)
+        self.assertIn("alimiter=limit=0.794:attack=1:release=50:level=disabled", graph)
+        self.assertLess(graph.index("limit=0.88"), graph.index("limit=0.794"))
 
     def test_build_mix_filter_includes_light_duck(self) -> None:
         settings = MixSettings(
@@ -75,7 +76,7 @@ class MixSettingsTests(unittest.TestCase):
         )
         self.assertIn("sidechaincompress", graph)
         self.assertIn("ducked_bed", graph)
-        self.assertIn("alimiter=limit=-1dB", graph)
+        self.assertIn("alimiter=limit=0.794:attack=1:release=50:level=disabled", graph)
 
     def test_format_mix_summary_includes_flags(self) -> None:
         summary = format_mix_summary(
@@ -89,6 +90,31 @@ class MixSettingsTests(unittest.TestCase):
         notes = build_mix_processing_notes(MixSettings())
         self.assertTrue(any("No mix-stage limiter" in note for note in notes))
 
+    def test_build_peak_ceiling_uses_linear_limit(self) -> None:
+        from pathlib import Path
+
+        from mix_settings import EXPORT_PEAK_CEILING, build_peak_ceiling_ffmpeg_command
+
+        command = build_peak_ceiling_ffmpeg_command(
+            "ffmpeg", Path("in.wav"), Path("out.wav")
+        )
+        joined = " ".join(command)
+        self.assertIn(f"limit={EXPORT_PEAK_CEILING}", joined)
+        self.assertIn("level=disabled", joined)
+
+    def test_loudness_clipping_warnings_at_target(self) -> None:
+        warnings = build_loudness_clipping_warnings(
+            LoudnessReadout(
+                integrated_lufs=-12.0,
+                true_peak_dbtp=-1.2,
+                peak_level_db=-1.2,
+                status="available",
+                message="Measured.",
+            )
+        )
+        self.assertFalse(any("clipping" in warning.lower() for warning in warnings))
+        self.assertTrue(any("near ceiling" in warning.lower() for warning in warnings))
+
     def test_loudness_clipping_warnings_high_peak(self) -> None:
         warnings = build_loudness_clipping_warnings(
             LoudnessReadout(
@@ -99,7 +125,7 @@ class MixSettingsTests(unittest.TestCase):
                 message="Measured.",
             )
         )
-        self.assertTrue(any("clipping" in warning.lower() for warning in warnings))
+        self.assertTrue(any("True peak warning" in warning for warning in warnings))
 
     def test_validate_payload_defaults_on_empty(self) -> None:
         settings, errors = validate_mix_settings_payload(None)

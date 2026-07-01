@@ -4534,7 +4534,7 @@ describe("Quick Mix mode (Phase 36)", async () => {
   it("defaults mix gains to listening-test profile with safety guards enabled", () => {
     assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.vocalGainDb, 1.5);
     assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.instrumentalGainDb, -3);
-    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.masterGainDb, -0.5);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.masterGainDb, -1);
     assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.limiterSafety, true);
     assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.clippingGuard, true);
     assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.instrumentalDuckUnderVocal, true);
@@ -4637,7 +4637,7 @@ describe("Quick Mix orchestrated pipeline (Phase 36 fix)", async () => {
     assert.equal(exportParams.targetInstrumentalStemArtifactId, "bbb");
     assert.equal(exportParams.mixSettings.vocalGainDb, 1.5);
     assert.equal(exportParams.mixSettings.instrumentalGainDb, -3);
-    assert.equal(exportParams.mixSettings.masterGainDb, -0.5);
+    assert.equal(exportParams.mixSettings.masterGainDb, -1);
     assert.equal(exportParams.mixSettings.instrumentalDuckUnderVocal, true);
   });
 
@@ -4851,7 +4851,7 @@ describe("Quick Mix listening-test polish (Phase 39)", async () => {
     );
     assert.equal(notes.length, 2);
     assert.match(notes[0], /RC2 baseline/);
-    assert.match(notes[1], /Phase 39 listening profile/);
+    assert.match(notes[1], /Phase 40 safety profile/);
     assert.match(notes[1], /bed duck on/);
   });
 
@@ -4886,6 +4886,67 @@ describe("Quick Mix listening-test polish (Phase 39)", async () => {
     assert.match(summary, /vocal \+1\.5 dB/);
     assert.match(summary, /bed -3\.0 dB/);
     assert.match(summary, /bed duck on/);
+  });
+});
+
+describe("Quick Mix true-peak safety (Phase 40)", async () => {
+  const { QUICK_MIX_DEFAULT_MIX_SETTINGS } = await importSrc("src/domain/quickMix.ts");
+  const { mixSettingsToRequestFields } = await importSrc("src/domain/mixControls.ts");
+  const { evaluateLoudnessGateDisplay, GENERAL_TRUE_PEAK_TARGET_DBTP } = await importSrc(
+    "src/domain/fullLengthExport.ts"
+  );
+  const { readFile } = await import("node:fs/promises");
+
+  it("uses safer master trim with safety guards enabled", () => {
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.masterGainDb, -1);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.limiterSafety, true);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.clippingGuard, true);
+  });
+
+  it("warns when true peak exceeds general prototype target", () => {
+    const gate = evaluateLoudnessGateDisplay({
+      integratedLufs: -12,
+      truePeakDbtp: 0.8,
+      peakLevelDb: 0.8,
+      status: "available",
+      message: "Measured.",
+    });
+    assert.equal(gate.status, "warn");
+    assert.match(gate.message, /true peak/i);
+    assert.match(gate.message, /informational gate only/i);
+  });
+
+  it("does not claim professional mastering in loudness pass copy", () => {
+    const gate = evaluateLoudnessGateDisplay({
+      integratedLufs: -14,
+      truePeakDbtp: -1.2,
+      peakLevelDb: -1.2,
+      status: "available",
+      message: "Measured.",
+    });
+    assert.equal(gate.status, "pass");
+    assert.match(gate.message, /Informational only/i);
+    assert.doesNotMatch(gate.message, /mastered|club-ready release/i);
+  });
+
+  it("serializes staged safety profile for export API", () => {
+    const fields = mixSettingsToRequestFields(QUICK_MIX_DEFAULT_MIX_SETTINGS);
+    assert.equal(fields.master_gain_db, -1);
+    assert.equal(fields.limiter_safety, true);
+    assert.equal(fields.clipping_guard, true);
+  });
+
+  it("stages soft limiter before clipping guard in FFmpeg chain", async () => {
+    const source = await readFile(
+      new URL("../local-engine/service/mix_settings.py", import.meta.url),
+      "utf8"
+    );
+    assert.match(source, /LIMITER_SAFETY_LEVEL = 0\.88/);
+    assert.match(source, /CLIPPING_GUARD_LIMIT = 0\.794/);
+    assert.match(source, /EXPORT_PEAK_CEILING = 0\.794/);
+    assert.match(source, /level=disabled/);
+    assert.match(source, /build_peak_ceiling_ffmpeg_command/);
+    assert.equal(GENERAL_TRUE_PEAK_TARGET_DBTP, -1);
   });
 });
 

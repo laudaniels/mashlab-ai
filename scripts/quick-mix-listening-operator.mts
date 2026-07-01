@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
- * Operator listening A/B — RC2 baseline vs Phase 39 profile on local files.
+ * Operator listening A/B — RC2 vs Phase 39 vs Phase 40 on local files.
  * Filenames are NEVER written to the log (redacted as Track A / Track B).
  *
  * Run:
- *   MASHLAB_QM_VOCAL="..." MASHLAB_QM_BEAT="..." npm run listening:quick-mix
+ *   MASHLAB_QM_VOCAL="..." MASHLAB_QM_BEAT="..." node --experimental-strip-types scripts/quick-mix-listening-operator.mts
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
 const BASE = "http://127.0.0.1:47831";
-const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-39");
+const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-40");
 const OUT_LOG = join(OUT_DIR, "quick-mix-listening-operator-log.json");
 
 const TRACK_A = process.env.MASHLAB_QM_VOCAL?.trim();
@@ -34,6 +34,19 @@ const PHASE39_MIX = {
   vocal_gain_db: 1.5,
   instrumental_gain_db: -3,
   master_gain_db: -0.5,
+  vocal_fade_in_ms: 0,
+  vocal_fade_out_ms: 0,
+  instrumental_fade_in_ms: 0,
+  instrumental_fade_out_ms: 0,
+  limiter_safety: true,
+  clipping_guard: true,
+  instrumental_duck_under_vocal: true,
+} as const;
+
+const PHASE40_MIX = {
+  vocal_gain_db: 1.5,
+  instrumental_gain_db: -3,
+  master_gain_db: -1,
   vocal_fade_in_ms: 0,
   vocal_fade_out_ms: 0,
   instrumental_fade_in_ms: 0,
@@ -87,6 +100,21 @@ async function postFullWav(
   return (await response.json()) as Record<string, unknown>;
 }
 
+function summarizeExport(wav: Record<string, unknown>): Record<string, unknown> {
+  if (!wav.ok) {
+    return { error: wav.message };
+  }
+  return {
+    artifactId: wav.export_artifact_id,
+    loudness: wav.loudness ?? null,
+    loudnessGate: wav.loudness_gate ?? null,
+    duckApplied:
+      (wav.processing_summary as Record<string, unknown> | undefined)?.instrumental_duck_applied ??
+      false,
+    warnings: wav.warnings ?? [],
+  };
+}
+
 async function main(): Promise<void> {
   if (!TRACK_A || !TRACK_B) {
     console.error("Set MASHLAB_QM_VOCAL and MASHLAB_QM_BEAT to local file paths.");
@@ -125,44 +153,24 @@ async function main(): Promise<void> {
   console.log("Listening operator — Phase 39 profile export…");
   const p39Wav = await postFullWav(vocalId, beatId, PHASE39_MIX, "listening-phase39-profile");
 
+  console.log("Listening operator — Phase 40 safety profile export…");
+  const p40Wav = await postFullWav(vocalId, beatId, PHASE40_MIX, "listening-phase40-safety");
+
   const log = {
-    phase: "phase-39-listening-operator",
+    phase: "phase-40-true-peak-safety",
     startedAt,
     finishedAt: new Date().toISOString(),
     trackA: "Track A (vocal source)",
     trackB: "Track B (instrumental source)",
-    rc2Baseline: {
-      mixSettings: RC2_MIX,
-      export: rc2Wav.ok
-        ? {
-            artifactId: rc2Wav.export_artifact_id,
-            loudness: rc2Wav.loudness ?? null,
-            loudnessGate: rc2Wav.loudness_gate ?? null,
-            duckApplied: (rc2Wav.processing_summary as Record<string, unknown> | undefined)
-              ?.instrumental_duck_applied ?? false,
-            warnings: rc2Wav.warnings ?? [],
-          }
-        : { error: rc2Wav.message },
-    },
-    phase39Profile: {
-      mixSettings: PHASE39_MIX,
-      export: p39Wav.ok
-        ? {
-            artifactId: p39Wav.export_artifact_id,
-            loudness: p39Wav.loudness ?? null,
-            loudnessGate: p39Wav.loudness_gate ?? null,
-            duckApplied: (p39Wav.processing_summary as Record<string, unknown> | undefined)
-              ?.instrumental_duck_applied ?? true,
-            warnings: p39Wav.warnings ?? [],
-          }
-        : { error: p39Wav.message },
-    },
+    rc2Baseline: { mixSettings: RC2_MIX, export: summarizeExport(rc2Wav) },
+    phase39Profile: { mixSettings: PHASE39_MIX, export: summarizeExport(p39Wav) },
+    phase40Safety: { mixSettings: PHASE40_MIX, export: summarizeExport(p40Wav) },
     listeningNotes: [
-      "Compare RC2 vs Phase 39 locally — filenames redacted in this log.",
-      "Phase 39 should feel vocal-forward with bed tucked; duck should be subtle.",
+      "Compare RC2 vs Phase 39 vs Phase 40 locally — filenames redacted in this log.",
+      "Phase 40 keeps vocal-forward feel with staged limiter + safer master trim.",
       "Neither export is a mastered release — DJ review required.",
     ],
-    ok: rc2Wav.ok === true && p39Wav.ok === true,
+    ok: rc2Wav.ok === true && p39Wav.ok === true && p40Wav.ok === true,
   };
 
   writeFileSync(OUT_LOG, `${JSON.stringify(log, null, 2)}\n`, "utf8");

@@ -15,14 +15,14 @@ const BASE = "http://127.0.0.1:47831";
 const AUDIO_DIR = join(ROOT, "qa/full-local-workflow/phase-32/test-audio");
 const TRACK_A = join(AUDIO_DIR, "track-a-vocal-like-15s.wav");
 const TRACK_B = join(AUDIO_DIR, "track-b-instrumental-15s.wav");
-const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-39");
+const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-40");
 const OUT_LOG = join(OUT_DIR, "quick-mix-smoke-log.json");
 
 /** Mirrors QUICK_MIX_DEFAULT_MIX_SETTINGS (Phase 39 listening profile). */
 const QUICK_MIX_SMOKE_MIX = {
   vocal_gain_db: 1.5,
   instrumental_gain_db: -3,
-  master_gain_db: -0.5,
+  master_gain_db: -1,
   vocal_fade_in_ms: 0,
   vocal_fade_out_ms: 0,
   instrumental_fade_in_ms: 0,
@@ -182,7 +182,7 @@ async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
   const log = {
     health,
-    mixProfile: "phase-39-listening",
+    mixProfile: "phase-40-true-peak-safety",
     mixSettings: QUICK_MIX_SMOKE_MIX,
     vocalStem,
     beatStem,

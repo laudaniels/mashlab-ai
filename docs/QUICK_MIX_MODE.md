@@ -1,90 +1,82 @@
-# Quick Mix Mode (Phase 36)
+# Quick Mix Mode
 
-**Default MVP experience** — simple front door for MashLab AI / CyphaBlend AI.
+**Default MVP experience** — MashLab AI / CyphaBlend AI
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 
 ## What Quick Mix is
 
-Quick Mix is the **default landing screen**. It asks for:
+Quick Mix is the **default landing screen**:
 
-1. **Vocal / acapella source** — the song you want the vocal from
-2. **Instrumental / beat source** — the song you want the beat/instrumental from
+1. **Vocal / acapella source**
+2. **Instrumental / beat source**
 3. One **Mix** button
 
-The app runs the existing local pipeline automatically when the user clicks **Mix** (no processing on upload):
+The app runs the full local pipeline when the user clicks **Mix** (no processing on upload):
 
-1. Validate both files and local dependencies (sidecar, FFmpeg/ffprobe, Rubber Band, Demucs/PyTorch)
-2. Separate **vocals.wav** from the vocal source
-3. Separate **no_vocals.wav** from the instrumental source
-4. Match timing/key when librosa analysis is available, otherwise neutral processing with copy: *No tempo/key correction applied*
-5. Mix internally with default 0 dB vocal/instrumental/master gains and safety limiter guards
-6. Export a **local WAV**
-7. Optionally create an **MP3 reference** (does not block WAV success)
+1. Validate files + dependencies (sidecar, FFmpeg, Rubber Band, Demucs/PyTorch)
+2. Separate vocals from Track A (Demucs)
+3. Separate instrumental bed from Track B (Demucs)
+4. Match timing/key when librosa is available; otherwise neutral processing
+5. Mix with **Phase 40 listening defaults** (vocal forward, bed tucked, light duck, staged limiter)
+6. Export **local WAV** + optional **MP3 reference**
 
-Progress ladder: Checking files → Separating vocal → Preparing instrumental → Matching timing/key → Mixing track → Creating WAV export → Creating MP3 reference → Done
+Progress: Checking files → Separating vocal → Preparing instrumental → Matching timing/key → Mixing track → Creating WAV export → Creating MP3 reference → Done
 
-**Done** appears only after WAV export succeeds. Stem steps show: *This can take several minutes on CPU.*
+**Done** only after WAV succeeds. Long Demucs steps show elapsed time + heartbeat (“has not stopped”).
 
-**Duration cap:** Quick Mix processes up to the **first 180 seconds** of each song (sidecar limit). Longer files are trimmed for stem separation — this MVP is **not a full-length song export**.
+**180-second cap:** stem preview uses the first **180 seconds** of each file.
 
-Output label: **Local mix export — user responsible for rights.**
+Output: **Local mix export — user responsible for rights.** Not professionally mastered. Not publish-ready.
 
-This is **not** professionally mastered and **not** publish-ready.
+## Default mix profile (Phase 40)
+
+| Setting | Value |
+|---------|-------|
+| Vocal | +1.5 dB |
+| Bed | −3.0 dB |
+| Master | −1.0 dB |
+| Limiter + clip guard | on (staged linear ceiling ~−1 dBTP) |
+| Bed duck under vocal | on (light) |
+
+Advanced Studio `NEUTRAL_MIX_SETTINGS` unchanged.
+
+## Output panel
+
+- Audio player
+- Download WAV / MP3 (MP3 failure is non-blocking if WAV OK)
+- Mix profile summary
+- Loudness / true peak warnings when measured
+- RC2 vs current profile comparison
+- 180 s cap note when applicable
+- Rights notice
+- Open in Advanced Studio / Start another mix
+- Technical details collapsed (artifact IDs inside)
 
 ## Advanced Studio
 
-All existing workflows remain under **Advanced Studio**:
-
-- Analysis, Timeline, Drafts, Stems, Combined Preview, Export, Package
-- Local Engine Status, Workflow Readiness, WSL rhythm tooling
-
-Open via **Advanced Studio** from Quick Mix, or **Quick Mix** from the Advanced Studio header.
-
-Mode preference is stored in `localStorage` (`mashlab-app-experience-mode`).
-
-## Dependency handling (Quick Mix)
-
-Quick Mix shows a simple readiness banner:
-
-| Check | User-facing label |
-|-------|-------------------|
-| Sidecar online | Local engine running |
-| FFmpeg | FFmpeg installed |
-| Rubber Band | Rubber Band installed |
-| Demucs + PyTorch | Demucs / PyTorch installed |
-
-Optional WSL rhythm, madmom, Essentia, and detailed capability rows stay in Advanced Studio only.
-
-## Plain-English errors
-
-Quick Mix maps failures to recovery hints such as:
-
-- Start the local engine
-- Install FFmpeg to render the mix
-- Install Rubber Band to adjust pitch/time
-- Install Demucs/PyTorch to separate stems
-
-No stack traces on the main Quick Mix screen.
+Full workflow remains under **Advanced Studio** (analysis, stems, export, package, etc.).
 
 ## Legal / product constraints
 
-- Neutral private audio-processing tool
+- Neutral private local audio-processing tool
 - User-supplied audio; user holds rights
 - **No** public sharing, cloud upload, downloader, or streaming integrations
-- **No** copyrighted-song examples in docs or QA
+- **No** copyrighted-song examples in repo/docs/QA
 
 ## Commands
 
 ```powershell
 npm run start:local:windows
-# Open http://127.0.0.1:5173/ — Quick Mix is the default screen
 npm run sidecar:status
-npm run smoke:quick-mix   # API orchestration smoke (synthetic audio, produces WAV)
+npm run smoke:quick-mix
+npm run smoke:quick-mix:browser   # requires npm run dev
 ```
+
+Real-file browser QA: set `MASHLAB_QM_VOCAL` / `MASHLAB_QM_BEAT` env vars locally (filenames never committed).
 
 ## Related docs
 
+- `docs/PHASE_40_TRUE_PEAK_SAFETY.md`
 - `docs/MVP_RELEASE_CANDIDATE_CHECKLIST.md`
 - `docs/QA_WORKFLOW_CHECKLIST.md`
-- `docs/RELEASE_DEPENDENCIES_WINDOWS.md`

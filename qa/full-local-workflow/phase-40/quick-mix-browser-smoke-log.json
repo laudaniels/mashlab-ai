@@ -1,0 +1,41 @@
+{
+  "startedAt": "2026-07-01T01:27:21.117Z",
+  "appUrl": "http://127.0.0.1:5173/",
+  "phase": "phase-40-true-peak-safety",
+  "usingRealFiles": false,
+  "trackA": "Track A (vocal source)",
+  "trackB": "Track B (instrumental source)",
+  "ok": true,
+  "outcome": "completed",
+  "hasWavDownload": true,
+  "hasMp3Download": true,
+  "mixProfileVisible": true,
+  "mixProfileText": "vocal +1.5 dB · bed -3.0 dB · master -1.0 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal",
+  "mixProfileHasSafetyProfile": true,
+  "loudnessNoticeVisible": true,
+  "loudnessNotice": "integrated -29.6 LUFS vs target -14 LUFS — informational gate only.",
+  "loudnessWarningsVisible": true,
+  "loudnessWarnings": [
+    "Staged limiter prototype (soft knee + -1.0 dBTP linear ceiling) on master bus — not professional mastering.",
+    "Export peak-ceiling pass (~-1.0 dBTP prototype) after encode — DJ review required.",
+    "Integrated loudness -29.6 LUFS (available)."
+  ],
+  "listeningComparisonVisible": true,
+  "listeningComparisonNotes": [
+    "RC2 baseline: vocal +0.0 dB · bed +0.0 dB · master +0.0 dB · limiter on · clip guard on",
+    "Phase 40 safety profile: vocal +1.5 dB · bed -3.0 dB · master -1.0 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal"
+  ],
+  "falseDoneBeforeOutput": false,
+  "stepCompletionSeconds": {
+    "Checking files": 3,
+    "Separating vocal": 9,
+    "Preparing instrumental": 17,
+    "Matching timing/key": 17,
+    "Mixing track": 17
+  },
+  "totalSeconds": 19,
+  "lastHeartbeat": "Still separating the instrumental… 0:06 elapsed. CPU stem separation can take several minutes — this has not stopped.",
+  "consoleErrors": [],
+  "pageErrors": [],
+  "finishedAt": "2026-07-01T01:27:40.217Z"
+}

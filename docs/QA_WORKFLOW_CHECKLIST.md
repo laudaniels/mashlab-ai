@@ -101,7 +101,36 @@ Evidence: `qa/full-local-workflow/phase-32/logs/`
 - [x] Simplified dependency readiness (no WSL/madmom on Quick Mix)
 - [x] Progress ladder + plain-English error mapping
 - [x] Local WAV export output + optional MP3
-- [ ] Quick Mix smoke screenshot — capture after synthetic mix run
+- [x] API + browser smoke — `qa/full-local-workflow/phase-37/` and `phase-40/`
+
+## Phase 38 verified (real-audio reliability)
+
+- [x] Sidecar `/health` responsive during Demucs (`run_in_threadpool`)
+- [x] CORS for Vite fallback ports 5173–5183 / 4173–4183
+- [x] Long-running stem heartbeat in progress UI
+- [x] Real-file browser Quick Mix end-to-end (redacted Track A / Track B)
+- [x] Evidence: `docs/PHASE_38_REAL_AUDIO_QUICK_MIX_QA.md`
+
+## Phase 39 verified (listening-test polish)
+
+- [x] Vocal-forward defaults (+1.5 / −3 / duck)
+- [x] Output panel: mix profile, loudness warnings, RC2 comparison
+- [x] Patience notice during long processing
+- [x] Evidence: `docs/PHASE_39_QUICK_MIX_LISTENING_POLISH.md`, `qa/full-local-workflow/phase-39/`
+
+## Phase 40 verified (true-peak safety)
+
+- [x] Staged linear alimiter chain (`level=disabled`, limit=0.794)
+- [x] Export peak-ceiling pass after pcm_s16le encode
+- [x] Master trim −1.0 dB Quick Mix default
+- [x] Real-file true peak ≤ −1.01 dBTP (operator A/B, redacted)
+- [x] Evidence: `docs/PHASE_40_TRUE_PEAK_SAFETY.md`, `qa/full-local-workflow/phase-40/`
+
+```powershell
+npm run smoke:quick-mix
+npm run smoke:quick-mix:browser
+# Real-file browser: MASHLAB_QM_VOCAL + MASHLAB_QM_BEAT env vars (local only, never commit names)
+```
 
 ### Phase 34 local demo checklist
 

@@ -1,0 +1,141 @@
+{
+  "phase": "phase-40-true-peak-safety",
+  "startedAt": "2026-07-01T01:23:09.966Z",
+  "finishedAt": "2026-07-01T01:25:02.575Z",
+  "trackA": "Track A (vocal source)",
+  "trackB": "Track B (instrumental source)",
+  "rc2Baseline": {
+    "mixSettings": {
+      "vocal_gain_db": 0,
+      "instrumental_gain_db": 0,
+      "master_gain_db": 0,
+      "vocal_fade_in_ms": 0,
+      "vocal_fade_out_ms": 0,
+      "instrumental_fade_in_ms": 0,
+      "instrumental_fade_out_ms": 0,
+      "limiter_safety": true,
+      "clipping_guard": true,
+      "instrumental_duck_under_vocal": false
+    },
+    "export": {
+      "artifactId": "99f1caa3ffc7456692e36d4b08e08ab7",
+      "loudness": {
+        "integrated_lufs": -11.73,
+        "true_peak_dbtp": -1.16,
+        "peak_level_db": -2,
+        "status": "available",
+        "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
+      },
+      "loudnessGate": {
+        "status": "warn",
+        "message": "integrated loudness -11.7 LUFS differs from general target -14 LUFS — not a mastering pass or club-ready claim.",
+        "integrated_lufs": -11.73,
+        "true_peak_dbtp": -1.16,
+        "target_integrated_lufs": -14,
+        "target_true_peak_dbtp": -1
+      },
+      "duckApplied": false,
+      "warnings": [
+        "Full-length local WAV export — user-generated, not a published release.",
+        "Processing may take longer than preview lanes; no auto-export occurred.",
+        "Not a club-ready mastered release unless a future mastering lane is implemented.",
+        "Staged limiter prototype (soft knee + -1.0 dBTP linear ceiling) on master bus — not professional mastering.",
+        "Export peak-ceiling pass (~-1.0 dBTP prototype) after encode — DJ review required.",
+        "True peak -1.2 dBTP near ceiling — DJ review recommended.",
+        "Integrated loudness -11.7 LUFS (available)."
+      ]
+    }
+  },
+  "phase39Profile": {
+    "mixSettings": {
+      "vocal_gain_db": 1.5,
+      "instrumental_gain_db": -3,
+      "master_gain_db": -0.5,
+      "vocal_fade_in_ms": 0,
+      "vocal_fade_out_ms": 0,
+      "instrumental_fade_in_ms": 0,
+      "instrumental_fade_out_ms": 0,
+      "limiter_safety": true,
+      "clipping_guard": true,
+      "instrumental_duck_under_vocal": true
+    },
+    "export": {
+      "artifactId": "4a09113720a743749a2ace4d84956c66",
+      "loudness": {
+        "integrated_lufs": -13.57,
+        "true_peak_dbtp": -1.01,
+        "peak_level_db": -2,
+        "status": "available",
+        "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
+      },
+      "loudnessGate": {
+        "status": "pass",
+        "message": "Within general display targets (~-14 LUFS / -1 dBTP). Informational gate only — not a club-ready master claim.",
+        "integrated_lufs": -13.57,
+        "true_peak_dbtp": -1.01,
+        "target_integrated_lufs": -14,
+        "target_true_peak_dbtp": -1
+      },
+      "duckApplied": true,
+      "warnings": [
+        "Full-length local WAV export — user-generated, not a published release.",
+        "Processing may take longer than preview lanes; no auto-export occurred.",
+        "Not a club-ready mastered release unless a future mastering lane is implemented.",
+        "Staged limiter prototype (soft knee + -1.0 dBTP linear ceiling) on master bus — not professional mastering.",
+        "Export peak-ceiling pass (~-1.0 dBTP prototype) after encode — DJ review required.",
+        "Light instrumental duck under vocal (sidechaincompress prototype) — DJ review required.",
+        "True peak -1.0 dBTP near ceiling — DJ review recommended.",
+        "Integrated loudness -13.6 LUFS (available)."
+      ]
+    }
+  },
+  "phase40Safety": {
+    "mixSettings": {
+      "vocal_gain_db": 1.5,
+      "instrumental_gain_db": -3,
+      "master_gain_db": -1,
+      "vocal_fade_in_ms": 0,
+      "vocal_fade_out_ms": 0,
+      "instrumental_fade_in_ms": 0,
+      "instrumental_fade_out_ms": 0,
+      "limiter_safety": true,
+      "clipping_guard": true,
+      "instrumental_duck_under_vocal": true
+    },
+    "export": {
+      "artifactId": "5e3889d051fe42698bfa9d7181c4bd74",
+      "loudness": {
+        "integrated_lufs": -13.91,
+        "true_peak_dbtp": -1.01,
+        "peak_level_db": -2,
+        "status": "available",
+        "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
+      },
+      "loudnessGate": {
+        "status": "pass",
+        "message": "Within general display targets (~-14 LUFS / -1 dBTP). Informational gate only — not a club-ready master claim.",
+        "integrated_lufs": -13.91,
+        "true_peak_dbtp": -1.01,
+        "target_integrated_lufs": -14,
+        "target_true_peak_dbtp": -1
+      },
+      "duckApplied": true,
+      "warnings": [
+        "Full-length local WAV export — user-generated, not a published release.",
+        "Processing may take longer than preview lanes; no auto-export occurred.",
+        "Not a club-ready mastered release unless a future mastering lane is implemented.",
+        "Staged limiter prototype (soft knee + -1.0 dBTP linear ceiling) on master bus — not professional mastering.",
+        "Export peak-ceiling pass (~-1.0 dBTP prototype) after encode — DJ review required.",
+        "Light instrumental duck under vocal (sidechaincompress prototype) — DJ review required.",
+        "True peak -1.0 dBTP near ceiling — DJ review recommended.",
+        "Integrated loudness -13.9 LUFS (available)."
+      ]
+    }
+  },
+  "listeningNotes": [
+    "Compare RC2 vs Phase 39 vs Phase 40 locally — filenames redacted in this log.",
+    "Phase 40 keeps vocal-forward feel with staged limiter + safer master trim.",
+    "Neither export is a mastered release — DJ review required."
+  ],
+  "ok": true
+}

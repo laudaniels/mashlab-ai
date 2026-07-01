@@ -10,7 +10,28 @@
 
 ---
 
-## Quick Mix MVP release candidate (RC1)
+## Quick Mix MVP release candidate (RC2 + polish branch)
+
+| Field | Value |
+|-------|-------|
+| **Published tag** | `mashlab-quick-mix-real-audio-rc2` (base `fe5f58c`) |
+| **Polish branch** | `polish/quick-mix-listening-test` |
+| **Phases** | 39 listening polish · 40 true-peak safety |
+
+**Default user flow:** Drop vocal source → drop instrumental source → click **Mix** → local WAV (+ optional MP3).
+
+**Smoke evidence:** `qa/full-local-workflow/phase-40/` (API + browser + real-file operator logs)
+
+```powershell
+npm run smoke:quick-mix
+npm run smoke:quick-mix:browser   # requires npm run dev + sidecar healthy
+```
+
+See [QUICK_MIX_MODE.md](./QUICK_MIX_MODE.md) · [PHASE_40_TRUE_PEAK_SAFETY.md](./PHASE_40_TRUE_PEAK_SAFETY.md)
+
+---
+
+## Quick Mix MVP release candidate (RC1 — historical)
 
 | Field | Value |
 |-------|-------|
@@ -18,18 +39,7 @@
 | **Base commit** | `1d6bb44` — Improve sidecar lifecycle and Quick Mix smoke validation |
 | **Prior tag** | `mashlab-windows-local-mvp-rc1` (Advanced Studio full workflow) |
 
-**Default user flow:** Drop vocal source → drop instrumental source → click **Mix** → local WAV export (+ optional MP3 reference).
-
 **Smoke evidence:** `qa/full-local-workflow/phase-37/` (API + browser logs, browser screenshot manifest)
-
-```powershell
-npm run smoke:quick-mix
-npm run smoke:quick-mix:browser   # requires npm run dev + sidecar healthy
-```
-
-See [QUICK_MIX_MODE.md](./QUICK_MIX_MODE.md) for operator guidance.
-
----
 
 ## 1. Dependency setup
 

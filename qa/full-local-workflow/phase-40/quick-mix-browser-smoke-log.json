@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-07-01T01:27:21.117Z",
+  "startedAt": "2026-07-01T02:25:51.509Z",
   "appUrl": "http://127.0.0.1:5173/",
   "phase": "phase-40-true-peak-safety",
   "usingRealFiles": false,
@@ -30,12 +30,13 @@
     "Checking files": 3,
     "Separating vocal": 9,
     "Preparing instrumental": 17,
-    "Matching timing/key": 17,
-    "Mixing track": 17
+    "Matching timing/key": 19,
+    "Mixing track": 19,
+    "Creating WAV export": 19
   },
-  "totalSeconds": 19,
+  "totalSeconds": 21,
   "lastHeartbeat": "Still separating the instrumental… 0:06 elapsed. CPU stem separation can take several minutes — this has not stopped.",
   "consoleErrors": [],
   "pageErrors": [],
-  "finishedAt": "2026-07-01T01:27:40.217Z"
+  "finishedAt": "2026-07-01T02:26:12.653Z"
 }

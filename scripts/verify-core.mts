@@ -4962,6 +4962,7 @@ describe("Sidecar responsiveness under load (Phase 38)", async () => {
   });
 
   it("offloads blocking stem/analysis work off the async event loop", () => {
+    const normalized = mainSource.replace(/\r\n/g, "\n");
     for (const call of [
       "run_in_threadpool(\n            process_stem_preview",
       "run_in_threadpool(analyze_beat_file",
@@ -4969,7 +4970,7 @@ describe("Sidecar responsiveness under load (Phase 38)", async () => {
       "run_in_threadpool(analyze_metadata_file",
     ]) {
       assert.ok(
-        mainSource.includes(call),
+        normalized.includes(call),
         `expected main.py to offload via ${call}`
       );
     }

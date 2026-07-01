@@ -41,6 +41,10 @@ export function validateStemPreviewRequestParams(params: StemPreviewRequestParam
     errors.push("max_preview_seconds must be between 1 and 180.");
   }
 
+  if (params.previewStartSeconds !== undefined && params.previewStartSeconds < 0) {
+    errors.push("preview_start_seconds cannot be negative.");
+  }
+
   return errors;
 }
 
@@ -52,6 +56,9 @@ export function buildStemPreviewFormData(
   formData.append("file", file);
   formData.append("split_mode", params.splitMode);
   formData.append("max_preview_seconds", String(params.maxPreviewSeconds));
+  if (params.previewStartSeconds !== undefined) {
+    formData.append("preview_start_seconds", String(params.previewStartSeconds));
+  }
   return formData;
 }
 
@@ -80,6 +87,7 @@ function parseInputSummary(value: unknown) {
     channelCount: parseNullableNumber(record.channel_count),
     splitMode: typeof record.split_mode === "string" ? record.split_mode : "vocals_no_vocals",
     maxPreviewSeconds: parseNullableNumber(record.max_preview_seconds),
+    previewStartSeconds: parseNullableNumber(record.preview_start_seconds),
   };
 }
 

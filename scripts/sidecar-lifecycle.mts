@@ -229,7 +229,7 @@ async function runStart(): Promise<number> {
 
   const child = spawn(
     venvPython,
-    ["-m", "uvicorn", "main:app", "--host", SIDECAR_DEFAULT_HOST, "--port", String(SIDECAR_DEFAULT_PORT)],
+    ["-m", "uvicorn", "main:app", "--host", SIDECAR_DEFAULT_HOST, "--port", String(SIDECAR_DEFAULT_PORT), "--timeout-keep-alive", "3600"],
     {
       cwd: serviceDir,
       detached: true,

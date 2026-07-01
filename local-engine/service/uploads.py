@@ -28,3 +28,17 @@ async def save_upload(file: UploadFile, prefix: str) -> tuple[Path, str]:
 def cleanup_path(path: Path) -> None:
     if path.exists():
         path.unlink(missing_ok=True)
+
+
+def save_upload_bytes(filename: str, content: bytes, prefix: str) -> tuple[Path, str]:
+    if filename.strip() == "":
+        raise ValueError("A local audio filename is required.")
+
+    suffix = Path(filename).suffix or ".audio"
+    temp_path = config.TEMP_DIR / f"{prefix}-{uuid4().hex}{suffix}"
+    config.TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
+    with temp_path.open("wb") as handle:
+        handle.write(content)
+
+    return temp_path, filename

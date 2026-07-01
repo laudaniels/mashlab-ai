@@ -21,7 +21,13 @@ export function QuickMixOutputPanel({
       <div className="quick-mix-output-header">
         <h2>Your mix is ready</h2>
         <p>{output.exportLabel}</p>
-        {output.durationCapNotice ? (
+        {output.sectionSummaryLines.length > 0 ? (
+          <ul className="quick-mix-section-summary">
+            {output.sectionSummaryLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : output.durationCapNotice ? (
           <p className="quick-mix-duration-cap-note">{output.durationCapNotice}</p>
         ) : null}
         <p className="quick-mix-timing-note">{output.timingNotice}</p>

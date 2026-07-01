@@ -12,6 +12,8 @@ Quick Mix is the **default landing screen**:
 2. **Instrumental / beat source**
 3. One **Mix** button
 
+Optional under each source: **Section to use** — **First 3:00** (default) or **Custom start** (minutes/seconds). Optional toggle: same start for both sources. See [PHASE_41_QUICK_MIX_SECTION_PICKER.md](./PHASE_41_QUICK_MIX_SECTION_PICKER.md).
+
 The app runs the full local pipeline when the user clicks **Mix** (no processing on upload):
 
 1. Validate files + dependencies (sidecar, FFmpeg, Rubber Band, Demucs/PyTorch)
@@ -25,7 +27,7 @@ Progress: Checking files → Separating vocal → Preparing instrumental → Mat
 
 **Done** only after WAV succeeds. Long Demucs steps show elapsed time + heartbeat (“has not stopped”).
 
-**180-second cap:** stem preview uses the first **180 seconds** of each file.
+**180-second cap:** each source processes up to **180 seconds** — default **First 3:00**, or choose a **custom start** (Phase 41). Not a full-length export.
 
 Output: **Local mix export — user responsible for rights.** Not professionally mastered. Not publish-ready.
 
@@ -48,7 +50,7 @@ Advanced Studio `NEUTRAL_MIX_SETTINGS` unchanged.
 - Mix profile summary
 - Loudness / true peak warnings when measured
 - RC2 vs current profile comparison
-- 180 s cap note when applicable
+- 180 s cap + selected section summary when applicable
 - Rights notice
 - Open in Advanced Studio / Start another mix
 - Technical details collapsed (artifact IDs inside)
@@ -77,6 +79,7 @@ Real-file browser QA: set `MASHLAB_QM_VOCAL` / `MASHLAB_QM_BEAT` env vars locall
 
 ## Related docs
 
+- `docs/PHASE_41_QUICK_MIX_SECTION_PICKER.md`
 - `docs/PHASE_40_TRUE_PEAK_SAFETY.md`
 - `docs/MVP_RELEASE_CANDIDATE_CHECKLIST.md`
 - `docs/QA_WORKFLOW_CHECKLIST.md`

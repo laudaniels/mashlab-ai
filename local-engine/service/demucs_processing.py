@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import gc
 import shutil
 import subprocess
 import sys
@@ -11,7 +12,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from capabilities import get_capability, is_demucs_ready
+from metadata import analyze_metadata_file
 from rubber_band_processing import build_ffmpeg_trim_command, probe_wav_metadata
+from quick_mix_source_prep import validate_quick_mix_prep_request
 
 import config
 
@@ -43,6 +46,7 @@ class StemPreviewInputSummary:
     channel_count: int | None
     split_mode: str
     max_preview_seconds: int | None
+    preview_start_seconds: float | None = None
 
 
 @dataclass
@@ -90,6 +94,8 @@ def validate_stem_preview_request(
     *,
     split_mode: str,
     max_preview_seconds: int | None,
+    preview_start_seconds: float = 0.0,
+    source_duration_seconds: float | None = None,
 ) -> list[str]:
     errors: list[str] = []
 
@@ -103,6 +109,15 @@ def validate_stem_preview_request(
             errors.append(
                 f"max_preview_seconds must be between 1 and {MAX_PREVIEW_SECONDS_LIMIT}."
             )
+
+    if max_preview_seconds is not None:
+        errors.extend(
+            validate_quick_mix_prep_request(
+                max_seconds=max_preview_seconds,
+                start_offset_seconds=preview_start_seconds,
+                source_duration_seconds=source_duration_seconds,
+            )
+        )
 
     return errors
 
@@ -149,10 +164,19 @@ def process_stem_preview(
     *,
     split_mode: str = "vocals_no_vocals",
     max_preview_seconds: int | None = DEFAULT_MAX_PREVIEW_SECONDS,
+    preview_start_seconds: float = 0.0,
+    source_duration_seconds: float | None = None,
 ) -> StemPreviewResult:
+    if source_duration_seconds is None and max_preview_seconds is not None:
+        metadata = analyze_metadata_file(input_path, file_name)
+        if metadata.ok and metadata.result:
+            source_duration_seconds = metadata.result.duration_seconds
+
     validation_errors = validate_stem_preview_request(
         split_mode=split_mode,
         max_preview_seconds=max_preview_seconds,
+        preview_start_seconds=preview_start_seconds,
+        source_duration_seconds=source_duration_seconds,
     )
     if validation_errors:
         return StemPreviewFailure(
@@ -208,7 +232,13 @@ def process_stem_preview(
     try:
         if max_preview_seconds is not None:
             trim_result = subprocess.run(
-                build_ffmpeg_trim_command(ffmpeg, input_path, trim_path, max_preview_seconds),
+                build_ffmpeg_trim_command(
+                    ffmpeg,
+                    input_path,
+                    trim_path,
+                    max_preview_seconds,
+                    start_seconds=preview_start_seconds,
+                ),
                 capture_output=True,
                 text=True,
                 check=False,
@@ -279,6 +309,7 @@ def process_stem_preview(
                 channel_count=input_channels,
                 split_mode=split_mode,
                 max_preview_seconds=max_preview_seconds,
+                preview_start_seconds=preview_start_seconds,
             ),
             vocals=StemArtifactSummary(
                 file_name=vocals_dest.name,
@@ -303,3 +334,4 @@ def process_stem_preview(
             shutil.rmtree(demucs_output_dir, ignore_errors=True)
         if input_path.exists() and input_path.parent == config.TEMP_DIR:
             input_path.unlink(missing_ok=True)
+        gc.collect()

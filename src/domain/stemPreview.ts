@@ -10,6 +10,7 @@ export type StemSplitMode = "vocals_no_vocals";
 export interface StemPreviewRequestParams {
   splitMode: StemSplitMode;
   maxPreviewSeconds: number;
+  previewStartSeconds?: number;
   trackSlotId: SlotId;
   fileName: string;
 }
@@ -30,6 +31,7 @@ export interface StemPreviewInputSummary {
   channelCount: number | null;
   splitMode: string;
   maxPreviewSeconds: number | null;
+  previewStartSeconds?: number | null;
 }
 
 export interface StemPreviewResult {

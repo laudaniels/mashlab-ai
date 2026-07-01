@@ -1,4 +1,4 @@
-import { Mic2, Music2, UploadCloud, X } from "lucide-react";
+import { LoaderCircle, Mic2, Music2, UploadCloud, X } from "lucide-react";
 import type { ChangeEvent, DragEvent } from "react";
 
 interface QuickMixDropCardProps {
@@ -6,6 +6,8 @@ interface QuickMixDropCardProps {
   title: string;
   hint: string;
   fileName: string | null;
+  preparing: boolean;
+  preparingLabel: string;
   error: string | null;
   onFileSelected: (file: File) => void;
   onClear: () => void;
@@ -16,6 +18,8 @@ export function QuickMixDropCard({
   title,
   hint,
   fileName,
+  preparing,
+  preparingLabel,
   error,
   onFileSelected,
   onClear,
@@ -41,13 +45,14 @@ export function QuickMixDropCard({
 
   return (
     <label
-      className={`quick-mix-drop-card ${fileName ? "has-file" : ""}`}
+      className={`quick-mix-drop-card ${fileName ? "has-file" : ""} ${preparing ? "is-preparing" : ""}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
     >
       <input
         accept="audio/*,.wav,.mp3,.flac,.aiff,.aif,.m4a,.ogg"
         className="quick-mix-drop-input"
+        disabled={preparing}
         onChange={handleInputChange}
         type="file"
       />
@@ -57,7 +62,12 @@ export function QuickMixDropCard({
       <div className="quick-mix-drop-copy">
         <strong>{title}</strong>
         <p>{hint}</p>
-        {fileName ? (
+        {preparing ? (
+          <span className="quick-mix-drop-cta">
+            <LoaderCircle aria-hidden="true" className="spin-icon" size={16} />
+            {preparingLabel}
+          </span>
+        ) : fileName ? (
           <span className="quick-mix-file-name">{fileName}</span>
         ) : (
           <span className="quick-mix-drop-cta">

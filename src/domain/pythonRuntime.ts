@@ -28,6 +28,7 @@ export const PYTHON_SERVICE_COMPILE_TARGETS = [
   "local-engine/service/pitch_time_planning.py",
   "local-engine/service/rubber_band_processing.py",
   "local-engine/service/demucs_processing.py",
+  "local-engine/service/quick_mix_source_prep.py",
   "local-engine/service/combined_preview_processing.py",
   "local-engine/service/export_processing.py",
   "local-engine/service/full_length_export_processing.py",

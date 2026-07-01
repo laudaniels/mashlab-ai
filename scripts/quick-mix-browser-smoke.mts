@@ -157,7 +157,7 @@ async function main(): Promise<void> {
   const result: Record<string, unknown> = {
     startedAt: new Date().toISOString(),
     appUrl,
-    phase: "phase-40-true-peak-safety",
+    phase: "phase-41-section-picker",
     usingRealFiles: USING_REAL_FILES,
     // Filenames intentionally redacted — only neutral track labels are recorded.
     trackA: "Track A (vocal source)",

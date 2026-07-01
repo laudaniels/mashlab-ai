@@ -5,11 +5,18 @@ import { createBrowserOnlyStatus } from "../lib/localEngine/capabilities.ts";
 
 const DEFAULT_POLL_MS = 15000;
 
-export function useLocalEngineStatus(pollMs: number = DEFAULT_POLL_MS) {
+export function useLocalEngineStatus(
+  pollMs: number = DEFAULT_POLL_MS,
+  enabled: boolean = true
+) {
   const [status, setStatus] = useState<LocalEngineConnectionStatus>(createBrowserOnlyStatus());
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     let cancelled = false;
 
     async function refresh() {
@@ -30,7 +37,7 @@ export function useLocalEngineStatus(pollMs: number = DEFAULT_POLL_MS) {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [pollMs]);
+  }, [enabled, pollMs]);
 
   return { status, isChecking };
 }

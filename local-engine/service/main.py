@@ -5,7 +5,8 @@ from __future__ import annotations
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from starlette.background import BackgroundTask
 
 import config
 from beat_analysis import analyze_beat_file
@@ -103,7 +104,11 @@ from models import (
     StemPreviewInputSummary,
     StemPreviewResponse,
 )
-from uploads import cleanup_path, save_upload
+from quick_mix_source_prep import (
+    QuickMixSourcePrepFailure,
+    prepare_quick_mix_source,
+)
+from uploads import cleanup_path, save_upload, save_upload_bytes
 
 app = FastAPI(
     title="MashLab Local Engine",
@@ -120,6 +125,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[
+        "X-Mashlab-Trimmed",
+        "X-Mashlab-Start-Offset",
+        "X-Mashlab-Source-Duration",
+        "X-Mashlab-Output-Duration",
+        "X-Mashlab-Output-Filename",
+        "X-Mashlab-Fade-Out",
+    ],
 )
 
 
@@ -362,13 +375,86 @@ def get_pitch_time_preview_artifact(artifact_id: str) -> FileResponse:
     )
 
 
+@app.post("/v1/process/quick-mix-source-prep", response_model=None)
+async def quick_mix_source_prep_endpoint(
+    file: UploadFile = File(...),
+    max_seconds: int = Form(default=180),
+    start_offset_seconds: float = Form(default=0.0),
+) -> FileResponse | JSONResponse:
+    if file.filename is None or file.filename.strip() == "":
+        raise HTTPException(status_code=400, detail="A local audio filename is required.")
+
+    upload_bytes = await file.read()
+    filename = file.filename
+    temp_path, filename = await run_in_threadpool(
+        save_upload_bytes,
+        filename,
+        upload_bytes,
+        "quick-mix-prep",
+    )
+
+    try:
+        result = await run_in_threadpool(
+            prepare_quick_mix_source,
+            temp_path,
+            filename,
+            max_seconds=max_seconds,
+            start_offset_seconds=start_offset_seconds,
+        )
+    finally:
+        cleanup_path(temp_path)
+
+    if isinstance(result, QuickMixSourcePrepFailure):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "ok": False,
+                "status": result.status,
+                "message": result.message,
+                "setup_guidance": result.setup_guidance,
+                "validation_errors": result.validation_errors,
+            },
+        )
+
+    output_path = result.output_path
+
+    def cleanup_output() -> None:
+        cleanup_path(output_path)
+
+    return FileResponse(
+        path=output_path,
+        media_type="audio/wav",
+        filename=result.output_file_name,
+        background=BackgroundTask(cleanup_output),
+        headers={
+            "X-Mashlab-Start-Offset": str(result.start_offset_seconds),
+            "X-Mashlab-Trimmed": "true" if result.trimmed else "false",
+            "X-Mashlab-Fade-Out": "true" if result.fade_out_applied else "false",
+            "X-Mashlab-Source-Duration": "" if result.source_duration_seconds is None else str(result.source_duration_seconds),
+            "X-Mashlab-Output-Duration": "" if result.output_duration_seconds is None else str(result.output_duration_seconds),
+            "X-Mashlab-Output-Filename": result.output_file_name,
+        },
+    )
+
+
 @app.post("/v1/process/stem-preview", response_model=StemPreviewResponse)
 async def process_stem_preview_endpoint(
     file: UploadFile = File(...),
     split_mode: str = Form(default="vocals_no_vocals"),
     max_preview_seconds: int | None = Form(default=STEM_DEFAULT_MAX_PREVIEW_SECONDS),
+    preview_start_seconds: float = Form(default=0.0),
 ) -> StemPreviewResponse:
-    temp_path, filename = await save_upload(file, "stem-preview")
+    if file.filename is None or file.filename.strip() == "":
+        raise HTTPException(status_code=400, detail="A local audio filename is required.")
+
+    upload_bytes = await file.read()
+    filename = file.filename
+    temp_path, filename = await run_in_threadpool(
+        save_upload_bytes,
+        filename,
+        upload_bytes,
+        "stem-preview",
+    )
 
     try:
         result = await run_in_threadpool(
@@ -377,6 +463,7 @@ async def process_stem_preview_endpoint(
             filename,
             split_mode=split_mode,
             max_preview_seconds=max_preview_seconds,
+            preview_start_seconds=preview_start_seconds,
         )
     finally:
         cleanup_path(temp_path)
@@ -407,6 +494,7 @@ async def process_stem_preview_endpoint(
             channel_count=result.input_summary.channel_count,
             split_mode=result.input_summary.split_mode,
             max_preview_seconds=result.input_summary.max_preview_seconds,
+            preview_start_seconds=result.input_summary.preview_start_seconds,
         ),
         vocals=StemArtifactSummaryModel(
             file_name=result.vocals.file_name,

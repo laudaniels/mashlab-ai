@@ -36,6 +36,7 @@ import {
   LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS,
   LOCAL_ENGINE_REQUEST_TIMEOUT_MS,
   LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS,
+  createLocalEngineAbortSignal,
 } from "./types.ts";
 import type { PitchTimePreviewRequestParams } from "../../domain/pitchTimePreview.ts";
 import type { PitchTimePreviewResult } from "../../domain/pitchTimePreview.ts";
@@ -578,7 +579,7 @@ export class LocalEngineClient {
     try {
       const response = await fetch(`${this.baseUrl}${path}`, {
         ...init,
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: createLocalEngineAbortSignal(timeoutMs),
       });
       return response;
     } catch {

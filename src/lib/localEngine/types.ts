@@ -159,3 +159,13 @@ export const LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS = 90000;
 
 /** Demucs stem preview on CPU can exceed 9 minutes — used by Quick Mix and stem panel. */
 export const LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS = 30 * 60 * 1000;
+
+export function createLocalEngineAbortSignal(timeoutMs: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return AbortSignal.timeout(timeoutMs);
+  }
+
+  const controller = new AbortController();
+  globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  return controller.signal;
+}

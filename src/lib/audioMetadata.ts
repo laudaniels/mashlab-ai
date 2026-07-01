@@ -116,6 +116,10 @@ export function formatFileSize(bytes: number): string {
   return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
+export async function readLocalAudioDurationSeconds(file: File): Promise<number | null> {
+  return readDurationFromMediaElement(file).catch(() => null);
+}
+
 async function readDurationFromMediaElement(file: File): Promise<number | null> {
   const objectUrl = URL.createObjectURL(file);
 

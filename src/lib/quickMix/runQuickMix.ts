@@ -2,7 +2,6 @@ import { buildFullLengthExportRequestParams } from "../../domain/fullLengthExpor
 import { DEFAULT_MP3_BITRATE } from "../../domain/mp3Export.ts";
 import {
   advanceQuickMixStep,
-  buildQuickMixDurationCapNotice,
   createInitialQuickMixProgress,
   failQuickMixProgress,
   QUICK_MIX_DEFAULT_MIX_SETTINGS,
@@ -11,6 +10,7 @@ import {
   type QuickMixOutputModel,
   type QuickMixProgressStep,
   type QuickMixStepId,
+  type QuickMixUploadSlot,
   validateQuickMixUploads,
 } from "../../domain/quickMix.ts";
 import {
@@ -50,7 +50,17 @@ import {
   buildQuickMixDirectionContext,
   buildQuickMixTimingStrategy,
 } from "../../domain/quickMixStrategy.ts";
+import {
+  buildQuickMixSectionNotice,
+  buildQuickMixSectionSummaryLines,
+  effectiveQuickMixWindowSeconds,
+  shouldPrepareQuickMixSourceForSection,
+  validateQuickMixSectionAgainstDuration,
+  type QuickMixSectionSelection,
+  type QuickMixSectionSummary,
+} from "../../domain/quickMixSection.ts";
 import { validateAudioFile } from "../audioMetadata.ts";
+import { prepareQuickMixSourceFile } from "../localEngine/quickMixSourcePrep.ts";
 import { localEngineClient } from "../localEngine/client.ts";
 import type { LocalEngineConnectionStatus } from "../localEngine/types.ts";
 import { LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS } from "../localEngine/types.ts";
@@ -60,6 +70,10 @@ import type { FullLengthExportResult } from "../../domain/fullLengthExport.ts";
 export interface QuickMixRunInput {
   vocalFile: File;
   instrumentalFile: File;
+  vocalSection: QuickMixSectionSelection;
+  instrumentalSection: QuickMixSectionSelection;
+  vocalDurationSeconds: number | null;
+  instrumentalDurationSeconds: number | null;
 }
 
 export interface QuickMixRunResult {
@@ -73,6 +87,61 @@ export type QuickMixProgressCallback = (steps: QuickMixProgressStep[]) => void;
 
 function throwMapped(error: QuickMixPlainError): never {
   throw error;
+}
+
+async function snapshotMixFile(file: File): Promise<File> {
+  const buffer = await file.arrayBuffer();
+  return new File([buffer], file.name, {
+    type: file.type || "application/octet-stream",
+    lastModified: file.lastModified,
+  });
+}
+
+async function prepareSourceForQuickMix(
+  file: File,
+  slot: QuickMixUploadSlot,
+  section: QuickMixSectionSelection,
+  sourceDurationSeconds: number | null
+): Promise<{ file: File; summary: QuickMixSectionSummary; prepared: boolean }> {
+  const validationErrors = validateQuickMixSectionAgainstDuration(section, sourceDurationSeconds);
+  if (validationErrors.length > 0) {
+    throw mapQuickMixError({
+      message: validationErrors[0] ?? "Quick Mix section selection is invalid.",
+      failedStepId: "checking_files",
+      validationErrors,
+    });
+  }
+
+  const outputDurationSeconds = effectiveQuickMixWindowSeconds(section, sourceDurationSeconds);
+
+  if (!shouldPrepareQuickMixSourceForSection(section, sourceDurationSeconds)) {
+    return {
+      file,
+      prepared: false,
+      summary: {
+        slot,
+        selection: section,
+        sourceDurationSeconds,
+        outputDurationSeconds,
+      },
+    };
+  }
+
+  const prepared = await prepareQuickMixSourceFile(file, {
+    startOffsetSeconds: section.startOffsetSeconds,
+    maxSeconds: section.windowSeconds,
+  });
+
+  return {
+    file: prepared.file,
+    prepared: true,
+    summary: {
+      slot,
+      selection: section,
+      sourceDurationSeconds: prepared.sourceDurationSeconds,
+      outputDurationSeconds: prepared.outputDurationSeconds ?? outputDurationSeconds,
+    },
+  };
 }
 
 async function requireQuickMixSidecar(
@@ -97,9 +166,27 @@ function demucsAvailableFromCapabilities(
 async function runStemStep(
   source: QuickMixSource,
   file: File,
+  section: QuickMixSectionSelection,
+  prepared: boolean,
+  outputDurationSeconds: number | null,
   demucsAvailable: boolean
 ): Promise<StemPreviewResult> {
-  const params = buildQuickMixStemRequestParams(source, file);
+  const stemSection: QuickMixSectionSelection = prepared
+    ? { ...section, startOffsetSeconds: 0 }
+    : section;
+  const params = buildQuickMixStemRequestParams(source, file, stemSection, prepared);
+  if (prepared && outputDurationSeconds !== null) {
+    params.maxPreviewSeconds = Math.min(
+      section.windowSeconds,
+      Math.max(1, Math.round(outputDurationSeconds))
+    );
+  } else if (!prepared && outputDurationSeconds !== null) {
+    params.maxPreviewSeconds = Math.min(
+      section.windowSeconds,
+      Math.max(1, Math.round(outputDurationSeconds))
+    );
+  }
+
   const clientErrors = validateQuickMixStemRequest(params);
   if (clientErrors.length > 0) {
     throwMapped(
@@ -115,13 +202,41 @@ async function runStemStep(
     );
   }
 
-  const result = await localEngineClient.processStemPreview(file, params, {
-    timeoutMs: LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS,
-  });
-  if (!result) {
-    throwMapped(mapQuickMixNoResponseStemFailure(source, { demucsAvailable, timedOut: true }));
+  const result = await requestStemPreviewWithRetry(file, params, source, demucsAvailable);
+  return finalizeStemStep(result, source, demucsAvailable);
+}
+
+async function requestStemPreviewWithRetry(
+  file: File,
+  params: ReturnType<typeof buildQuickMixStemRequestParams>,
+  source: QuickMixSource,
+  demucsAvailable: boolean
+): Promise<StemPreviewResult> {
+  const failedStepId = source === "vocal" ? "separating_vocal" : "preparing_instrumental";
+  const retryDelaysMs = [0, 3000, 8000];
+
+  for (let attempt = 0; attempt < retryDelaysMs.length; attempt += 1) {
+    if (retryDelaysMs[attempt] > 0) {
+      await requireQuickMixSidecar(failedStepId);
+      await new Promise((resolve) => window.setTimeout(resolve, retryDelaysMs[attempt]));
+    }
+
+    const result = await localEngineClient.processStemPreview(file, params, {
+      timeoutMs: LOCAL_ENGINE_STEM_PREVIEW_TIMEOUT_MS,
+    });
+    if (result) {
+      return result;
+    }
   }
 
+  throwMapped(mapQuickMixNoResponseStemFailure(source, { demucsAvailable, timedOut: true }));
+}
+
+function finalizeStemStep(
+  result: StemPreviewResult,
+  source: QuickMixSource,
+  demucsAvailable: boolean
+): StemPreviewResult {
   if (!result.ok || !result.artifactId || !result.audioProcessed) {
     throwMapped(
       mapQuickMixStemFailure(result, source, {
@@ -169,16 +284,21 @@ export async function runQuickMixPipeline(
 
   let connection: LocalEngineConnectionStatus | null = null;
   let demucsAvailable = false;
-  let durationCapNotice: string | null = null;
+  let sectionNotice: string | null = null;
 
   try {
     setStep("checking_files");
 
+    const vocalFile = await snapshotMixFile(input.vocalFile);
+    const instrumentalFile = await snapshotMixFile(input.instrumentalFile);
+
     const validation = validateQuickMixUploads({
-      vocalFile: input.vocalFile,
-      vocalFileName: input.vocalFile.name,
-      instrumentalFile: input.instrumentalFile,
-      instrumentalFileName: input.instrumentalFile.name,
+      vocalFile,
+      vocalFileName: vocalFile.name,
+      instrumentalFile,
+      instrumentalFileName: instrumentalFile.name,
+      vocalPreparing: false,
+      instrumentalPreparing: false,
     });
     if (!validation.ok) {
       throw mapQuickMixError({
@@ -187,7 +307,7 @@ export async function runQuickMixPipeline(
       });
     }
 
-    for (const file of [input.vocalFile, input.instrumentalFile]) {
+    for (const file of [vocalFile, instrumentalFile]) {
       const fileCheck = validateAudioFile(file);
       if (!fileCheck.ok) {
         throw mapQuickMixError({
@@ -210,23 +330,47 @@ export async function runQuickMixPipeline(
       });
     }
 
-    const vocalMeta = await localEngineClient.analyzeMetadata(input.vocalFile);
-    const beatMeta = await localEngineClient.analyzeMetadata(input.instrumentalFile);
-    durationCapNotice = buildQuickMixDurationCapNotice(
-      vocalMeta?.result?.duration_seconds ?? null,
-      beatMeta?.result?.duration_seconds ?? null
+    const vocalPrepared = await prepareSourceForQuickMix(
+      vocalFile,
+      "vocal",
+      input.vocalSection,
+      input.vocalDurationSeconds
     );
+    const instrumentalPrepared = await prepareSourceForQuickMix(
+      instrumentalFile,
+      "instrumental",
+      input.instrumentalSection,
+      input.instrumentalDurationSeconds
+    );
+
+    const sectionSummaries = [vocalPrepared.summary, instrumentalPrepared.summary];
+    const sectionSummaryLines = buildQuickMixSectionSummaryLines(sectionSummaries);
+    sectionNotice = buildQuickMixSectionNotice(sectionSummaries);
 
     completeStep("checking_files");
 
     await requireQuickMixSidecar("separating_vocal");
     setStep("separating_vocal");
-    const vocalStem = await runStemStep("vocal", input.vocalFile, demucsAvailable);
+    const vocalStem = await runStemStep(
+      "vocal",
+      vocalPrepared.file,
+      input.vocalSection,
+      vocalPrepared.prepared,
+      vocalPrepared.summary.outputDurationSeconds,
+      demucsAvailable
+    );
     completeStep("separating_vocal");
 
     await requireQuickMixSidecar("preparing_instrumental");
     setStep("preparing_instrumental");
-    const beatStem = await runStemStep("instrumental", input.instrumentalFile, demucsAvailable);
+    const beatStem = await runStemStep(
+      "instrumental",
+      instrumentalPrepared.file,
+      input.instrumentalSection,
+      instrumentalPrepared.prepared,
+      instrumentalPrepared.summary.outputDurationSeconds,
+      demucsAvailable
+    );
     completeStep("preparing_instrumental");
 
     await requireQuickMixSidecar("matching_timing");
@@ -236,8 +380,8 @@ export async function runQuickMixPipeline(
     let beatBpm: number | null = null;
 
     if (librosaUsed) {
-      const vocalBeat = await localEngineClient.analyzeBeat(input.vocalFile);
-      const beatBeat = await localEngineClient.analyzeBeat(input.instrumentalFile);
+      const vocalBeat = await localEngineClient.analyzeBeat(vocalPrepared.file);
+      const beatBeat = await localEngineClient.analyzeBeat(instrumentalPrepared.file);
       vocalBpm = vocalBeat?.result?.bpm ?? null;
       beatBpm = beatBeat?.result?.bpm ?? null;
     }
@@ -320,7 +464,9 @@ export async function runQuickMixPipeline(
       mp3DownloadUrl,
       exportLabel: QUICK_MIX_OUTPUT_LABEL,
       timingNotice: strategy.timingNotice,
-      durationCapNotice,
+      durationCapNotice: sectionNotice,
+      sectionNotice,
+      sectionSummaryLines,
       wavArtifactId: wavExport.exportArtifactId,
       mp3ArtifactId,
       durationSeconds: wavExport.durationSeconds,
@@ -341,7 +487,7 @@ export async function runQuickMixPipeline(
         buildQuickMixMixProfileSummary(QUICK_MIX_DEFAULT_MIX_SETTINGS),
         formatQuickMixLoudnessTechnicalLine(wavExport.loudness) ??
           "Loudness: not_available for this export.",
-        durationCapNotice ?? "Duration within Quick Mix MVP cap (180 seconds).",
+        sectionNotice ?? "First 3:00 sections — Quick Mix MVP cap (180 seconds).",
         `Vocal stem (vocals.wav): ${vocalStem.artifactId}`,
         `Instrumental stem (no_vocals.wav): ${beatStem.artifactId}`,
         `WAV export: ${wavExport.exportArtifactId}`,

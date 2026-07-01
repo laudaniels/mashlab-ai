@@ -1,0 +1,51 @@
+{
+  "startedAt": "2026-07-01T04:44:49.818Z",
+  "trackA": "Track A (vocal source)",
+  "trackB": "Track B (instrumental source)",
+  "mixOk": true,
+  "mixError": null,
+  "cases": {
+    "Default First 3:00": {
+      "pass": true,
+      "notes": "Both pickers default to First 3:00 after upload"
+    },
+    "Custom vocal section": {
+      "pass": true,
+      "notes": "Track A custom start 1:05"
+    },
+    "Custom instrumental section": {
+      "pass": true,
+      "notes": "Track B custom start 0:42"
+    },
+    "Different start times": {
+      "pass": true,
+      "notes": "Track A 1:05 vs Track B 0:42"
+    },
+    "WAV produced": {
+      "pass": true,
+      "notes": "WAV download visible"
+    },
+    "MP3 produced or non-blocking": {
+      "pass": true,
+      "notes": "MP3 download visible"
+    },
+    "No false Done": {
+      "pass": true,
+      "notes": "Unit-tested; browser run completed without error panel before output"
+    },
+    "Section output lines": {
+      "pass": true,
+      "notes": "Your mix is ready Local mix export — user responsible for rights. Vocal section: 1:05–3:25 Instrumental section: 0:42–3:42 Length: 3:00 MVP cap Tempo alignment applied from local analysis (vocal 97.5 BPM → beat 95.7 BPM). DJ review required. vocal +1.5 dB · bed -3.0 dB · master -"
+    },
+    "Sidecar healthy": {
+      "pass": true,
+      "notes": "health OK after run"
+    }
+  },
+  "artifactHints": {
+    "wavDownloadHref": "/v1/artifacts/exports/c095084d7e4c4d749228b8e18d047089/export"
+  },
+  "totalSeconds": 120,
+  "finishedAt": "2026-07-01T04:46:49.984Z",
+  "allPass": true
+}

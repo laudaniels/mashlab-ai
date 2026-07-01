@@ -4569,6 +4569,7 @@ describe("Quick Mix orchestrated pipeline (Phase 36 fix)", async () => {
     "src/domain/quickMixStrategy.ts"
   );
   const { QUICK_MIX_DEFAULT_MIX_SETTINGS } = await importSrc("src/domain/quickMix.ts");
+  const { createDefaultQuickMixSectionSelection } = await importSrc("src/domain/quickMixSection.ts");
 
   it("does not trigger processing before validate_uploads", () => {
     assert.equal(quickMixStageTriggersProcessing("validate_uploads"), false);
@@ -4577,19 +4578,23 @@ describe("Quick Mix orchestrated pipeline (Phase 36 fix)", async () => {
 
   it("uses legal stem preview seconds within server limit", () => {
     const file = new File(["a"], "vocal.wav", { type: "audio/wav" });
-    const params = buildQuickMixStemRequestParams("vocal", file);
+    const section = createDefaultQuickMixSectionSelection();
+    const params = buildQuickMixStemRequestParams("vocal", file, section, false);
     assert.equal(params.maxPreviewSeconds, 180);
+    assert.equal(params.previewStartSeconds, 0);
     assert.equal(QUICK_MIX_STEM_MAX_SECONDS, 180);
     assert.deepEqual(validateQuickMixStemRequest(params), []);
   });
 
   it("builds stem multipart fields expected by the sidecar", () => {
     const file = new File(["a"], "beat.wav", { type: "audio/wav" });
-    const formData = buildQuickMixStemFormData(file, "instrumental");
+    const section = createDefaultQuickMixSectionSelection();
+    const formData = buildQuickMixStemFormData(file, "instrumental", section, false);
     const fields = listQuickMixStemFormFieldNames(formData).sort();
     assert.deepEqual(fields, [...QUICK_MIX_STEM_FORM_FIELDS].sort());
     assert.equal(formData.get("split_mode"), "vocals_no_vocals");
     assert.equal(formData.get("max_preview_seconds"), "180");
+    assert.equal(formData.get("preview_start_seconds"), "0");
   });
 
   it("maps vocal and instrumental stems to vocals.wav and no_vocals.wav roles", () => {
@@ -4726,6 +4731,7 @@ describe("Quick Mix reliability (Phase 36 hotfix)", async () => {
   it("discloses 180-second MVP cap for longer sources", () => {
     assert.equal(QUICK_MIX_DURATION_CAP_SECONDS, 180);
     assert.match(QUICK_MIX_DURATION_CAP_NOTICE, /180 seconds/i);
+    assert.match(QUICK_MIX_DURATION_CAP_NOTICE, /shortened automatically/i);
     assert.match(QUICK_MIX_DURATION_CAP_NOTICE, /not a full-length/i);
     assert.equal(buildQuickMixDurationCapNotice(200, 120), QUICK_MIX_DURATION_CAP_NOTICE);
     assert.equal(buildQuickMixDurationCapNotice(60, 90), null);
@@ -4947,6 +4953,156 @@ describe("Quick Mix true-peak safety (Phase 40)", async () => {
     assert.match(source, /level=disabled/);
     assert.match(source, /build_peak_ceiling_ffmpeg_command/);
     assert.equal(GENERAL_TRUE_PEAK_TARGET_DBTP, -1);
+  });
+});
+
+describe("Quick Mix section picker (Phase 41)", async () => {
+  const {
+    buildQuickMixSectionOutputLine,
+    buildQuickMixSectionSummaryLines,
+    createDefaultQuickMixSectionSelection,
+    resolveQuickMixSectionSelection,
+    shouldPrepareQuickMixSourceForSection,
+    validateQuickMixSectionAgainstDuration,
+  } = await importSrc("src/domain/quickMixSection.ts");
+  const {
+    buildQuickMixStemFormData,
+    buildQuickMixStemRequestParams,
+    listQuickMixStemFormFieldNames,
+    quickMixStageTriggersProcessing,
+  } = await importSrc("src/domain/quickMixPipeline.ts");
+  const {
+    QUICK_MIX_DURATION_CAP_NOTICE,
+    QUICK_MIX_DURATION_CAP_SECONDS,
+    QUICK_MIX_LOCAL_ONLY_NOTICE,
+    quickMixPipelineShowsDone,
+    failQuickMixProgress,
+    createInitialQuickMixProgress,
+    includesNoPublicSharingInQuickMixCopy,
+  } = await importSrc("src/domain/quickMix.ts");
+  const { requiredRightsNotice } = await importSrc("src/lib/legal.ts");
+
+  it("defaults to first 180 seconds unchanged", () => {
+    const selection = createDefaultQuickMixSectionSelection();
+    assert.equal(selection.startOffsetSeconds, 0);
+    assert.equal(selection.windowSeconds, 180);
+    assert.deepEqual(validateQuickMixSectionAgainstDuration(selection, 300), []);
+    assert.equal(shouldPrepareQuickMixSourceForSection(selection, 300), true);
+    assert.equal(shouldPrepareQuickMixSourceForSection(selection, 120), false);
+  });
+
+  it("resolves custom vocal and instrumental start offsets", () => {
+    const vocal = resolveQuickMixSectionSelection({
+      mode: "custom_start",
+      customMinutes: "1",
+      customSeconds: "5",
+    });
+    const instrumental = resolveQuickMixSectionSelection({
+      mode: "custom_start",
+      customMinutes: "0",
+      customSeconds: "42",
+    });
+    assert.equal(vocal.selection?.startOffsetSeconds, 65);
+    assert.equal(instrumental.selection?.startOffsetSeconds, 42);
+  });
+
+  it("rejects invalid start times with clear errors", () => {
+    const invalid = resolveQuickMixSectionSelection({
+      mode: "custom_start",
+      customMinutes: "-1",
+      customSeconds: "0",
+    });
+    assert.ok(invalid.errors.length > 0);
+
+    const selection = createDefaultQuickMixSectionSelection();
+    selection.startOffsetSeconds = 200;
+    selection.mode = "custom_start";
+    assert.deepEqual(validateQuickMixSectionAgainstDuration(selection, 180), [
+      "Start time is past the end of this file.",
+    ]);
+
+    const unknownDuration = resolveQuickMixSectionSelection({
+      mode: "custom_start",
+      customMinutes: "1",
+      customSeconds: "0",
+    }).selection!;
+    assert.deepEqual(validateQuickMixSectionAgainstDuration(unknownDuration, null), [
+      "Could not read duration. Try First 3:00.",
+    ]);
+  });
+
+  it("includes offsets and duration in stem request payload", () => {
+    const file = new File(["a"], "vocal.wav", { type: "audio/wav" });
+    const section = {
+      mode: "custom_start" as const,
+      startOffsetSeconds: 65,
+      windowSeconds: 180,
+    };
+    const params = buildQuickMixStemRequestParams("vocal", file, section, false);
+    assert.equal(params.previewStartSeconds, 65);
+    assert.equal(params.maxPreviewSeconds, 180);
+    const formData = buildQuickMixStemFormData(file, "vocal", section, false);
+    assert.equal(formData.get("preview_start_seconds"), "65");
+    assert.equal(formData.get("max_preview_seconds"), "180");
+    assert.deepEqual(listQuickMixStemFormFieldNames(formData).sort(), [
+      "file",
+      "max_preview_seconds",
+      "preview_start_seconds",
+      "split_mode",
+    ]);
+  });
+
+  it("uses zero stem offset when source was prepared at mix time", () => {
+    const file = new File(["a"], "prepared.wav", { type: "audio/wav" });
+    const section = {
+      mode: "custom_start" as const,
+      startOffsetSeconds: 65,
+      windowSeconds: 180,
+    };
+    const params = buildQuickMixStemRequestParams("vocal", file, section, true);
+    assert.equal(params.previewStartSeconds, 0);
+  });
+
+  it("formats selected section lines for output panel", () => {
+    const lines = buildQuickMixSectionSummaryLines([
+      {
+        slot: "vocal",
+        selection: { mode: "custom_start", startOffsetSeconds: 65, windowSeconds: 180 },
+        sourceDurationSeconds: 300,
+        outputDurationSeconds: 180,
+      },
+      {
+        slot: "instrumental",
+        selection: { mode: "custom_start", startOffsetSeconds: 42, windowSeconds: 180 },
+        sourceDurationSeconds: 300,
+        outputDurationSeconds: 180,
+      },
+    ]);
+    assert.match(lines[0] ?? "", /Vocal section: 1:05/i);
+    assert.match(lines[1] ?? "", /Instrumental section: 0:42/i);
+    assert.match(lines[2] ?? "", /3:00 MVP cap/i);
+    assert.match(buildQuickMixSectionOutputLine({
+      slot: "vocal",
+      selection: { mode: "custom_start", startOffsetSeconds: 65, windowSeconds: 180 },
+      sourceDurationSeconds: 300,
+      outputDurationSeconds: 180,
+    }), /1:05.*4:05/);
+  });
+
+  it("does not trigger processing before validate_uploads", () => {
+    assert.equal(quickMixStageTriggersProcessing("validate_uploads"), false);
+  });
+
+  it("does not mark Done complete after failure", () => {
+    const failed = failQuickMixProgress(createInitialQuickMixProgress(), "checking_files");
+    assert.equal(quickMixPipelineShowsDone(failed), false);
+  });
+
+  it("keeps 180-second cap disclosure and local-only copy", () => {
+    assert.match(QUICK_MIX_DURATION_CAP_NOTICE, /180 seconds|3:00/i);
+    const copy = [QUICK_MIX_DURATION_CAP_NOTICE, QUICK_MIX_LOCAL_ONLY_NOTICE, requiredRightsNotice].join("\n");
+    assert.ok(includesNoPublicSharingInQuickMixCopy(copy));
+    assert.equal(QUICK_MIX_DURATION_CAP_SECONDS, 180);
   });
 });
 

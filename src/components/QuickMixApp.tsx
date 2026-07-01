@@ -20,27 +20,48 @@ import {
 import { QUICK_MIX_PROCESSING_PATIENCE_NOTICE } from "../domain/quickMixListening.ts";
 import { buildQuickMixFailureView } from "../domain/quickMixErrors.ts";
 import { buildQuickMixReadiness, isQuickMixReady } from "../domain/quickMixReadiness.ts";
+import {
+  createDefaultQuickMixSectionDraft,
+  QUICK_MIX_SAME_START_TOGGLE_LABEL,
+  resolveQuickMixSectionSelection,
+  validateQuickMixSectionAgainstDuration,
+  type QuickMixSectionDraft,
+} from "../domain/quickMixSection.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
-import { validateAudioFile } from "../lib/audioMetadata.ts";
+import { readLocalAudioDurationSeconds, validateAudioFile } from "../lib/audioMetadata.ts";
 import { requiredRightsNotice } from "../lib/legal.ts";
 import { runQuickMixPipeline } from "../lib/quickMix/runQuickMix.ts";
 import { QuickMixDropCard } from "./quickMix/QuickMixDropCard.tsx";
 import { QuickMixOutputPanel } from "./quickMix/QuickMixOutputPanel.tsx";
 import { QuickMixProgressPanel } from "./quickMix/QuickMixProgressPanel.tsx";
 import { QuickMixReadinessBanner } from "./quickMix/QuickMixReadinessBanner.tsx";
+import { QuickMixSectionPicker } from "./quickMix/QuickMixSectionPicker.tsx";
 
 interface QuickMixAppProps {
   onOpenAdvancedStudio: () => void;
 }
 
+function createInitialSectionDrafts(): { vocal: QuickMixSectionDraft; instrumental: QuickMixSectionDraft } {
+  return {
+    vocal: createDefaultQuickMixSectionDraft(),
+    instrumental: createDefaultQuickMixSectionDraft(),
+  };
+}
+
 export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
-  const { status } = useLocalEngineStatus();
   const [uploads, setUploads] = useState<QuickMixUploadState>(createInitialQuickMixUploadState);
   const [uploadErrors, setUploadErrors] = useState<{ vocal: string | null; instrumental: string | null }>({
     vocal: null,
     instrumental: null,
   });
+  const [sectionDrafts, setSectionDrafts] = useState(createInitialSectionDrafts);
+  const [useSameStart, setUseSameStart] = useState(false);
+  const [sourceDurations, setSourceDurations] = useState<{ vocal: number | null; instrumental: number | null }>({
+    vocal: null,
+    instrumental: null,
+  });
   const [mixing, setMixing] = useState(false);
+  const { status } = useLocalEngineStatus(15000, !mixing);
   const [progressSteps, setProgressSteps] = useState<QuickMixProgressStep[]>(createInitialQuickMixProgress);
   const [output, setOutput] = useState<QuickMixOutputModel | null>(null);
   const [mixFailure, setMixFailure] = useState<QuickMixFailureViewModel | null>(null);
@@ -57,7 +78,19 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
   const readyToMix = isQuickMixReady(readiness);
   const canMix = canStartQuickMix(uploads, readyToMix) && !mixing;
 
-  function setFile(kind: "vocal" | "instrumental", file: File) {
+  function updateSectionDraft(slot: "vocal" | "instrumental", draft: QuickMixSectionDraft) {
+    setSectionDrafts((current) => {
+      const next = { ...current, [slot]: draft };
+      if (useSameStart && slot === "vocal") {
+        next.instrumental = { ...draft };
+      }
+      return next;
+    });
+    setOutput(null);
+    setMixFailure(null);
+  }
+
+  async function assignFile(kind: "vocal" | "instrumental", file: File) {
     const validation = validateAudioFile(file);
     if (!validation.ok) {
       setUploadErrors((current) => ({
@@ -68,28 +101,93 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
     }
 
     setUploadErrors((current) => ({ ...current, [kind]: null }));
-    setUploads((current) =>
-      kind === "vocal"
-        ? { ...current, vocalFile: file, vocalFileName: file.name }
-        : { ...current, instrumentalFile: file, instrumentalFileName: file.name }
-    );
     setOutput(null);
     setMixFailure(null);
+    setUploads((current) =>
+      kind === "vocal"
+        ? { ...current, vocalFile: file, vocalFileName: file.name, vocalPreparing: false }
+        : { ...current, instrumentalFile: file, instrumentalFileName: file.name, instrumentalPreparing: false }
+    );
+
+    const duration = await readLocalAudioDurationSeconds(file);
+    setSourceDurations((current) => ({ ...current, [kind]: duration }));
+  }
+
+  function setFile(kind: "vocal" | "instrumental", file: File) {
+    void assignFile(kind, file);
   }
 
   function clearFile(kind: "vocal" | "instrumental") {
     setUploads((current) =>
       kind === "vocal"
-        ? { ...current, vocalFile: null, vocalFileName: null }
-        : { ...current, instrumentalFile: null, instrumentalFileName: null }
+        ? { ...current, vocalFile: null, vocalFileName: null, vocalPreparing: false }
+        : { ...current, instrumentalFile: null, instrumentalFileName: null, instrumentalPreparing: false }
     );
     setUploadErrors((current) => ({ ...current, [kind]: null }));
+    setSourceDurations((current) => ({ ...current, [kind]: null }));
+    setSectionDrafts((current) => ({
+      ...current,
+      [kind]: createDefaultQuickMixSectionDraft(),
+    }));
     setOutput(null);
     setMixFailure(null);
   }
 
+  function resolveSectionsForMix(): {
+    ok: boolean;
+    vocalSection: ReturnType<typeof resolveQuickMixSectionSelection>["selection"];
+    instrumentalSection: ReturnType<typeof resolveQuickMixSectionSelection>["selection"];
+    errors: { vocal: string | null; instrumental: string | null };
+  } {
+    const vocalResolved = resolveQuickMixSectionSelection(sectionDrafts.vocal);
+    const instrumentalDraft = useSameStart ? sectionDrafts.vocal : sectionDrafts.instrumental;
+    const instrumentalResolved = resolveQuickMixSectionSelection(instrumentalDraft);
+
+    const errors = {
+      vocal: vocalResolved.errors[0] ?? null,
+      instrumental: useSameStart ? null : instrumentalResolved.errors[0] ?? null,
+    };
+
+    if (errors.vocal || errors.instrumental || !vocalResolved.selection || !instrumentalResolved.selection) {
+      return { ok: false, vocalSection: null, instrumentalSection: null, errors };
+    }
+
+    const vocalDurationErrors = validateQuickMixSectionAgainstDuration(
+      vocalResolved.selection,
+      sourceDurations.vocal
+    );
+    const instrumentalDurationErrors = validateQuickMixSectionAgainstDuration(
+      instrumentalResolved.selection,
+      sourceDurations.instrumental
+    );
+
+    if (vocalDurationErrors.length > 0) {
+      errors.vocal = vocalDurationErrors[0] ?? null;
+    }
+    if (!useSameStart && instrumentalDurationErrors.length > 0) {
+      errors.instrumental = instrumentalDurationErrors[0] ?? null;
+    }
+
+    if (errors.vocal || errors.instrumental) {
+      return { ok: false, vocalSection: null, instrumentalSection: null, errors };
+    }
+
+    return {
+      ok: true,
+      vocalSection: vocalResolved.selection,
+      instrumentalSection: instrumentalResolved.selection,
+      errors,
+    };
+  }
+
   async function handleMix() {
     if (!uploads.vocalFile || !uploads.instrumentalFile || !canMix) {
+      return;
+    }
+
+    const sections = resolveSectionsForMix();
+    if (!sections.ok || !sections.vocalSection || !sections.instrumentalSection) {
+      setUploadErrors(sections.errors);
       return;
     }
 
@@ -99,7 +197,14 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
     setProgressSteps(createInitialQuickMixProgress());
 
     const result = await runQuickMixPipeline(
-      { vocalFile: uploads.vocalFile, instrumentalFile: uploads.instrumentalFile },
+      {
+        vocalFile: uploads.vocalFile,
+        instrumentalFile: uploads.instrumentalFile,
+        vocalSection: sections.vocalSection,
+        instrumentalSection: sections.instrumentalSection,
+        vocalDurationSeconds: sourceDurations.vocal,
+        instrumentalDurationSeconds: sourceDurations.instrumental,
+      },
       setProgressSteps
     );
 
@@ -116,6 +221,9 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
   function handleStartAnother() {
     setUploads(createInitialQuickMixUploadState());
     setUploadErrors({ vocal: null, instrumental: null });
+    setSectionDrafts(createInitialSectionDrafts());
+    setUseSameStart(false);
+    setSourceDurations({ vocal: null, instrumental: null });
     setOutput(null);
     setMixFailure(null);
     setProgressSteps(createInitialQuickMixProgress());
@@ -150,25 +258,72 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
             <QuickMixReadinessBanner readiness={readiness} />
 
             <div className="quick-mix-drop-grid">
-              <QuickMixDropCard
-                error={uploadErrors.vocal}
-                fileName={uploads.vocalFileName}
-                hint={QUICK_MIX_VOCAL_DROP_HINT}
-                kind="vocal"
-                onClear={() => clearFile("vocal")}
-                onFileSelected={(file) => setFile("vocal", file)}
-                title={QUICK_MIX_VOCAL_DROP_LABEL}
-              />
-              <QuickMixDropCard
-                error={uploadErrors.instrumental}
-                fileName={uploads.instrumentalFileName}
-                hint={QUICK_MIX_BEAT_DROP_HINT}
-                kind="instrumental"
-                onClear={() => clearFile("instrumental")}
-                onFileSelected={(file) => setFile("instrumental", file)}
-                title={QUICK_MIX_BEAT_DROP_LABEL}
-              />
+              <div className="quick-mix-source-column">
+                <QuickMixDropCard
+                  error={uploadErrors.vocal}
+                  fileName={uploads.vocalFileName}
+                  hint={QUICK_MIX_VOCAL_DROP_HINT}
+                  kind="vocal"
+                  onClear={() => clearFile("vocal")}
+                  onFileSelected={(file) => setFile("vocal", file)}
+                  preparing={false}
+                  preparingLabel=""
+                  title={QUICK_MIX_VOCAL_DROP_LABEL}
+                />
+                {uploads.vocalFile ? (
+                  <QuickMixSectionPicker
+                    disabled={mixing}
+                    draft={sectionDrafts.vocal}
+                    onChange={(draft) => updateSectionDraft("vocal", draft)}
+                    slot="vocal"
+                  />
+                ) : null}
+              </div>
+              <div className="quick-mix-source-column">
+                <QuickMixDropCard
+                  error={uploadErrors.instrumental}
+                  fileName={uploads.instrumentalFileName}
+                  hint={QUICK_MIX_BEAT_DROP_HINT}
+                  kind="instrumental"
+                  onClear={() => clearFile("instrumental")}
+                  onFileSelected={(file) => setFile("instrumental", file)}
+                  preparing={false}
+                  preparingLabel=""
+                  title={QUICK_MIX_BEAT_DROP_LABEL}
+                />
+                {uploads.instrumentalFile && !useSameStart ? (
+                  <QuickMixSectionPicker
+                    disabled={mixing}
+                    draft={sectionDrafts.instrumental}
+                    onChange={(draft) => updateSectionDraft("instrumental", draft)}
+                    slot="instrumental"
+                  />
+                ) : null}
+              </div>
             </div>
+
+            {uploads.vocalFile && uploads.instrumentalFile ? (
+              <label className="quick-mix-same-start-toggle">
+                <input
+                  checked={useSameStart}
+                  disabled={mixing}
+                  onChange={(event) => {
+                    const enabled = event.target.checked;
+                    setUseSameStart(enabled);
+                    if (enabled) {
+                      setSectionDrafts((current) => ({
+                        ...current,
+                        instrumental: { ...current.vocal },
+                      }));
+                    }
+                    setOutput(null);
+                    setMixFailure(null);
+                  }}
+                  type="checkbox"
+                />
+                {QUICK_MIX_SAME_START_TOGGLE_LABEL}
+              </label>
+            ) : null}
 
             <div className="quick-mix-actions">
               <button className="primary-action quick-mix-primary" disabled={!canMix} onClick={() => void handleMix()} type="button">

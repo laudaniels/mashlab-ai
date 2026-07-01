@@ -58,7 +58,9 @@ export function quickMixLongRunningHeartbeat(
 export const QUICK_MIX_DURATION_CAP_SECONDS = 180;
 
 export const QUICK_MIX_DURATION_CAP_NOTICE =
-  "Quick Mix processes up to the first 180 seconds of each song in this MVP — not a full-length song export.";
+  "Quick Mix processes up to 180 seconds (3:00) per source — longer files are shortened automatically. Default is First 3:00, or choose a custom start. Not a full-length song export.";
+
+export const QUICK_MIX_SOURCE_PREPARING_LABEL = "Reading audio…";
 
 export const QUICK_MIX_MP3_FAILED_AFTER_WAV =
   "WAV created. MP3 reference failed — download the WAV above.";
@@ -108,8 +110,10 @@ export type QuickMixUploadSlot = "vocal" | "instrumental";
 export interface QuickMixUploadState {
   vocalFile: File | null;
   vocalFileName: string | null;
+  vocalPreparing: boolean;
   instrumentalFile: File | null;
   instrumentalFileName: string | null;
+  instrumentalPreparing: boolean;
 }
 
 export interface QuickMixOutputModel {
@@ -120,6 +124,8 @@ export interface QuickMixOutputModel {
   exportLabel: string;
   timingNotice: string;
   durationCapNotice: string | null;
+  sectionNotice: string | null;
+  sectionSummaryLines: string[];
   wavArtifactId: string | null;
   mp3ArtifactId: string | null;
   durationSeconds: number | null;
@@ -150,8 +156,10 @@ export function createInitialQuickMixUploadState(): QuickMixUploadState {
   return {
     vocalFile: null,
     vocalFileName: null,
+    vocalPreparing: false,
     instrumentalFile: null,
     instrumentalFileName: null,
+    instrumentalPreparing: false,
   };
 }
 
@@ -177,7 +185,12 @@ export function validateQuickMixUploads(state: QuickMixUploadState): {
 }
 
 export function canStartQuickMix(state: QuickMixUploadState, readyToMix: boolean): boolean {
-  return validateQuickMixUploads(state).ok && readyToMix;
+  return (
+    validateQuickMixUploads(state).ok &&
+    readyToMix &&
+    !state.vocalPreparing &&
+    !state.instrumentalPreparing
+  );
 }
 
 export function advanceQuickMixStep(

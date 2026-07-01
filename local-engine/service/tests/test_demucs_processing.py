@@ -28,6 +28,28 @@ class DemucsProcessingTests(unittest.TestCase):
         )
         self.assertTrue(any("split_mode" in error for error in errors))
 
+    def test_validate_stem_preview_request_rejects_offset_past_file_end(self) -> None:
+        errors = validate_stem_preview_request(
+            split_mode="vocals_no_vocals",
+            max_preview_seconds=180,
+            preview_start_seconds=200,
+            source_duration_seconds=180,
+        )
+        self.assertIn("Start time is past the end of this file.", errors)
+
+    def test_process_stem_preview_rejects_invalid_offset_before_demucs(self) -> None:
+        result = process_stem_preview(
+            Path("/tmp/missing.wav"),
+            "missing.wav",
+            split_mode="vocals_no_vocals",
+            max_preview_seconds=180,
+            preview_start_seconds=200,
+            source_duration_seconds=180,
+        )
+        self.assertFalse(result.ok)
+        self.assertEqual(result.status, "validation_error")
+        self.assertIn("Start time is past the end of this file.", result.validation_errors or [])
+
     def test_build_demucs_command_uses_two_stems_vocals(self) -> None:
         command = build_demucs_command(
             ["demucs"],

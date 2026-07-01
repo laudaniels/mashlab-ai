@@ -245,6 +245,7 @@ class StemPreviewInputSummary(BaseModel):
     channel_count: int | None = None
     split_mode: str
     max_preview_seconds: int | None = None
+    preview_start_seconds: float | None = None
 
 
 class StemPreviewResponse(BaseModel):

@@ -5,6 +5,7 @@ import {
 } from "../lib/localEngine/stemPreview.ts";
 import type { StemPreviewRequestParams, StemPreviewResult } from "./stemPreview.ts";
 import { buildStemPreviewRequestParams } from "./stemPreview.ts";
+import type { QuickMixSectionSelection } from "./quickMixSection.ts";
 import type { QuickMixStepId } from "./quickMix.ts";
 import { buildQuickMixReadiness, isQuickMixReady, type QuickMixReadinessSummary } from "./quickMixReadiness.ts";
 
@@ -13,7 +14,12 @@ export const QUICK_MIX_STEM_MAX_SECONDS = 180;
 
 export type QuickMixSource = "vocal" | "instrumental";
 
-export const QUICK_MIX_STEM_FORM_FIELDS = ["file", "split_mode", "max_preview_seconds"] as const;
+export const QUICK_MIX_STEM_FORM_FIELDS = [
+  "file",
+  "split_mode",
+  "max_preview_seconds",
+  "preview_start_seconds",
+] as const;
 
 export function quickMixSourceLabel(source: QuickMixSource): string {
   return source === "vocal" ? "Vocal / acapella source" : "Instrumental / beat source";
@@ -25,12 +31,15 @@ export function quickMixStepForSource(source: QuickMixSource): QuickMixStepId {
 
 export function buildQuickMixStemRequestParams(
   source: QuickMixSource,
-  file: File
+  file: File,
+  section: QuickMixSectionSelection,
+  prepared: boolean
 ): StemPreviewRequestParams {
   const trackSlotId = source === "vocal" ? "trackA" : "trackB";
   return {
     ...buildStemPreviewRequestParams(trackSlotId, file),
-    maxPreviewSeconds: QUICK_MIX_STEM_MAX_SECONDS,
+    maxPreviewSeconds: section.windowSeconds,
+    previewStartSeconds: prepared ? 0 : section.startOffsetSeconds,
   };
 }
 
@@ -38,8 +47,13 @@ export function validateQuickMixStemRequest(params: StemPreviewRequestParams): s
   return validateStemPreviewRequestParams(params);
 }
 
-export function buildQuickMixStemFormData(file: File, source: QuickMixSource): FormData {
-  return buildStemPreviewFormData(file, buildQuickMixStemRequestParams(source, file));
+export function buildQuickMixStemFormData(
+  file: File,
+  source: QuickMixSource,
+  section: QuickMixSectionSelection,
+  prepared: boolean
+): FormData {
+  return buildStemPreviewFormData(file, buildQuickMixStemRequestParams(source, file, section, prepared));
 }
 
 export function listQuickMixStemFormFieldNames(formData: FormData): string[] {

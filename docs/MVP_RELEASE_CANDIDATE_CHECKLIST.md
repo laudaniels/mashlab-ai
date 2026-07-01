@@ -10,7 +10,45 @@
 
 ---
 
-## Quick Mix MVP release candidate (RC2 + polish branch)
+## Quick Mix MVP release candidate (RC3 — listening + true peak)
+
+| Field | Value |
+|-------|-------|
+| **Published tag** | `mashlab-quick-mix-listening-rc3` |
+| **Base commit** | `2e7773c` |
+| **Phases** | 39 listening polish · 40 true-peak safety |
+
+**Default user flow:** Drop vocal source → drop instrumental source → click **Mix** → local WAV (+ optional MP3).
+
+**Smoke evidence:** `qa/full-local-workflow/phase-40/` (API + browser + real-file operator logs)
+
+```powershell
+npm run smoke:quick-mix
+npm run smoke:quick-mix:browser   # requires npm run dev + sidecar healthy
+```
+
+See [QUICK_MIX_MODE.md](./QUICK_MIX_MODE.md) · [PHASE_40_TRUE_PEAK_SAFETY.md](./PHASE_40_TRUE_PEAK_SAFETY.md)
+
+---
+
+## Phase 41 — section picker (post-RC3, pre-RC4)
+
+| Field | Value |
+|-------|-------|
+| **Feature** | Quick Mix section picker — choose which 180 s window |
+| **Default unchanged** | First 3:00, Phase 40 mix profile |
+| **Doc** | [PHASE_41_QUICK_MIX_SECTION_PICKER.md](./PHASE_41_QUICK_MIX_SECTION_PICKER.md) |
+
+- [ ] Section picker UI under upload cards  
+- [ ] Custom start per source + optional same-start toggle  
+- [ ] Trim before Demucs via prep / `preview_start_seconds`  
+- [ ] Output shows vocal/instrumental section ranges  
+- [ ] Full QA suite + real-file browser (Track A / Track B redacted)  
+- [ ] Commit `Add Quick Mix section picker` — **RC4 tag only after explicit approval**
+
+---
+
+## Quick Mix MVP release candidate (RC2 + polish branch — historical)
 
 | Field | Value |
 |-------|-------|

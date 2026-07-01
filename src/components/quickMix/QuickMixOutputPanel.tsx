@@ -25,6 +25,26 @@ export function QuickMixOutputPanel({
           <p className="quick-mix-duration-cap-note">{output.durationCapNotice}</p>
         ) : null}
         <p className="quick-mix-timing-note">{output.timingNotice}</p>
+        <p className="quick-mix-mix-profile-note">{output.mixProfileSummary}</p>
+        {output.loudnessNotice ? (
+          <p className="quick-mix-loudness-note" role="status">
+            {output.loudnessNotice}
+          </p>
+        ) : null}
+        {output.loudnessWarnings.length > 0 ? (
+          <ul className="quick-mix-loudness-warnings">
+            {output.loudnessWarnings.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
+        {output.listeningComparisonNotes.length > 0 ? (
+          <ul className="quick-mix-listening-comparison">
+            {output.listeningComparisonNotes.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
         {output.mp3SkippedReason && !output.mp3DownloadUrl ? (
           <p className="quick-mix-mp3-skipped-note" role="status">
             {output.mp3SkippedReason}

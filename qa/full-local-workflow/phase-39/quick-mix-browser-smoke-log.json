@@ -1,0 +1,42 @@
+{
+  "startedAt": "2026-07-01T00:58:39.347Z",
+  "appUrl": "http://127.0.0.1:5173/",
+  "phase": "phase-39-listening-polish",
+  "usingRealFiles": false,
+  "trackA": "Track A (vocal source)",
+  "trackB": "Track B (instrumental source)",
+  "ok": true,
+  "outcome": "completed",
+  "hasWavDownload": true,
+  "hasMp3Download": true,
+  "mixProfileVisible": true,
+  "mixProfileText": "vocal +1.5 dB · bed -3.0 dB · master -0.5 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal",
+  "mixProfileHasPhase39Gains": true,
+  "loudnessNoticeVisible": true,
+  "loudnessNotice": "integrated -28.1 LUFS vs target -14 LUFS — informational gate only.",
+  "loudnessWarningsVisible": true,
+  "loudnessWarnings": [
+    "Conservative FFmpeg alimiter prototype applied on master bus — not professional mastering.",
+    "Clipping guard prototype applied (~-1 dBTP ceiling) — DJ review required.",
+    "Integrated loudness -28.1 LUFS (available)."
+  ],
+  "listeningComparisonVisible": true,
+  "listeningComparisonNotes": [
+    "RC2 baseline: vocal +0.0 dB · bed +0.0 dB · master +0.0 dB · limiter on · clip guard on",
+    "Phase 39 listening profile: vocal +1.5 dB · bed -3.0 dB · master -0.5 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal"
+  ],
+  "falseDoneBeforeOutput": false,
+  "stepCompletionSeconds": {
+    "Checking files": 3,
+    "Separating vocal": 13,
+    "Preparing instrumental": 21,
+    "Matching timing/key": 23,
+    "Mixing track": 23,
+    "Creating WAV export": 23
+  },
+  "totalSeconds": 25,
+  "lastHeartbeat": "Still separating the instrumental… 0:07 elapsed. CPU stem separation can take several minutes — this has not stopped.",
+  "consoleErrors": [],
+  "pageErrors": [],
+  "finishedAt": "2026-07-01T00:59:04.617Z"
+}

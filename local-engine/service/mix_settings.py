@@ -34,6 +34,7 @@ class MixSettings:
     instrumental_fade_out_ms: float = 0.0
     limiter_safety: bool = False
     clipping_guard: bool = False
+    instrumental_duck_under_vocal: bool = False
 
 
 def default_mix_settings() -> MixSettings:
@@ -58,6 +59,7 @@ def mix_settings_from_dict(data: dict | None) -> MixSettings:
         instrumental_fade_out_ms=_safe_float(data.get("instrumental_fade_out_ms"), 0.0),
         limiter_safety=bool(data.get("limiter_safety")),
         clipping_guard=bool(data.get("clipping_guard")),
+        instrumental_duck_under_vocal=bool(data.get("instrumental_duck_under_vocal")),
     )
 
 
@@ -72,6 +74,7 @@ def validate_mix_settings(
     instrumental_fade_out_ms: float = 0.0,
     limiter_safety: bool = False,
     clipping_guard: bool = False,
+    instrumental_duck_under_vocal: bool = False,
 ) -> tuple[MixSettings | None, list[str]]:
     errors: list[str] = []
 
@@ -106,6 +109,7 @@ def validate_mix_settings(
             instrumental_fade_out_ms=instrumental_fade_out_ms,
             limiter_safety=limiter_safety,
             clipping_guard=clipping_guard,
+            instrumental_duck_under_vocal=instrumental_duck_under_vocal,
         ),
         [],
     )
@@ -125,6 +129,7 @@ def validate_mix_settings_payload(data: dict | None) -> tuple[MixSettings, list[
         instrumental_fade_out_ms=_safe_float(data.get("instrumental_fade_out_ms"), 0.0),
         limiter_safety=bool(data.get("limiter_safety")),
         clipping_guard=bool(data.get("clipping_guard")),
+        instrumental_duck_under_vocal=bool(data.get("instrumental_duck_under_vocal")),
     )
     if settings is None:
         return default_mix_settings(), errors
@@ -187,7 +192,14 @@ def build_mix_filter_complex(
     )
     vocal_chain += "[voc]"
 
-    parts = [bed_chain, vocal_chain, "[bed][voc]amix=inputs=2:duration=shortest:normalize=0[mix]"]
+    parts = [bed_chain, vocal_chain]
+    if mix_settings.instrumental_duck_under_vocal:
+        parts.append(
+            "[bed][voc]sidechaincompress=threshold=0.02:ratio=2.5:attack=20:release=300[ducked_bed]"
+        )
+        parts.append("[ducked_bed][voc]amix=inputs=2:duration=shortest:normalize=0[mix]")
+    else:
+        parts.append("[bed][voc]amix=inputs=2:duration=shortest:normalize=0[mix]")
     current_label = "[mix]"
 
     if abs(mix_settings.master_gain_db) >= 0.01:
@@ -212,6 +224,10 @@ def build_mix_processing_notes(settings: MixSettings) -> list[str]:
         notes.append("Conservative FFmpeg alimiter prototype applied on master bus — not professional mastering.")
     if settings.clipping_guard:
         notes.append("Clipping guard prototype applied (~-1 dBTP ceiling) — DJ review required.")
+    if settings.instrumental_duck_under_vocal:
+        notes.append(
+            "Light instrumental duck under vocal (sidechaincompress prototype) — DJ review required."
+        )
     if not settings.limiter_safety and not settings.clipping_guard:
         notes.append("No mix-stage limiter or clipping guard applied.")
     return notes
@@ -227,6 +243,8 @@ def format_mix_summary(settings: MixSettings) -> str:
         parts.append("limiter on")
     if settings.clipping_guard:
         parts.append("clip guard on")
+    if settings.instrumental_duck_under_vocal:
+        parts.append("bed duck on")
     return " · ".join(parts)
 
 

@@ -478,6 +478,7 @@ def process_combined_preview_endpoint(
         instrumental_fade_out_ms=request.instrumental_fade_out_ms,
         limiter_safety=request.limiter_safety,
         clipping_guard=request.clipping_guard,
+        instrumental_duck_under_vocal=request.instrumental_duck_under_vocal,
         arrangement_context=request.arrangement_context,
     )
 
@@ -525,6 +526,7 @@ def process_combined_preview_endpoint(
             mix_settings=_mix_settings_model(result.processing_summary.mix_settings),
             limiter_safety_applied=result.processing_summary.limiter_safety_applied,
             clipping_guard_applied=result.processing_summary.clipping_guard_applied,
+            instrumental_duck_applied=result.processing_summary.instrumental_duck_applied,
         ),
         output_duration_seconds=result.output_duration_seconds,
         warnings=result.warnings,
@@ -864,6 +866,7 @@ def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
         instrumental_fade_out_ms=request.instrumental_fade_out_ms,
         limiter_safety=request.limiter_safety,
         clipping_guard=request.clipping_guard,
+        instrumental_duck_under_vocal=request.instrumental_duck_under_vocal,
         arrangement_context=request.arrangement_context,
     )
     if not result.ok:
@@ -920,6 +923,7 @@ def export_full_wav(request: FullWavExportRequest) -> FullWavExportResponse:
             mix_settings=_mix_settings_model(result.processing_summary.mix_settings),
             limiter_safety_applied=result.processing_summary.limiter_safety_applied,
             clipping_guard_applied=result.processing_summary.clipping_guard_applied,
+            instrumental_duck_applied=result.processing_summary.instrumental_duck_applied,
         ),
         file_size_bytes=result.file_size_bytes,
         duration_seconds=result.duration_seconds,
@@ -969,6 +973,7 @@ def export_section_wav(request: SectionWavExportRequest) -> SectionWavExportResp
         instrumental_fade_out_ms=request.instrumental_fade_out_ms,
         limiter_safety=request.limiter_safety,
         clipping_guard=request.clipping_guard,
+        instrumental_duck_under_vocal=request.instrumental_duck_under_vocal,
         arrangement_context=request.arrangement_context,
     )
     if not result.ok:
@@ -1022,6 +1027,7 @@ def export_section_wav(request: SectionWavExportRequest) -> SectionWavExportResp
             mix_settings=_mix_settings_model(result.processing_summary.mix_settings),
             limiter_safety_applied=result.processing_summary.limiter_safety_applied,
             clipping_guard_applied=result.processing_summary.clipping_guard_applied,
+            instrumental_duck_applied=result.processing_summary.instrumental_duck_applied,
         ),
         file_size_bytes=result.file_size_bytes,
         duration_seconds=result.duration_seconds,

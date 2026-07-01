@@ -502,6 +502,8 @@ function parseMixSettingsSnapshot(raw: unknown): MixSettings {
     instrumentalFadeOutMs: numberOr(record.instrumental_fade_out_ms ?? record.instrumentalFadeOutMs, 0),
     limiterSafety: record.limiter_safety === true || record.limiterSafety === true,
     clippingGuard: record.clipping_guard === true || record.clippingGuard === true,
+    instrumentalDuckUnderVocal:
+      record.instrumental_duck_under_vocal === true || record.instrumentalDuckUnderVocal === true,
   };
 }
 
@@ -543,6 +545,7 @@ function emptyMixSettings(): MixSettings {
     instrumentalFadeOutMs: 0,
     limiterSafety: false,
     clippingGuard: false,
+    instrumentalDuckUnderVocal: false,
   };
 }
 

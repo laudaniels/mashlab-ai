@@ -14,6 +14,15 @@ import {
   validateQuickMixUploads,
 } from "../../domain/quickMix.ts";
 import {
+  buildQuickMixListeningComparisonNotes,
+  buildQuickMixLoudnessNotice,
+  buildQuickMixLoudnessWarnings,
+  buildQuickMixMixProfileSummary,
+  formatQuickMixLoudnessTechnicalLine,
+  QUICK_MIX_LISTENING_MIX_NOTICE,
+  QUICK_MIX_RC2_BASELINE_MIX_SETTINGS,
+} from "../../domain/quickMixListening.ts";
+import {
   mapQuickMixDependencyFailure,
   mapQuickMixError,
   mapQuickMixException,
@@ -315,8 +324,23 @@ export async function runQuickMixPipeline(
       wavArtifactId: wavExport.exportArtifactId,
       mp3ArtifactId,
       durationSeconds: wavExport.durationSeconds,
+      mixProfileSummary: buildQuickMixMixProfileSummary(QUICK_MIX_DEFAULT_MIX_SETTINGS),
+      loudnessNotice: buildQuickMixLoudnessNotice(wavExport.loudness),
+      loudnessWarnings: buildQuickMixLoudnessWarnings(wavExport.loudness, wavExport.warnings),
+      listeningComparisonNotes: buildQuickMixListeningComparisonNotes(
+        QUICK_MIX_RC2_BASELINE_MIX_SETTINGS,
+        QUICK_MIX_DEFAULT_MIX_SETTINGS
+      ),
       mp3SkippedReason,
       technicalSummary: [
+        QUICK_MIX_LISTENING_MIX_NOTICE,
+        ...buildQuickMixListeningComparisonNotes(
+          QUICK_MIX_RC2_BASELINE_MIX_SETTINGS,
+          QUICK_MIX_DEFAULT_MIX_SETTINGS
+        ),
+        buildQuickMixMixProfileSummary(QUICK_MIX_DEFAULT_MIX_SETTINGS),
+        formatQuickMixLoudnessTechnicalLine(wavExport.loudness) ??
+          "Loudness: not_available for this export.",
         durationCapNotice ?? "Duration within Quick Mix MVP cap (180 seconds).",
         `Vocal stem (vocals.wav): ${vocalStem.artifactId}`,
         `Instrumental stem (no_vocals.wav): ${beatStem.artifactId}`,

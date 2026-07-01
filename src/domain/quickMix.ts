@@ -22,7 +22,10 @@ export const QUICK_MIX_LOCAL_ONLY_NOTICE =
   "All processing stays on your machine. No public sharing or cloud upload.";
 
 export const QUICK_MIX_STEM_ACTIVE_HINT =
-  "This can take several minutes on CPU. Keep the local engine running.";
+  "Stem separation on CPU may take several minutes per song. Leave this tab open — processing has not stopped.";
+
+export const QUICK_MIX_EXPORT_ACTIVE_HINT =
+  "Creating your local mix export — this step is usually faster than stem separation.";
 
 /** Steps that run heavy local CPU work and can legitimately take minutes. */
 export const QUICK_MIX_LONG_RUNNING_STEP_IDS = [
@@ -61,15 +64,16 @@ export const QUICK_MIX_MP3_FAILED_AFTER_WAV =
   "WAV created. MP3 reference failed — download the WAV above.";
 
 export const QUICK_MIX_DEFAULT_MIX_SETTINGS: MixSettings = {
-  vocalGainDb: 0,
-  instrumentalGainDb: 0,
-  masterGainDb: 0,
+  vocalGainDb: 1.5,
+  instrumentalGainDb: -3,
+  masterGainDb: -0.5,
   vocalFadeInMs: 0,
   vocalFadeOutMs: 0,
   instrumentalFadeInMs: 0,
   instrumentalFadeOutMs: 0,
   limiterSafety: true,
   clippingGuard: true,
+  instrumentalDuckUnderVocal: true,
 };
 
 export type QuickMixStepId =
@@ -119,6 +123,10 @@ export interface QuickMixOutputModel {
   wavArtifactId: string | null;
   mp3ArtifactId: string | null;
   durationSeconds: number | null;
+  mixProfileSummary: string;
+  loudnessNotice: string | null;
+  loudnessWarnings: string[];
+  listeningComparisonNotes: string[];
   technicalSummary: string[];
   mp3SkippedReason: string | null;
 }
@@ -228,6 +236,9 @@ export function quickMixProgressStepHint(
   }
   if (stepId === "separating_vocal" || stepId === "preparing_instrumental") {
     return QUICK_MIX_STEM_ACTIVE_HINT;
+  }
+  if (stepId === "creating_wav_export" || stepId === "creating_mp3_reference") {
+    return QUICK_MIX_EXPORT_ACTIVE_HINT;
   }
   return null;
 }

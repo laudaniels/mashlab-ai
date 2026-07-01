@@ -15,8 +15,22 @@ const BASE = "http://127.0.0.1:47831";
 const AUDIO_DIR = join(ROOT, "qa/full-local-workflow/phase-32/test-audio");
 const TRACK_A = join(AUDIO_DIR, "track-a-vocal-like-15s.wav");
 const TRACK_B = join(AUDIO_DIR, "track-b-instrumental-15s.wav");
-const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-37");
+const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-39");
 const OUT_LOG = join(OUT_DIR, "quick-mix-smoke-log.json");
+
+/** Mirrors QUICK_MIX_DEFAULT_MIX_SETTINGS (Phase 39 listening profile). */
+const QUICK_MIX_SMOKE_MIX = {
+  vocal_gain_db: 1.5,
+  instrumental_gain_db: -3,
+  master_gain_db: -0.5,
+  vocal_fade_in_ms: 0,
+  vocal_fade_out_ms: 0,
+  instrumental_fade_in_ms: 0,
+  instrumental_fade_out_ms: 0,
+  limiter_safety: true,
+  clipping_guard: true,
+  instrumental_duck_under_vocal: true,
+} as const;
 
 function ensureSyntheticAudio(): void {
   mkdirSync(AUDIO_DIR, { recursive: true });
@@ -154,15 +168,7 @@ async function main(): Promise<void> {
     loudness_target_mode: "measurement_only",
     neutral_processing: true,
     confirm_neutral_settings: true,
-    vocal_gain_db: 0,
-    instrumental_gain_db: 0,
-    master_gain_db: 0,
-    vocal_fade_in_ms: 0,
-    vocal_fade_out_ms: 0,
-    instrumental_fade_in_ms: 0,
-    instrumental_fade_out_ms: 0,
-    limiter_safety: true,
-    clipping_guard: true,
+    ...QUICK_MIX_SMOKE_MIX,
   });
 
   if (!wav.ok || !wav.export_artifact_id) {
@@ -176,6 +182,8 @@ async function main(): Promise<void> {
   mkdirSync(OUT_DIR, { recursive: true });
   const log = {
     health,
+    mixProfile: "phase-39-listening",
+    mixSettings: QUICK_MIX_SMOKE_MIX,
     vocalStem,
     beatStem,
     wav,
@@ -183,6 +191,9 @@ async function main(): Promise<void> {
     mp3Ok: mp3.ok === true,
     wavArtifactId: wav.export_artifact_id,
     mp3ArtifactId: mp3.export_artifact_id ?? null,
+    loudness: wav.loudness ?? null,
+    loudnessGate: wav.loudness_gate ?? null,
+    warnings: wav.warnings ?? [],
     at: new Date().toISOString(),
   };
   await import("node:fs/promises").then((fs) => fs.writeFile(OUT_LOG, `${JSON.stringify(log, null, 2)}\n`, "utf8"));

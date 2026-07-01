@@ -70,6 +70,7 @@ class CombinedPreviewProcessingSummary:
     mix_settings: MixSettings
     limiter_safety_applied: bool
     clipping_guard_applied: bool
+    instrumental_duck_applied: bool
 
 
 @dataclass
@@ -265,6 +266,7 @@ def process_combined_preview(
     instrumental_fade_out_ms: float = 0.0,
     limiter_safety: bool = False,
     clipping_guard: bool = False,
+    instrumental_duck_under_vocal: bool = False,
     arrangement_context: dict | None = None,
 ) -> CombinedPreviewResult:
     mix_settings, mix_errors = validate_mix_settings(
@@ -277,6 +279,7 @@ def process_combined_preview(
         instrumental_fade_out_ms=instrumental_fade_out_ms,
         limiter_safety=limiter_safety,
         clipping_guard=clipping_guard,
+        instrumental_duck_under_vocal=instrumental_duck_under_vocal,
     )
     if mix_errors or mix_settings is None:
         return CombinedPreviewFailure(
@@ -471,6 +474,7 @@ def process_combined_preview(
             "mix_settings": mix_settings_to_dict(mix_settings),
             "limiter_safety_applied": mix_settings.limiter_safety,
             "clipping_guard_applied": mix_settings.clipping_guard,
+            "instrumental_duck_applied": mix_settings.instrumental_duck_under_vocal,
             "preview_start_seconds": preview_start_seconds,
             "max_preview_seconds": max_preview_seconds,
             "created_at": datetime.now(tz=UTC).isoformat(),
@@ -515,6 +519,7 @@ def process_combined_preview(
                 mix_settings=mix_settings,
                 limiter_safety_applied=mix_settings.limiter_safety,
                 clipping_guard_applied=mix_settings.clipping_guard,
+                instrumental_duck_applied=mix_settings.instrumental_duck_under_vocal,
             ),
             output_duration_seconds=output_duration,
             warnings=warnings,

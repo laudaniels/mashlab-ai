@@ -66,6 +66,7 @@ class SectionExportProcessingSummary:
     mix_settings: MixSettings
     limiter_safety_applied: bool
     clipping_guard_applied: bool
+    instrumental_duck_applied: bool
 
 
 @dataclass
@@ -248,6 +249,7 @@ def create_section_wav_export(
     instrumental_fade_out_ms: float = 0.0,
     limiter_safety: bool = False,
     clipping_guard: bool = False,
+    instrumental_duck_under_vocal: bool = False,
     arrangement_context: dict | None = None,
 ) -> SectionWavExportResult:
     mix_settings, mix_errors = validate_mix_settings(
@@ -260,6 +262,7 @@ def create_section_wav_export(
         instrumental_fade_out_ms=instrumental_fade_out_ms,
         limiter_safety=limiter_safety,
         clipping_guard=clipping_guard,
+        instrumental_duck_under_vocal=instrumental_duck_under_vocal,
     )
 
     validation_errors = list(mix_errors)
@@ -523,6 +526,7 @@ def create_section_wav_export(
             "mix_settings": mix_settings_to_dict(mix_settings),
             "limiter_safety_applied": mix_settings.limiter_safety,
             "clipping_guard_applied": mix_settings.clipping_guard,
+            "instrumental_duck_applied": mix_settings.instrumental_duck_under_vocal,
             "created_at": datetime.now(tz=UTC).isoformat(),
             "public_share": False,
             "final_export": True,
@@ -558,6 +562,7 @@ def create_section_wav_export(
             mix_settings=mix_settings,
             limiter_safety_applied=mix_settings.limiter_safety,
             clipping_guard_applied=mix_settings.clipping_guard,
+            instrumental_duck_applied=mix_settings.instrumental_duck_under_vocal,
         )
 
         artifact_url = f"/v1/artifacts/exports/{export_id}/section-export"

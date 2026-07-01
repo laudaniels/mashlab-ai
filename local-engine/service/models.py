@@ -273,6 +273,7 @@ class MixSettingsModel(BaseModel):
     instrumental_fade_out_ms: float = 0.0
     limiter_safety: bool = False
     clipping_guard: bool = False
+    instrumental_duck_under_vocal: bool = False
 
 
 class CombinedPreviewRequest(BaseModel):
@@ -297,6 +298,7 @@ class CombinedPreviewRequest(BaseModel):
     instrumental_fade_out_ms: float = 0.0
     limiter_safety: bool = False
     clipping_guard: bool = False
+    instrumental_duck_under_vocal: bool = False
     arrangement_context: dict | None = None
 
 
@@ -323,6 +325,7 @@ class CombinedPreviewProcessingSummaryModel(BaseModel):
     mix_settings: MixSettingsModel | None = None
     limiter_safety_applied: bool = False
     clipping_guard_applied: bool = False
+    instrumental_duck_applied: bool = False
 
 
 class CombinedPreviewResponse(BaseModel):
@@ -585,6 +588,7 @@ class FullExportProcessingSummaryModel(BaseModel):
     mix_settings: MixSettingsModel | None = None
     limiter_safety_applied: bool = False
     clipping_guard_applied: bool = False
+    instrumental_duck_applied: bool = False
 
 
 class LoudnessGateModel(BaseModel):
@@ -619,6 +623,7 @@ class FullWavExportRequest(BaseModel):
     instrumental_fade_out_ms: float = 0.0
     limiter_safety: bool = False
     clipping_guard: bool = False
+    instrumental_duck_under_vocal: bool = False
     arrangement_context: dict | None = None
 
 
@@ -673,6 +678,7 @@ class SectionExportProcessingSummaryModel(BaseModel):
     mix_settings: MixSettingsModel | None = None
     limiter_safety_applied: bool = False
     clipping_guard_applied: bool = False
+    instrumental_duck_applied: bool = False
 
 
 class SectionWavExportRequest(BaseModel):
@@ -705,6 +711,7 @@ class SectionWavExportRequest(BaseModel):
     instrumental_fade_out_ms: float = 0.0
     limiter_safety: bool = False
     clipping_guard: bool = False
+    instrumental_duck_under_vocal: bool = False
     arrangement_context: dict | None = None
 
 

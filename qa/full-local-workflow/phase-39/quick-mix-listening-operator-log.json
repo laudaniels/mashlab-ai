@@ -1,0 +1,98 @@
+{
+  "phase": "phase-39-listening-operator",
+  "startedAt": "2026-07-01T00:57:47.296Z",
+  "finishedAt": "2026-07-01T00:59:33.462Z",
+  "trackA": "Track A (vocal source)",
+  "trackB": "Track B (instrumental source)",
+  "rc2Baseline": {
+    "mixSettings": {
+      "vocal_gain_db": 0,
+      "instrumental_gain_db": 0,
+      "master_gain_db": 0,
+      "vocal_fade_in_ms": 0,
+      "vocal_fade_out_ms": 0,
+      "instrumental_fade_in_ms": 0,
+      "instrumental_fade_out_ms": 0,
+      "limiter_safety": true,
+      "clipping_guard": true,
+      "instrumental_duck_under_vocal": false
+    },
+    "export": {
+      "artifactId": "c9e1f14d39cb472d84d0f402bbec20a6",
+      "loudness": {
+        "integrated_lufs": -10.49,
+        "true_peak_dbtp": 0.81,
+        "peak_level_db": 0,
+        "status": "available",
+        "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
+      },
+      "loudnessGate": {
+        "status": "warn",
+        "message": "integrated loudness -10.5 LUFS differs from general target -14 LUFS; true peak 0.8 dBTP exceeds general safe target -1 dBTP — not a mastering pass or club-ready claim.",
+        "integrated_lufs": -10.49,
+        "true_peak_dbtp": 0.81,
+        "target_integrated_lufs": -14,
+        "target_true_peak_dbtp": -1
+      },
+      "duckApplied": false,
+      "warnings": [
+        "Full-length local WAV export — user-generated, not a published release.",
+        "Processing may take longer than preview lanes; no auto-export occurred.",
+        "Not a club-ready mastered release unless a future mastering lane is implemented.",
+        "Conservative FFmpeg alimiter prototype applied on master bus — not professional mastering.",
+        "Clipping guard prototype applied (~-1 dBTP ceiling) — DJ review required.",
+        "True peak 0.8 dBTP exceeds safe threshold — possible clipping. DJ review required.",
+        "Integrated loudness -10.5 LUFS (available)."
+      ]
+    }
+  },
+  "phase39Profile": {
+    "mixSettings": {
+      "vocal_gain_db": 1.5,
+      "instrumental_gain_db": -3,
+      "master_gain_db": -0.5,
+      "vocal_fade_in_ms": 0,
+      "vocal_fade_out_ms": 0,
+      "instrumental_fade_in_ms": 0,
+      "instrumental_fade_out_ms": 0,
+      "limiter_safety": true,
+      "clipping_guard": true,
+      "instrumental_duck_under_vocal": true
+    },
+    "export": {
+      "artifactId": "ad5e5c518d35415684c4f96ea44c9b72",
+      "loudness": {
+        "integrated_lufs": -12.38,
+        "true_peak_dbtp": 1.08,
+        "peak_level_db": 0,
+        "status": "available",
+        "message": "Loudness readout measured with FFmpeg loudnorm analysis pass."
+      },
+      "loudnessGate": {
+        "status": "warn",
+        "message": "true peak 1.1 dBTP exceeds general safe target -1 dBTP — not a mastering pass or club-ready claim.",
+        "integrated_lufs": -12.38,
+        "true_peak_dbtp": 1.08,
+        "target_integrated_lufs": -14,
+        "target_true_peak_dbtp": -1
+      },
+      "duckApplied": true,
+      "warnings": [
+        "Full-length local WAV export — user-generated, not a published release.",
+        "Processing may take longer than preview lanes; no auto-export occurred.",
+        "Not a club-ready mastered release unless a future mastering lane is implemented.",
+        "Conservative FFmpeg alimiter prototype applied on master bus — not professional mastering.",
+        "Clipping guard prototype applied (~-1 dBTP ceiling) — DJ review required.",
+        "Light instrumental duck under vocal (sidechaincompress prototype) — DJ review required.",
+        "True peak 1.1 dBTP exceeds safe threshold — possible clipping. DJ review required.",
+        "Integrated loudness -12.4 LUFS (available)."
+      ]
+    }
+  },
+  "listeningNotes": [
+    "Compare RC2 vs Phase 39 locally — filenames redacted in this log.",
+    "Phase 39 should feel vocal-forward with bed tucked; duck should be subtle.",
+    "Neither export is a mastered release — DJ review required."
+  ],
+  "ok": true
+}

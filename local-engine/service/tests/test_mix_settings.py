@@ -60,6 +60,23 @@ class MixSettingsTests(unittest.TestCase):
         self.assertIn("alimiter=limit=-1dB", graph)
         self.assertNotIn("limit=0.95", graph)
 
+    def test_build_mix_filter_includes_light_duck(self) -> None:
+        settings = MixSettings(
+            vocal_gain_db=1.5,
+            instrumental_gain_db=-3.0,
+            instrumental_duck_under_vocal=True,
+            limiter_safety=True,
+            clipping_guard=True,
+        )
+        graph = build_mix_filter_complex(
+            alignment_offset_ms=0,
+            mix_settings=settings,
+            max_seconds=30,
+        )
+        self.assertIn("sidechaincompress", graph)
+        self.assertIn("ducked_bed", graph)
+        self.assertIn("alimiter=limit=-1dB", graph)
+
     def test_format_mix_summary_includes_flags(self) -> None:
         summary = format_mix_summary(
             MixSettings(vocal_gain_db=1.5, limiter_safety=True, clipping_guard=True)

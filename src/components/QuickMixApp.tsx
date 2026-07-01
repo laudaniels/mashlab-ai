@@ -17,6 +17,7 @@ import {
   type QuickMixProgressStep,
   type QuickMixUploadState,
 } from "../domain/quickMix.ts";
+import { QUICK_MIX_PROCESSING_PATIENCE_NOTICE } from "../domain/quickMixListening.ts";
 import { buildQuickMixFailureView } from "../domain/quickMixErrors.ts";
 import { buildQuickMixReadiness, isQuickMixReady } from "../domain/quickMixReadiness.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
@@ -183,6 +184,12 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
             </div>
 
             <QuickMixProgressPanel active={mixing || progressSteps.some((step) => step.status === "failed")} steps={progressSteps} />
+
+            {mixing ? (
+              <p className="quick-mix-processing-patience" role="status">
+                {QUICK_MIX_PROCESSING_PATIENCE_NOTICE}
+              </p>
+            ) : null}
 
             {mixFailure ? (
               <section className="quick-mix-error-panel" role="alert">

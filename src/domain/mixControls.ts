@@ -20,6 +20,8 @@ export interface MixSettings {
   instrumentalFadeOutMs: number;
   limiterSafety: boolean;
   clippingGuard: boolean;
+  /** Light sidechain duck on instrumental bed when vocal is present (Quick Mix default). */
+  instrumentalDuckUnderVocal: boolean;
 }
 
 export const NEUTRAL_MIX_SETTINGS: MixSettings = {
@@ -32,6 +34,7 @@ export const NEUTRAL_MIX_SETTINGS: MixSettings = {
   instrumentalFadeOutMs: 0,
   limiterSafety: false,
   clippingGuard: false,
+  instrumentalDuckUnderVocal: false,
 };
 
 export function createNeutralMixSettings(): MixSettings {
@@ -91,6 +94,9 @@ export function formatMixSettingsSummary(settings: MixSettings): string {
   if (settings.clippingGuard) {
     parts.push("clip guard on");
   }
+  if (settings.instrumentalDuckUnderVocal) {
+    parts.push("bed duck on");
+  }
   return parts.join(" · ");
 }
 
@@ -105,6 +111,7 @@ export function mixSettingsToRequestFields(settings: MixSettings): Record<string
     instrumental_fade_out_ms: settings.instrumentalFadeOutMs,
     limiter_safety: settings.limiterSafety,
     clipping_guard: settings.clippingGuard,
+    instrumental_duck_under_vocal: settings.instrumentalDuckUnderVocal,
   };
 }
 
@@ -123,6 +130,7 @@ export function parseMixSettings(value: unknown): MixSettings | null {
     instrumentalFadeOutMs: parseNumber(record.instrumental_fade_out_ms, 0),
     limiterSafety: record.limiter_safety === true,
     clippingGuard: record.clipping_guard === true,
+    instrumentalDuckUnderVocal: record.instrumental_duck_under_vocal === true,
   };
 }
 
@@ -136,7 +144,8 @@ export function isNeutralMixSettings(settings: MixSettings): boolean {
     settings.instrumentalFadeInMs === 0 &&
     settings.instrumentalFadeOutMs === 0 &&
     !settings.limiterSafety &&
-    !settings.clippingGuard
+    !settings.clippingGuard &&
+    !settings.instrumentalDuckUnderVocal
   );
 }
 

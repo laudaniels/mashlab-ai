@@ -61,6 +61,7 @@ class FullExportProcessingSummary:
     mix_settings: MixSettings
     limiter_safety_applied: bool
     clipping_guard_applied: bool
+    instrumental_duck_applied: bool
 
 
 @dataclass
@@ -146,6 +147,7 @@ def create_full_wav_export(
     instrumental_fade_out_ms: float = 0.0,
     limiter_safety: bool = False,
     clipping_guard: bool = False,
+    instrumental_duck_under_vocal: bool = False,
     arrangement_context: dict | None = None,
 ) -> FullWavExportResult:
     errors: list[str] = []
@@ -160,6 +162,7 @@ def create_full_wav_export(
         instrumental_fade_out_ms=instrumental_fade_out_ms,
         limiter_safety=limiter_safety,
         clipping_guard=clipping_guard,
+        instrumental_duck_under_vocal=instrumental_duck_under_vocal,
     )
     if mix_errors:
         errors.extend(mix_errors)
@@ -433,6 +436,7 @@ def create_full_wav_export(
                 mix_settings=mix_settings,
                 limiter_safety_applied=mix_settings.limiter_safety,
                 clipping_guard_applied=mix_settings.clipping_guard,
+                instrumental_duck_applied=mix_settings.instrumental_duck_under_vocal,
             ),
             file_size_bytes=technical.file_size_bytes,
             duration_seconds=duration or technical.duration_seconds,

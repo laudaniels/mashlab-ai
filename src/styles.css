@@ -3325,6 +3325,39 @@ audio {
 }
 
 .quick-mix-duration-cap-note,
+.quick-mix-mix-profile-note {
+  margin: 0 0 8px;
+  color: #d8e8ff;
+  font-size: 14px;
+}
+
+.quick-mix-loudness-note {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 220, 140, 0.35);
+  background: rgba(70, 55, 20, 0.45);
+  color: #ffe9b8;
+  font-size: 14px;
+}
+
+.quick-mix-loudness-warnings,
+.quick-mix-listening-comparison {
+  margin: 0 0 10px;
+  padding-left: 1.2rem;
+  color: #ffd4a8;
+  font-size: 13px;
+}
+
+.quick-mix-processing-patience {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 200, 255, 0.25);
+  background: rgba(20, 40, 60, 0.55);
+  color: #cbe6ff;
+  font-size: 14px;
+}
 .quick-mix-mp3-skipped-note {
   color: #ffe9b8;
   font-size: 14px;

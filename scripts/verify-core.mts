@@ -3112,6 +3112,7 @@ describe("Arrangement section preview binding", async () => {
         instrumentalFadeOutMs: 0,
         limiterSafety: false,
         clippingGuard: false,
+        instrumentalDuckUnderVocal: false,
       },
     });
     assert.equal(body.preview_start_seconds, 16);
@@ -4530,11 +4531,13 @@ describe("Quick Mix mode (Phase 36)", async () => {
     assert.ok(includesNoPublicSharingInQuickMixCopy(copy));
   });
 
-  it("defaults mix gains to neutral with safety guards enabled", () => {
-    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.vocalGainDb, 0);
-    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.instrumentalGainDb, 0);
+  it("defaults mix gains to listening-test profile with safety guards enabled", () => {
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.vocalGainDb, 1.5);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.instrumentalGainDb, -3);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.masterGainDb, -0.5);
     assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.limiterSafety, true);
     assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.clippingGuard, true);
+    assert.equal(QUICK_MIX_DEFAULT_MIX_SETTINGS.instrumentalDuckUnderVocal, true);
   });
 
   it("persists advanced studio access mode", () => {
@@ -4632,7 +4635,10 @@ describe("Quick Mix orchestrated pipeline (Phase 36 fix)", async () => {
     );
     assert.equal(exportParams.sourceVocalStemArtifactId, "aaa");
     assert.equal(exportParams.targetInstrumentalStemArtifactId, "bbb");
-    assert.equal(exportParams.mixSettings.masterGainDb, 0);
+    assert.equal(exportParams.mixSettings.vocalGainDb, 1.5);
+    assert.equal(exportParams.mixSettings.instrumentalGainDb, -3);
+    assert.equal(exportParams.mixSettings.masterGainDb, -0.5);
+    assert.equal(exportParams.mixSettings.instrumentalDuckUnderVocal, true);
   });
 
   it("lists orchestration stages through optional MP3", () => {
@@ -4713,7 +4719,7 @@ describe("Quick Mix reliability (Phase 36 hotfix)", async () => {
 
   it("shows long-running stem step hint while active", () => {
     assert.match(quickMixProgressStepHint("separating_vocal", "active") ?? "", /several minutes/i);
-    assert.equal(quickMixProgressStepHint("creating_wav_export", "active"), null);
+    assert.match(quickMixProgressStepHint("creating_wav_export", "active") ?? "", /Creating your local mix export/i);
     assert.equal(QUICK_MIX_STEM_ACTIVE_HINT, quickMixProgressStepHint("preparing_instrumental", "active"));
   });
 
@@ -4820,6 +4826,66 @@ describe("Quick Mix real-audio progress (Phase 38)", async () => {
     assert.ok(notice);
     assert.match(notice, /180/);
     assert.equal(buildQuickMixDurationCapNotice(120, 90), null);
+  });
+});
+
+describe("Quick Mix listening-test polish (Phase 39)", async () => {
+  const {
+    QUICK_MIX_DEFAULT_MIX_SETTINGS,
+    QUICK_MIX_EXPORT_ACTIVE_HINT,
+    QUICK_MIX_STEM_ACTIVE_HINT,
+    quickMixProgressStepHint,
+  } = await importSrc("src/domain/quickMix.ts");
+  const {
+    QUICK_MIX_RC2_BASELINE_MIX_SETTINGS,
+    buildQuickMixListeningComparisonNotes,
+    buildQuickMixMixProfileSummary,
+    formatQuickMixLoudnessTechnicalLine,
+  } = await importSrc("src/domain/quickMixListening.ts");
+  const { mixSettingsToRequestFields } = await importSrc("src/domain/mixControls.ts");
+
+  it("documents RC2 baseline vs Phase 39 listening profile", () => {
+    const notes = buildQuickMixListeningComparisonNotes(
+      QUICK_MIX_RC2_BASELINE_MIX_SETTINGS,
+      QUICK_MIX_DEFAULT_MIX_SETTINGS
+    );
+    assert.equal(notes.length, 2);
+    assert.match(notes[0], /RC2 baseline/);
+    assert.match(notes[1], /Phase 39 listening profile/);
+    assert.match(notes[1], /bed duck on/);
+  });
+
+  it("serializes duck-under-vocal for export API", () => {
+    const fields = mixSettingsToRequestFields(QUICK_MIX_DEFAULT_MIX_SETTINGS);
+    assert.equal(fields.instrumental_duck_under_vocal, true);
+    assert.equal(fields.vocal_gain_db, 1.5);
+    assert.equal(fields.instrumental_gain_db, -3);
+  });
+
+  it("surfaces export-step patience hints", () => {
+    assert.match(QUICK_MIX_STEM_ACTIVE_HINT, /several minutes/i);
+    assert.match(QUICK_MIX_EXPORT_ACTIVE_HINT, /Creating your local mix export/i);
+    assert.ok(quickMixProgressStepHint("creating_wav_export", "active"));
+  });
+
+  it("formats loudness technical line when measured", () => {
+    const line = formatQuickMixLoudnessTechnicalLine({
+      integratedLufs: -12.3,
+      truePeakDbtp: -1.2,
+      peakLevelDb: -1.2,
+      status: "available",
+      message: "Measured.",
+    });
+    assert.ok(line);
+    assert.match(line!, /-12\.3 LUFS/);
+    assert.match(line!, /-1\.2 dBTP/);
+  });
+
+  it("summarizes listening profile for output panel", () => {
+    const summary = buildQuickMixMixProfileSummary(QUICK_MIX_DEFAULT_MIX_SETTINGS);
+    assert.match(summary, /vocal \+1\.5 dB/);
+    assert.match(summary, /bed -3\.0 dB/);
+    assert.match(summary, /bed duck on/);
   });
 });
 

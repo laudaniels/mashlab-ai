@@ -5277,6 +5277,83 @@ describe("Sidecar responsiveness under load (Phase 38)", async () => {
   });
 });
 
+describe("Windows desktop packaging (Phase 44)", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const {
+    DESKTOP_PACKAGING_APPROACH,
+    DESKTOP_UI_PORT,
+    DESKTOP_UI_URL,
+    buildDesktopLaunchBanner,
+    buildDesktopSetupSteps,
+    evaluateDesktopRuntimeChecks,
+    formatDesktopRuntimeCheckLine,
+    includesDesktopLocalOnlyLanguage,
+    resolveDesktopVenvPython,
+    resolvePackagedAppRoot,
+  } = await importSrc("src/domain/desktopPackaging.ts");
+  const configSource = await readFile(
+    new URL("../local-engine/service/config.py", import.meta.url),
+    "utf8"
+  );
+
+  it("selects electron portable as the packaging approach", () => {
+    assert.equal(DESKTOP_PACKAGING_APPROACH, "electron-portable");
+    assert.equal(DESKTOP_UI_PORT, 47830);
+    assert.match(DESKTOP_UI_URL, /127\.0\.0\.1:47830/);
+  });
+
+  it("allows the desktop UI port in sidecar CORS", () => {
+    assert.match(configSource, /47830/);
+  });
+
+  it("evaluates desktop runtime checks with blocking venv and ffmpeg tiers", () => {
+    const ready = evaluateDesktopRuntimeChecks({
+      venvPythonExists: true,
+      ffmpegAvailable: true,
+      ffprobeAvailable: true,
+      rubberBandAvailable: true,
+      sidecarHealthy: true,
+      torchAvailable: true,
+      demucsAvailable: true,
+    });
+    assert.equal(ready.canLaunchUi, true);
+    assert.equal(ready.canProcessAudio, true);
+    assert.ok(ready.checks.every((check) => check.pass));
+
+    const blocked = evaluateDesktopRuntimeChecks({
+      venvPythonExists: false,
+      ffmpegAvailable: false,
+      ffprobeAvailable: false,
+      rubberBandAvailable: false,
+      sidecarHealthy: false,
+      torchAvailable: false,
+      demucsAvailable: false,
+    });
+    assert.equal(blocked.canLaunchUi, true);
+    assert.equal(blocked.canProcessAudio, false);
+    assert.ok(blocked.checks.some((check) => check.id === "venv" && check.blocking && !check.pass));
+    assert.match(formatDesktopRuntimeCheckLine(blocked.checks[1]!), /BLOCKED/);
+  });
+
+  it("resolves packaged app root beside the executable", () => {
+    const root = resolvePackagedAppRoot({
+      execPath: "C:/Apps/MashLab/MashLab AI.exe",
+      resourcesPath: "C:/Apps/MashLab/resources",
+      isPackaged: true,
+      devRoot: "C:/repo",
+    });
+    assert.equal(root, "C:/Apps/MashLab/mashlab-app");
+    assert.match(resolveDesktopVenvPython("C:/Apps/MashLab/mashlab-app"), /local-engine\/service\/\.venv/);
+  });
+
+  it("includes local-only language in desktop setup copy", () => {
+    const text = [...buildDesktopSetupSteps(), ...buildDesktopLaunchBanner(DESKTOP_UI_URL)].join("\n");
+    assert.ok(includesDesktopLocalOnlyLanguage(text));
+    assert.match(text, /no cloud upload/i);
+    assert.match(text, /Quick Mix/i);
+  });
+});
+
 function makeWavHeader({ channels, sampleRate }: { channels: number; sampleRate: number }) {
   const bytesPerSample = 2;
   const dataSize = sampleRate * channels * bytesPerSample;

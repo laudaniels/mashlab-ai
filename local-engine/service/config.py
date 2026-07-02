@@ -16,9 +16,11 @@ TEMP_DIR = WORK_DIR / "temp"
 # These are all loopback origins — no remote hosts are permitted.
 _DEV_PORT_RANGE = range(5173, 5184)
 _PREVIEW_PORT_RANGE = range(4173, 4184)
+# Phase 44 — Electron desktop shell serves the built UI on a fixed loopback port.
+_DESKTOP_UI_PORT = 47830
 
 ALLOWED_ORIGINS = [
     f"http://{host}:{port}"
     for host in ("127.0.0.1", "localhost")
-    for port in (*_DEV_PORT_RANGE, *_PREVIEW_PORT_RANGE)
+    for port in (*_DEV_PORT_RANGE, *_PREVIEW_PORT_RANGE, _DESKTOP_UI_PORT)
 ]

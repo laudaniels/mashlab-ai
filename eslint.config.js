@@ -18,5 +18,12 @@ export default tseslint.config(
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
       ],
     },
+  },
+  {
+    files: ["desktop/**/*.mjs", "scripts/**/*.{mts,ts}"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: globals.node,
+    },
   }
 );

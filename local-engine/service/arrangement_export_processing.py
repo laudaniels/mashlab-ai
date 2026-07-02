@@ -160,7 +160,7 @@ def create_arrangement_wav_export(
 
     vocal_path = stem_vocals_path(source_vocal_stem_artifact_id)
     bed_path = stem_no_vocals_path(target_instrumental_stem_artifact_id)
-    if not vocal_path.is_file() or not bed_path.is_file():
+    if not vocal_path.exists() or not bed_path.exists():
         return ArrangementExportFailure(
             ok=False,
             status="missing_artifact",

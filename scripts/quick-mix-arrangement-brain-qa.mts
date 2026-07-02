@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 /**
- * Arrangement Brain QA — plan + arrangement WAV export for all three styles.
- * Uses env-selected local stems only (redacted Track A / Track B labels).
- *
+ * Phase 43 Arrangement Brain — real-audio operator API QA (redacted Track A / Track B).
  * Run: npm run smoke:quick-mix:arrangement-brain
- * Env: DJ_REMIX_QA_VOCAL, DJ_REMIX_QA_BEAT (optional local stem paths)
+ * Env: DJ_REMIX_QA_VOCAL, DJ_REMIX_QA_BEAT (required for real-audio; skips if unset)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { extname } from "node:path";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
 const BASE = "http://127.0.0.1:47831";
 const OUT_DIR = join(ROOT, "qa/full-local-workflow/phase-43");
-const OUT_REPORT = join(OUT_DIR, "arrangement-brain-qa-report.json");
+const OUT_REPORT = join(OUT_DIR, "arrangement-brain-operator-qa-report.json");
 
 const QUICK_MIX_MIX = {
   vocal_gain_db: 1.5,
@@ -29,6 +28,14 @@ const QUICK_MIX_MIX = {
 
 const STYLES = ["clean_blend", "hook_remix", "dj_edit"] as const;
 
+function mimeForPath(filePath: string): string {
+  const ext = extname(filePath).toLowerCase();
+  if (ext === ".mp3") return "audio/mpeg";
+  if (ext === ".m4a") return "audio/mp4";
+  if (ext === ".flac") return "audio/flac";
+  return "audio/wav";
+}
+
 function resolveStemPaths(): { vocal: string; beat: string } | null {
   const envVocal = process.env.DJ_REMIX_QA_VOCAL?.trim() ?? "";
   const envBeat = process.env.DJ_REMIX_QA_BEAT?.trim() ?? "";
@@ -36,6 +43,24 @@ function resolveStemPaths(): { vocal: string; beat: string } | null {
     return { vocal: envVocal, beat: envBeat };
   }
   return null;
+}
+
+function listeningNote(input: {
+  anchorOffsetMs: number | null;
+  confidenceTier: string | null;
+  score: number | null;
+  phraseAlignment?: string | null;
+}): string {
+  const anchor = input.anchorOffsetMs ?? 999;
+  const tier = input.confidenceTier ?? "low";
+  const score = input.score ?? 0;
+  if (Math.abs(anchor) <= 35 && (tier === "high" || tier === "medium") && score >= 65) {
+    return "in time";
+  }
+  if (Math.abs(anchor) <= 70 && score >= 55) {
+    return "questionable";
+  }
+  return "not in time";
 }
 
 async function healthOk(): Promise<boolean> {
@@ -47,8 +72,9 @@ async function healthOk(): Promise<boolean> {
 
 async function uploadStem(filePath: string): Promise<string> {
   const bytes = readFileSync(filePath);
+  const mime = mimeForPath(filePath);
   const form = new FormData();
-  form.append("file", new Blob([bytes], { type: "audio/wav" }), "track.wav");
+  form.append("file", new Blob([bytes], { type: mime }), `track${extname(filePath) || ".wav"}`);
   form.append("split_mode", "vocals_no_vocals");
   form.append("max_preview_seconds", "180");
   const response = await fetch(`${BASE}/v1/process/stem-preview`, {
@@ -96,7 +122,7 @@ async function exportArrangementWav(
       tempo_ratio: planPayload.tempo_ratio ?? null,
       pitch_shift_semitones: planPayload.pitch_shift_semitones ?? 0,
       alignment_offset_ms: planPayload.alignment_offset_ms ?? 0,
-      export_label: `arrangement-brain-qa-${String(planPayload.arrangement_mode ?? "mix")}`,
+      export_label: "arrangement-brain-operator-qa",
       loudness_target_mode: "measurement_only",
       neutral_processing: false,
       confirm_neutral_settings: true,
@@ -107,11 +133,35 @@ async function exportArrangementWav(
   return (await response.json()) as Record<string, unknown>;
 }
 
-function sectionLabels(plan: Record<string, unknown> | undefined): string[] {
+async function exportMp3(wavArtifactId: string): Promise<Record<string, unknown>> {
+  const response = await fetch(`${BASE}/v1/export/mp3`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source_wav_export_artifact_id: wavArtifactId,
+      bitrate_kbps: 192,
+      export_label: "arrangement-brain-operator-qa-mp3",
+    }),
+    signal: AbortSignal.timeout(600_000),
+  });
+  return (await response.json()) as Record<string, unknown>;
+}
+
+function sectionDetails(plan: Record<string, unknown> | undefined): Array<Record<string, unknown>> {
   const arrangement = plan?.arrangement_plan as Record<string, unknown> | undefined;
   const sections = arrangement?.sections;
   if (!Array.isArray(sections)) return [];
-  return sections.map((s) => String((s as Record<string, unknown>).label ?? ""));
+  return sections.map((section) => {
+    const row = section as Record<string, unknown>;
+    return {
+      label: row.label ?? null,
+      source: row.source ?? null,
+      start_seconds: row.start_seconds ?? null,
+      duration_seconds: row.duration_seconds ?? null,
+      bar_length: row.bar_length ?? null,
+      start_bar: row.start_bar ?? null,
+    };
+  });
 }
 
 async function main(): Promise<void> {
@@ -127,14 +177,17 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log("Arrangement Brain QA — Track A × Track B (redacted)");
+  console.log("Arrangement Brain operator QA — Track A × Track B (redacted)");
+  const uploadStarted = Date.now();
   const vocalStemId = await uploadStem(stems.vocal);
   const beatStemId = await uploadStem(stems.beat);
+  const uploadSeconds = Math.round((Date.now() - uploadStarted) / 1000);
 
   const results: Record<string, unknown>[] = [];
   let allPassed = true;
 
   for (const mode of STYLES) {
+    const started = Date.now();
     const planPayload = await planArrangement(vocalStemId, beatStemId, mode);
     if (!planPayload.ok) {
       throw new Error(`Plan failed (${mode}): ${String(planPayload.message ?? "unknown")}`);
@@ -145,8 +198,36 @@ async function main(): Promise<void> {
       throw new Error(`WAV export failed (${mode}): ${String(wav.message ?? "unknown")}`);
     }
 
-    const labels = sectionLabels(planPayload);
+    const wavId = typeof wav.export_artifact_id === "string" ? wav.export_artifact_id : null;
+    let mp3ArtifactId: string | null = null;
+    let mp3SkipReason: string | null = null;
+    if (wavId) {
+      try {
+        const mp3 = await exportMp3(wavId);
+        if (mp3.ok && typeof mp3.export_artifact_id === "string") {
+          mp3ArtifactId = mp3.export_artifact_id;
+        } else {
+          mp3SkipReason = String(mp3.message ?? "MP3 export failed (non-blocking)");
+        }
+      } catch (error) {
+        mp3SkipReason = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    const sections = sectionDetails(planPayload);
+    const labels = sections.map((s) => String(s.label ?? ""));
     const summary = planPayload.arrangement_summary as Record<string, unknown> | undefined;
+    const remixSummary = planPayload.remix_plan_summary as Record<string, unknown> | undefined;
+    const arrangementPlan = planPayload.arrangement_plan as Record<string, unknown> | undefined;
+    const anchorOffsetMs =
+      typeof planPayload.alignment_offset_ms === "number" ? planPayload.alignment_offset_ms : null;
+    const score = typeof summary?.score === "number" ? summary.score : null;
+    const confidenceTier =
+      typeof summary?.confidence_tier === "string" ? summary.confidence_tier : null;
+    const warnings = Array.isArray(summary?.warnings)
+      ? summary.warnings.map((w) => String(w))
+      : [];
+
     const modePassed =
       mode === "clean_blend"
         ? labels.length >= 1
@@ -159,24 +240,54 @@ async function main(): Promise<void> {
     results.push({
       mode,
       label: "Track A × Track B",
-      section_labels: labels,
-      summary_line: summary?.summary_line ?? null,
-      confidence_tier: planPayload.confidence_tier ?? summary?.confidence_tier ?? null,
-      score: summary?.score ?? null,
-      wav_export_artifact_id: wav.export_artifact_id ?? null,
-      passed: modePassed && Boolean(wav.export_artifact_id),
+      structure: summary?.summary_line ?? null,
+      section_starts: sections.map((s) => ({
+        label: s.label,
+        start_seconds: s.start_seconds,
+        bar_length: s.bar_length,
+      })),
+      sections,
+      bpm_estimate: arrangementPlan?.target_bpm ?? remixSummary?.target_bpm ?? null,
+      key_compatibility: summary?.key_label ?? remixSummary?.harmonic_compatibility ?? null,
+      camelot: remixSummary?.camelot ?? null,
+      plan_score: score,
+      confidence_tier: confidenceTier,
+      anchor_offset_ms: anchorOffsetMs,
+      phrase_alignment: remixSummary?.phrase_alignment ?? null,
+      wav_export_artifact_id: wavId,
+      mp3_artifact_id: mp3ArtifactId,
+      mp3_skip_reason: mp3SkipReason,
+      runtime_seconds: Math.round((Date.now() - started) / 1000),
+      warnings,
+      listening_note: listeningNote({
+        anchorOffsetMs,
+        confidenceTier,
+        score,
+        phraseAlignment:
+          typeof remixSummary?.phrase_alignment === "string"
+            ? remixSummary.phrase_alignment
+            : null,
+      }),
+      passed: modePassed && Boolean(wavId),
     });
   }
 
-  const report = { styles: results, passed: allPassed };
+  const report = {
+    label: "Track A × Track B",
+    using_real_audio: true,
+    stem_upload_seconds: uploadSeconds,
+    styles: results,
+    passed: allPassed,
+    finished_at: new Date().toISOString(),
+  };
   writeFileSync(OUT_REPORT, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 
   if (!allPassed) {
-    console.error("Arrangement Brain QA failed structure gate.");
+    console.error("Arrangement Brain operator QA failed structure gate.");
     process.exit(1);
   }
-  console.log("Arrangement Brain QA PASS");
+  console.log("Arrangement Brain operator QA PASS");
 }
 
 main().catch((error) => {

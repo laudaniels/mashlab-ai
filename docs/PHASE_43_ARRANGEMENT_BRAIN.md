@@ -55,9 +55,13 @@ $env:DJ_REMIX_QA_BEAT  = "path\to\TrackB\no_vocals.wav"
 npm run smoke:quick-mix:arrangement-brain
 ```
 
-Report: `qa/full-local-workflow/phase-43/arrangement-brain-qa-report.json` (redacted Track A × Track B).
+Report: `qa/full-local-workflow/phase-43/arrangement-brain-operator-qa-report.json` (redacted labels).
 
-## Limitations
+Browser smoke: `npm run smoke:quick-mix:browser` records `failedRequests` and ignores harmless `/favicon.ico` 404s (browsers request it even with inline SVG favicon; `public/favicon.ico` is served in dev/build).
+
+Interactive operator browser QA (all three styles, real audio): `npm run smoke:quick-mix:arrangement-browser` with `MASHLAB_QM_VOCAL` + `MASHLAB_QM_BEAT`.
+
+Browsers may still request `/favicon.ico` even when `index.html` uses an inline SVG icon. A minimal `public/favicon.ico` is served to avoid dev-console 404 noise; browser smoke ignores any residual favicon 404 as harmless.
 
 - No producer effects, fake drops, or random cuts
 - Hook/DJ Edit arrangements are heuristic — low confidence surfaces warnings, not “mastered” claims

@@ -1,0 +1,205 @@
+{
+  "label": "Track A × Track B",
+  "using_real_audio": true,
+  "stem_upload_seconds": 81,
+  "styles": [
+    {
+      "mode": "clean_blend",
+      "label": "Track A × Track B",
+      "structure": "Mix",
+      "section_starts": [
+        {
+          "label": "mix",
+          "start_seconds": 0,
+          "bar_length": 71
+        }
+      ],
+      "sections": [
+        {
+          "label": "mix",
+          "source": "mix",
+          "start_seconds": 0,
+          "duration_seconds": 180,
+          "bar_length": 71,
+          "start_bar": 0
+        }
+      ],
+      "bpm_estimate": 94.09,
+      "key_compatibility": "clash",
+      "camelot": null,
+      "plan_score": 58,
+      "confidence_tier": "low",
+      "anchor_offset_ms": -5957.5,
+      "phrase_alignment": null,
+      "wav_export_artifact_id": "0950c6468d8c42bab1c7d7d7e95b3449",
+      "mp3_artifact_id": "a657a1b6335e45c181e60f205130bb00",
+      "mp3_skip_reason": null,
+      "runtime_seconds": 28,
+      "warnings": [
+        "Low arrangement confidence (58/100) — review before sharing.",
+        "Key compatibility is weak — pitch shift or different section may sound better.",
+        "Large tempo stretch 28.5% — low confidence arrangement."
+      ],
+      "listening_note": "not in time",
+      "passed": true
+    },
+    {
+      "mode": "hook_remix",
+      "label": "Track A × Track B",
+      "structure": "Intro → Hook → Outro",
+      "section_starts": [
+        {
+          "label": "intro",
+          "start_seconds": 102.8201,
+          "bar_length": 4
+        },
+        {
+          "label": "hook",
+          "start_seconds": 14.4776,
+          "bar_length": 32
+        },
+        {
+          "label": "outro",
+          "start_seconds": 96.1016,
+          "bar_length": 4
+        }
+      ],
+      "sections": [
+        {
+          "label": "intro",
+          "source": "instrumental",
+          "start_seconds": 102.8201,
+          "duration_seconds": 10.203,
+          "bar_length": 4,
+          "start_bar": 0
+        },
+        {
+          "label": "hook",
+          "source": "mix",
+          "start_seconds": 14.4776,
+          "duration_seconds": 81.624,
+          "bar_length": 32,
+          "start_bar": 4
+        },
+        {
+          "label": "outro",
+          "source": "instrumental",
+          "start_seconds": 96.1016,
+          "duration_seconds": 10.203,
+          "bar_length": 4,
+          "start_bar": 36
+        }
+      ],
+      "bpm_estimate": 94.09,
+      "key_compatibility": "clash",
+      "camelot": null,
+      "plan_score": 75,
+      "confidence_tier": "medium",
+      "anchor_offset_ms": -5957.5,
+      "phrase_alignment": null,
+      "wav_export_artifact_id": "d5ab035839164709b0c95185e13cdbea",
+      "mp3_artifact_id": "c9ebc729c3fb40368896f51ba0f57737",
+      "mp3_skip_reason": null,
+      "runtime_seconds": 22,
+      "warnings": [
+        "Key compatibility is weak — pitch shift or different section may sound better.",
+        "Large tempo stretch 28.5% — low confidence arrangement."
+      ],
+      "listening_note": "not in time",
+      "passed": true
+    },
+    {
+      "mode": "dj_edit",
+      "label": "Track A × Track B",
+      "structure": "Intro → Hook → Break → Hook → Outro",
+      "section_starts": [
+        {
+          "label": "intro",
+          "start_seconds": 0,
+          "bar_length": 8
+        },
+        {
+          "label": "hook",
+          "start_seconds": 20.406,
+          "bar_length": 16
+        },
+        {
+          "label": "break",
+          "start_seconds": 61.218,
+          "bar_length": 8
+        },
+        {
+          "label": "hook",
+          "start_seconds": 81.624,
+          "bar_length": 16
+        },
+        {
+          "label": "outro",
+          "start_seconds": 122.436,
+          "bar_length": 8
+        }
+      ],
+      "sections": [
+        {
+          "label": "intro",
+          "source": "instrumental",
+          "start_seconds": 0,
+          "duration_seconds": 20.406,
+          "bar_length": 8,
+          "start_bar": 0
+        },
+        {
+          "label": "hook",
+          "source": "mix",
+          "start_seconds": 20.406,
+          "duration_seconds": 40.812,
+          "bar_length": 16,
+          "start_bar": 8
+        },
+        {
+          "label": "break",
+          "source": "instrumental",
+          "start_seconds": 61.218,
+          "duration_seconds": 20.406,
+          "bar_length": 8,
+          "start_bar": 24
+        },
+        {
+          "label": "hook",
+          "source": "mix",
+          "start_seconds": 81.624,
+          "duration_seconds": 40.812,
+          "bar_length": 16,
+          "start_bar": 32
+        },
+        {
+          "label": "outro",
+          "source": "instrumental",
+          "start_seconds": 122.436,
+          "duration_seconds": 20.406,
+          "bar_length": 8,
+          "start_bar": 48
+        }
+      ],
+      "bpm_estimate": 94.09,
+      "key_compatibility": "clash",
+      "camelot": null,
+      "plan_score": 72,
+      "confidence_tier": "medium",
+      "anchor_offset_ms": -5957.5,
+      "phrase_alignment": null,
+      "wav_export_artifact_id": "2deb177cf1ad432cad9cb5f394eba178",
+      "mp3_artifact_id": "93ef6d58148041139f944724740be6e2",
+      "mp3_skip_reason": null,
+      "runtime_seconds": 24,
+      "warnings": [
+        "Key compatibility is weak — pitch shift or different section may sound better.",
+        "Large tempo stretch 28.5% — low confidence arrangement."
+      ],
+      "listening_note": "not in time",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "finished_at": "2026-07-02T02:41:57.620Z"
+}

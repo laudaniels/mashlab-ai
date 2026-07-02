@@ -166,9 +166,12 @@ npm run smoke:quick-mix:remix-brain   # DJ_REMIX_QA_VOCAL + DJ_REMIX_QA_BEAT
 - [x] Arrangement confidence 80+ / 65–79 / &lt;65 with warnings
 - [x] Output panel arrangement summary + no false Done
 - [x] Evidence: `docs/PHASE_43_ARRANGEMENT_BRAIN.md`, `qa/full-local-workflow/phase-43/`
+- [x] Browser smoke `uiChecksPass: true` (favicon 404 fixed/ignored)
+- [x] Real-audio operator API + browser QA (Track A / Track B redacted)
 
 ```powershell
 npm run smoke:quick-mix:arrangement-brain   # DJ_REMIX_QA_VOCAL + DJ_REMIX_QA_BEAT
+npm run smoke:quick-mix:arrangement-browser # MASHLAB_QM_VOCAL + MASHLAB_QM_BEAT
 ```
 
 ### Phase 34 local demo checklist

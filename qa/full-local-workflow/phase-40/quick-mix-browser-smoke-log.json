@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-07-02T02:34:00.465Z",
+  "startedAt": "2026-07-02T03:04:33.461Z",
   "appUrl": "http://127.0.0.1:5173/",
   "phase": "phase-43-arrangement-brain",
   "usingRealFiles": false,
@@ -15,12 +15,12 @@
   "mixProfileText": "vocal +1.5 dB · bed -3.0 dB · master -1.0 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal",
   "mixProfileHasSafetyProfile": true,
   "loudnessNoticeVisible": true,
-  "loudnessNotice": "integrated -29.6 LUFS vs target -14 LUFS — informational gate only.",
+  "loudnessNotice": "integrated -34.4 LUFS vs target -14 LUFS — informational gate only.",
   "loudnessWarningsVisible": true,
   "loudnessWarnings": [
     "Staged limiter prototype (soft knee + -1.0 dBTP linear ceiling) on master bus — not professional mastering.",
     "Export peak-ceiling pass (~-1.0 dBTP prototype) after encode — DJ review required.",
-    "Integrated loudness -29.6 LUFS (available)."
+    "Integrated loudness -34.4 LUFS (available)."
   ],
   "listeningComparisonVisible": true,
   "listeningComparisonNotes": [
@@ -33,16 +33,16 @@
   "falseDoneBeforeOutput": false,
   "stepCompletionSeconds": {
     "Checking files": 3,
-    "Separating vocal": 13,
-    "Preparing instrumental": 23,
-    "Matching timing/key": 25,
-    "Mixing track": 25
+    "Separating vocal": 9,
+    "Preparing instrumental": 17,
+    "Matching timing/key": 19,
+    "Mixing track": 19
   },
-  "totalSeconds": 27,
-  "lastHeartbeat": "Still separating the instrumental… 0:09 elapsed. CPU stem separation can take several minutes — this has not stopped.",
+  "totalSeconds": 21,
+  "lastHeartbeat": "Still separating the instrumental… 0:06 elapsed. CPU stem separation can take several minutes — this has not stopped.",
   "consoleErrors": [],
   "ignoredConsoleErrors": [],
   "failedRequests": [],
   "pageErrors": [],
-  "finishedAt": "2026-07-02T02:34:27.971Z"
+  "finishedAt": "2026-07-02T03:04:54.558Z"
 }

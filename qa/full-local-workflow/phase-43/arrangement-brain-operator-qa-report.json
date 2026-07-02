@@ -1,7 +1,7 @@
 {
   "label": "Track A × Track B",
   "using_real_audio": true,
-  "stem_upload_seconds": 77,
+  "stem_upload_seconds": 17,
   "styles": [
     {
       "mode": "clean_blend",
@@ -11,7 +11,7 @@
         {
           "label": "mix",
           "start_seconds": 0,
-          "bar_length": 71
+          "bar_length": 9
         }
       ],
       "sections": [
@@ -19,28 +19,28 @@
           "label": "mix",
           "source": "mix",
           "start_seconds": 0,
-          "duration_seconds": 180,
-          "bar_length": 71,
+          "duration_seconds": 15,
+          "bar_length": 9,
           "start_bar": 0
         }
       ],
-      "bpm_estimate": 94.2,
+      "bpm_estimate": 136.22,
       "key_compatibility": "clash",
       "camelot": null,
       "plan_score": 58,
       "confidence_tier": "low",
-      "anchor_offset_ms": -7260.7,
+      "anchor_offset_ms": 6.1,
       "phrase_alignment": null,
-      "wav_export_artifact_id": "7b6ba8b552e14752b73c107d37bc7450",
-      "mp3_artifact_id": "c0812fb32be2434cb7b80e26db71a5d3",
+      "wav_export_artifact_id": "007e23f5b054412c87abedbfb50eb255",
+      "mp3_artifact_id": "83e7de7499564c60b2550f668fa364b7",
       "mp3_skip_reason": null,
-      "runtime_seconds": 28,
+      "runtime_seconds": 5,
       "warnings": [
         "Low arrangement confidence (58/100) — review before sharing.",
         "Key compatibility is weak — pitch shift or different section may sound better.",
-        "Large tempo stretch 28.4% — low confidence arrangement."
+        "Large tempo stretch 21.2% — low confidence arrangement."
       ],
-      "listening_note": "not in time",
+      "listening_note": "questionable",
       "passed": true
     },
     {
@@ -50,17 +50,17 @@
       "section_starts": [
         {
           "label": "intro",
-          "start_seconds": 94.4827,
+          "start_seconds": 5.0967,
           "bar_length": 4
         },
         {
           "label": "hook",
-          "start_seconds": 14.4776,
+          "start_seconds": 10.6928,
           "bar_length": 32
         },
         {
           "label": "outro",
-          "start_seconds": 96.0063,
+          "start_seconds": 67.0722,
           "bar_length": 4
         }
       ],
@@ -68,44 +68,44 @@
         {
           "label": "intro",
           "source": "instrumental",
-          "start_seconds": 94.4827,
-          "duration_seconds": 10.1911,
+          "start_seconds": 5.0967,
+          "duration_seconds": 7.0474,
           "bar_length": 4,
           "start_bar": 0
         },
         {
           "label": "hook",
           "source": "mix",
-          "start_seconds": 14.4776,
-          "duration_seconds": 81.5287,
+          "start_seconds": 10.6928,
+          "duration_seconds": 56.3794,
           "bar_length": 32,
           "start_bar": 4
         },
         {
           "label": "outro",
           "source": "instrumental",
-          "start_seconds": 96.0063,
-          "duration_seconds": 10.1911,
+          "start_seconds": 67.0722,
+          "duration_seconds": 7.0474,
           "bar_length": 4,
           "start_bar": 36
         }
       ],
-      "bpm_estimate": 94.2,
+      "bpm_estimate": 136.22,
       "key_compatibility": "clash",
       "camelot": null,
       "plan_score": 75,
       "confidence_tier": "medium",
-      "anchor_offset_ms": -7260.7,
+      "anchor_offset_ms": 6.1,
       "phrase_alignment": null,
-      "wav_export_artifact_id": "3d3c0239fafd445c8ba6dfbbbc13324c",
-      "mp3_artifact_id": "20c148a441e3490fa4d07b82a26b8a77",
+      "wav_export_artifact_id": "40ea3960b14e4e59b6af4c9c5ef7ac25",
+      "mp3_artifact_id": "88a53d7502514b6c85bdd0c2738e5d05",
       "mp3_skip_reason": null,
-      "runtime_seconds": 22,
+      "runtime_seconds": 4,
       "warnings": [
         "Key compatibility is weak — pitch shift or different section may sound better.",
-        "Large tempo stretch 28.4% — low confidence arrangement."
+        "Large tempo stretch 21.2% — low confidence arrangement."
       ],
-      "listening_note": "not in time",
+      "listening_note": "in time",
       "passed": true
     },
     {
@@ -115,27 +115,27 @@
       "section_starts": [
         {
           "label": "intro",
-          "start_seconds": 0,
+          "start_seconds": 0.0348,
           "bar_length": 8
         },
         {
           "label": "hook",
-          "start_seconds": 20.3822,
+          "start_seconds": 14.095,
           "bar_length": 16
         },
         {
           "label": "break",
-          "start_seconds": 61.1465,
+          "start_seconds": 42.2847,
           "bar_length": 8
         },
         {
           "label": "hook",
-          "start_seconds": 81.5287,
+          "start_seconds": 56.3795,
           "bar_length": 16
         },
         {
           "label": "outro",
-          "start_seconds": 122.293,
+          "start_seconds": 84.5692,
           "bar_length": 8
         }
       ],
@@ -143,63 +143,63 @@
         {
           "label": "intro",
           "source": "instrumental",
-          "start_seconds": 0,
-          "duration_seconds": 20.3822,
+          "start_seconds": 0.0348,
+          "duration_seconds": 14.0948,
           "bar_length": 8,
           "start_bar": 0
         },
         {
           "label": "hook",
           "source": "mix",
-          "start_seconds": 20.3822,
-          "duration_seconds": 40.7643,
+          "start_seconds": 14.095,
+          "duration_seconds": 28.1897,
           "bar_length": 16,
           "start_bar": 8
         },
         {
           "label": "break",
           "source": "instrumental",
-          "start_seconds": 61.1465,
-          "duration_seconds": 20.3822,
+          "start_seconds": 42.2847,
+          "duration_seconds": 14.0948,
           "bar_length": 8,
           "start_bar": 24
         },
         {
           "label": "hook",
           "source": "mix",
-          "start_seconds": 81.5287,
-          "duration_seconds": 40.7643,
+          "start_seconds": 56.3795,
+          "duration_seconds": 28.1897,
           "bar_length": 16,
           "start_bar": 32
         },
         {
           "label": "outro",
           "source": "instrumental",
-          "start_seconds": 122.293,
-          "duration_seconds": 20.3822,
+          "start_seconds": 84.5692,
+          "duration_seconds": 14.0948,
           "bar_length": 8,
           "start_bar": 48
         }
       ],
-      "bpm_estimate": 94.2,
+      "bpm_estimate": 136.22,
       "key_compatibility": "clash",
       "camelot": null,
       "plan_score": 72,
       "confidence_tier": "medium",
-      "anchor_offset_ms": -7260.7,
+      "anchor_offset_ms": 6.1,
       "phrase_alignment": null,
-      "wav_export_artifact_id": "6add89f9d93046b7b1eecfa5e55d6ee6",
-      "mp3_artifact_id": "49cdd43d51ff4593a169a9e1f626a857",
+      "wav_export_artifact_id": "d235d6c333024addb283121344f5c464",
+      "mp3_artifact_id": "5647bbcf5a3a4fefa0445e2d91eac552",
       "mp3_skip_reason": null,
-      "runtime_seconds": 23,
+      "runtime_seconds": 4,
       "warnings": [
         "Key compatibility is weak — pitch shift or different section may sound better.",
-        "Large tempo stretch 28.4% — low confidence arrangement."
+        "Large tempo stretch 21.2% — low confidence arrangement."
       ],
-      "listening_note": "not in time",
+      "listening_note": "in time",
       "passed": true
     }
   ],
   "passed": true,
-  "finished_at": "2026-07-02T02:54:32.644Z"
+  "finished_at": "2026-07-02T03:04:32.526Z"
 }

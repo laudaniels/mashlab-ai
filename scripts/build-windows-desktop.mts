@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 /** Build MashLab AI Windows portable desktop package (Electron). */
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DESKTOP_BUILD_OUTPUT_DIR,
   DESKTOP_PORTABLE_EXE_NAME,
   DESKTOP_PORTABLE_ZIP,
   DESKTOP_PRODUCT_NAME,
-  DESKTOP_UNPACKED_DIR,
 } from "../src/domain/desktopPackaging.ts";
 
 const root = process.cwd();
@@ -41,6 +40,33 @@ function zipPortableFolder(sourceDir: string, zipPath: string): void {
   execFileSync("zip", ["-r", zipPath, folderName], { cwd: parent, stdio: "inherit" });
 }
 
+function resetOutputDir(outputDir: string): void {
+  if (!existsSync(outputDir)) {
+    mkdirSync(outputDir, { recursive: true });
+    return;
+  }
+  try {
+    rmSync(outputDir, { recursive: true, force: true });
+  } catch {
+    const backup = `${outputDir}.bak-${Date.now()}`;
+    renameSync(outputDir, backup);
+  }
+  mkdirSync(outputDir, { recursive: true });
+}
+
+function resolveOutputDir(rootDir: string): string {
+  const preferred = join(rootDir, DESKTOP_BUILD_OUTPUT_DIR);
+  try {
+    resetOutputDir(preferred);
+    return preferred;
+  } catch {
+    const alternate = join(rootDir, `${DESKTOP_BUILD_OUTPUT_DIR}-fresh`);
+    resetOutputDir(alternate);
+    console.log(`Using alternate desktop output dir: ${alternate}`);
+    return alternate;
+  }
+}
+
 function main(): void {
   console.log("MashLab AI — Windows desktop packaging");
   console.log("Approach: Electron portable folder + optional single-file portable exe");
@@ -48,24 +74,26 @@ function main(): void {
   run(npmCmd, ["run", "build"], "Vite production build");
   run(npmCmd, ["run", "desktop:check"], "Desktop runtime preflight");
 
-  const outputDir = join(root, DESKTOP_BUILD_OUTPUT_DIR);
-  if (existsSync(outputDir)) {
-    rmSync(outputDir, { recursive: true, force: true });
-  }
-  mkdirSync(outputDir, { recursive: true });
+  const outputDir = resolveOutputDir(root);
+  const unpackedDir = join(outputDir, "win-unpacked");
+  const portableExe = join(outputDir, DESKTOP_PORTABLE_EXE_NAME);
+  const zipPath = join(outputDir, DESKTOP_PORTABLE_ZIP.split("/").pop() ?? "MashLabAI-Windows-Portable.zip");
 
   run(
     npxCmd,
-    ["electron-builder", "--win", "dir", "portable", "-c.electronVersion=33.2.1"],
+    [
+      "electron-builder",
+      "--win",
+      "dir",
+      "portable",
+      "-c.electronVersion=33.2.1",
+      `--config.directories.output=${outputDir.replace(/\\/g, "/")}`,
+    ],
     "electron-builder (win-unpacked + portable exe)"
   );
 
-  const unpackedDir = join(root, DESKTOP_UNPACKED_DIR);
-  const portableExe = join(outputDir, DESKTOP_PORTABLE_EXE_NAME);
-  const zipPath = join(root, DESKTOP_PORTABLE_ZIP);
-
   if (!existsSync(unpackedDir)) {
-    throw new Error(`Expected unpacked build at ${DESKTOP_UNPACKED_DIR}`);
+    throw new Error(`Expected unpacked build at ${unpackedDir}`);
   }
 
   const launcherReadme = join(unpackedDir, "README-FIRST.txt");

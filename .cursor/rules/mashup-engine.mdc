@@ -1,0 +1,37 @@
+---
+description: MashLab mashup engine architecture and implementation guardrails
+alwaysApply: true
+---
+
+# MashLab AI Mashup Engine Rule
+
+- Professional DJ-assistant mashup engine — not a one-button toy.
+- Hybrid: music analysis + DSP + AI stem separation. No single magic end-to-end model.
+- DJ-ready draft quality goal; manual override for beatgrid, BPM, key, phrases, stems, transitions, EQ/fades, render quality.
+
+## Canonical state (already shipped)
+
+- RC4: section picker
+- RC6: Remix Brain / DJ sync
+- RC7: Arrangement Brain (Clean Blend, Hook Remix, DJ Edit)
+- Windows Desktop RC1 (`mashlab-windows-desktop-rc1` @ master `dd24daa`)
+- Import, metadata, Demucs stems, FFmpeg/Rubber Band export, Quick Mix path exist
+
+## Pipeline north star
+
+import → analyze (BPM/key/structure) → anchor → stems → align → stretch/pitch → transition render → QC → export + metadata
+
+## Guardrails
+
+- **Do not rebuild** import/stem/Remix Brain/Arrangement Brain unless fixing a specific bug or scoped extension.
+- **Branch from canonical `master`** — no parallel rewrite app or unrelated history.
+- License notes (GPL/AGPL, Rubber Band, Essentia) apply to **packaging/distribution**, not local dev unless bundling into a ship artifact.
+- Local-only, rights-neutral scope preserved.
+
+## Next phase
+
+**Phase 45 — Windows First-Run Setup Assistant:** guide desktop users through venv, Demucs/PyTorch, FFmpeg/ffprobe, Rubber Band, PATH, sidecar startup, port conflicts.
+
+## Anti-goals
+
+No generative AI music creation, end-to-end neural mashup models, social/cloud features, or perfect-automation claims.

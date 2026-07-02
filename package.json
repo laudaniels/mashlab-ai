@@ -1,0 +1,20 @@
+{
+  "name": "dj-remix-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DJ Remix Studio — local Quick Mix with Remix Brain",
+  "scripts": {
+    "lint": "npm run lint --prefix frontend",
+    "typecheck": "npm run typecheck --prefix frontend",
+    "test": "node scripts/run-python-tests.mjs",
+    "build": "npm run build --prefix frontend",
+    "check:local-engine": "node scripts/check-local-engine.mjs",
+    "setup:windows:check": "node scripts/setup-windows-check.mjs",
+    "setup:windows:check:strict": "node scripts/setup-windows-check.mjs --strict",
+    "check:python-service": "node scripts/check-python-service.mjs",
+    "check:python-service:test": "node scripts/check-python-service.mjs --test",
+    "smoke:quick-mix": "node scripts/smoke-quick-mix.mjs",
+    "smoke:quick-mix:browser": "node scripts/smoke-quick-mix-browser.mjs",
+    "smoke:quick-mix:remix-brain": "node scripts/smoke-remix-brain.mjs"
+  }
+}

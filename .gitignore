@@ -1,0 +1,21 @@
+# Python
+backend/venv/
+backend/.venv/
+__pycache__/
+*.pyc
+
+# Backend runtime artifacts
+backend/tmp/**
+!backend/tmp/.gitkeep
+backend/samples/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+frontend/tsconfig.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db

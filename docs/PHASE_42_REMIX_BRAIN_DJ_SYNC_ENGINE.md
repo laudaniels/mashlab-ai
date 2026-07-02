@@ -63,15 +63,17 @@ RC4 used time-based section windows only. Phase 42 adds DJ-theory planning: temp
 
 ## Local QA (redacted)
 
-Operator QA on this machine used **Track A (vocal) × Track B (beat)** only:
+Operator QA on this machine used **Track A (vocal) × Track B (beat)** via env vars only:
 
-| Case | Stretch | Anchor offset | Tier |
-|------|---------|---------------|------|
-| default | ~−0.6% | ~−5 ms | medium |
-| +4 bars | ~−0.6% | ~−6 ms | medium |
-| manual nudge | ~−0.6% | ~−11 ms | medium |
+| Case | Stretch | Anchor offset | Tier | Listening |
+|------|---------|---------------|------|-----------|
+| easy_default | −0.65% | −5.2 ms | medium | in time |
+| custom_section | −0.65% | +10.3 ms | medium | in time |
+| plus_4_bars | −0.65% | −5.7 ms | medium | in time |
+| half_time | −0.65% | −5.2 ms | medium | in time |
+| manual_nudge | −0.65% | −11.4 ms | medium | in time |
 
-Logs and reports use redacted labels only. No commercial filenames or audio are committed.
+Plan score ~76/100, tempo ratio ~0.993, pitch shift +3 st (key warning surfaced). WAV + MP3 artifacts created per case. Logs and reports use redacted labels only. No commercial filenames or audio are committed.
 
 ## Limitations (v1)
 

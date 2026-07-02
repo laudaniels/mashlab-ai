@@ -93,7 +93,15 @@ def main() -> None:
         time.sleep(1.0)
 
     assert status == "done", f"job did not finish cleanly: {j}"
-    print("remix params:", j["params"])
+    params = j.get("params") or {}
+    print(
+        "remix score:",
+        (params.get("plan") or {}).get("score"),
+        "tier:",
+        params.get("confidence_tier"),
+        "validation:",
+        (params.get("validation") or {}).get("passed"),
+    )
 
     out = requests.get(f"{BASE}/api/result/{job_id}?fmt=mp3", timeout=60)
     out.raise_for_status()

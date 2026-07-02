@@ -12,7 +12,8 @@
 - [x] No committed audio artifacts
 - [x] Python unit tests (phrase, remix_brain, validate, beatgrid, smoke)
 - [x] `npm run smoke:quick-mix:remix-brain` script
-- [x] Local operator QA anchor offset < 70 ms on Track A × Track B
+- [x] Local operator QA anchor offset < 70 ms on Track A × Track B (RC5 gate run)
+- [x] `npm run check:python-service:test` passes with backend up
 
 ## Pre-tag verification
 

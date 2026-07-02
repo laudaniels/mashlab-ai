@@ -18,7 +18,11 @@ if (health.status !== 0) {
 console.log("OK — python service imports");
 
 if (runTests) {
-  const r = spawnSync(py, ["-m", "tests.api_test"], { cwd: backend, stdio: "inherit" });
+  const r = spawnSync(py, ["-m", "tests.api_test"], {
+    cwd: backend,
+    stdio: "inherit",
+    env: { ...process.env, PYTHONIOENCODING: "utf-8" },
+  });
   if (r.status !== 0) process.exit(r.status ?? 1);
   console.log("PASS — python service HTTP test");
 } else {

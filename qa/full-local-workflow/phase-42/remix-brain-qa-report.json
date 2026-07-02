@@ -1,0 +1,9 @@
+{
+  "label": "Track A × Track B",
+  "plan_score": 51.8,
+  "confidence_tier": "low",
+  "anchor_offset_ms": 9,
+  "alignment_offset_ms": 9,
+  "wav_export_artifact_id": "37463d42d0c24606a7b42d8871c3e813",
+  "passed": true
+}

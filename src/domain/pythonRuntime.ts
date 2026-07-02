@@ -59,6 +59,12 @@ export const PYTHON_SERVICE_COMPILE_TARGETS = [
   "local-engine/service/remix_brain/beatgrid.py",
   "local-engine/service/remix_brain/analysis.py",
   "local-engine/service/remix_brain/io_utils.py",
+  "local-engine/service/arrangement_brain_processing.py",
+  "local-engine/service/arrangement_export_processing.py",
+  "local-engine/service/arrangement_brain/__init__.py",
+  "local-engine/service/arrangement_brain/models.py",
+  "local-engine/service/arrangement_brain/planner.py",
+  "local-engine/service/arrangement_brain/scoring.py",
 ] as const;
 
 export const ANALYSIS_SETUP_GUIDANCE =

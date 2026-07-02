@@ -36,6 +36,11 @@ import { QuickMixOutputPanel } from "./quickMix/QuickMixOutputPanel.tsx";
 import { QuickMixProgressPanel } from "./quickMix/QuickMixProgressPanel.tsx";
 import { QuickMixReadinessBanner } from "./quickMix/QuickMixReadinessBanner.tsx";
 import { QuickMixSectionPicker } from "./quickMix/QuickMixSectionPicker.tsx";
+import { QuickMixStylePicker } from "./quickMix/QuickMixStylePicker.tsx";
+import {
+  DEFAULT_ARRANGEMENT_STYLE,
+  type ArrangementStyle,
+} from "../domain/arrangementBrain.ts";
 
 interface QuickMixAppProps {
   onOpenAdvancedStudio: () => void;
@@ -56,6 +61,9 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
   });
   const [sectionDrafts, setSectionDrafts] = useState(createInitialSectionDrafts);
   const [useSameStart, setUseSameStart] = useState(false);
+  const [arrangementStyle, setArrangementStyle] = useState<ArrangementStyle>(
+    DEFAULT_ARRANGEMENT_STYLE
+  );
   const [sourceDurations, setSourceDurations] = useState<{ vocal: number | null; instrumental: number | null }>({
     vocal: null,
     instrumental: null,
@@ -212,6 +220,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
         instrumentalSection: sections.instrumentalSection,
         vocalDurationSeconds: sourceDurations.vocal,
         instrumentalDurationSeconds: sourceDurations.instrumental,
+        arrangementStyle,
       },
       setProgressSteps
     );
@@ -231,6 +240,7 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
     setUploadErrors({ vocal: null, instrumental: null });
     setSectionDrafts(createInitialSectionDrafts());
     setUseSameStart(false);
+    setArrangementStyle(DEFAULT_ARRANGEMENT_STYLE);
     setSourceDurations({ vocal: null, instrumental: null });
     setOutput(null);
     setMixFailure(null);
@@ -331,6 +341,18 @@ export function QuickMixApp({ onOpenAdvancedStudio }: QuickMixAppProps) {
                 />
                 {QUICK_MIX_SAME_START_TOGGLE_LABEL}
               </label>
+            ) : null}
+
+            {uploads.vocalFile && uploads.instrumentalFile ? (
+              <QuickMixStylePicker
+                disabled={mixing}
+                onChange={(style) => {
+                  setArrangementStyle(style);
+                  setOutput(null);
+                  setMixFailure(null);
+                }}
+                value={arrangementStyle}
+              />
             ) : null}
 
             <div className="quick-mix-actions">

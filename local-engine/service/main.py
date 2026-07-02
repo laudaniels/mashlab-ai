@@ -18,6 +18,8 @@ from phrase_analysis import analyze_phrase_file
 from metadata import analyze_metadata_file
 from pitch_time_planning import PitchTimePlanRequest, PitchTimePlanResponse, build_pitch_time_plan
 from remix_brain_processing import RemixBrainPlanFailure, build_remix_brain_plan
+from arrangement_brain_processing import ArrangementBrainPlanFailure, build_arrangement_brain_plan
+from arrangement_export_processing import create_arrangement_wav_export
 from artifact_management import (
     ArtifactOperationFailure,
     ArtifactMetadataSuccess,
@@ -64,6 +66,9 @@ from models import (
     RhythmSelfTestResponse,
     RemixBrainPlanRequest,
     RemixBrainPlanResponse,
+    ArrangementBrainPlanRequest,
+    ArrangementBrainPlanResponse,
+    ArrangementWavExportRequest,
     CombinedPreviewInputSummaryModel,
     CombinedPreviewProcessingSummaryModel,
     CombinedPreviewRequest,
@@ -334,6 +339,156 @@ async def plan_remix_brain(request: RemixBrainPlanRequest) -> RemixBrainPlanResp
         pitch_shift_semitones=result["pitch_shift_semitones"],
         vocal_analysis=result["vocal_analysis"],
         instrumental_analysis=result["instrumental_analysis"],
+    )
+
+
+@app.post("/v1/plan/arrangement-brain", response_model=ArrangementBrainPlanResponse)
+async def plan_arrangement_brain(request: ArrangementBrainPlanRequest) -> ArrangementBrainPlanResponse:
+    try:
+        result = await run_in_threadpool(
+            build_arrangement_brain_plan,
+            vocal_stem_artifact_id=request.source_vocal_stem_artifact_id,
+            instrumental_stem_artifact_id=request.target_instrumental_stem_artifact_id,
+            arrangement_mode=request.arrangement_mode,
+            section_start_sec=request.section_start_sec,
+            section_duration_sec=request.section_duration_sec,
+        )
+    except ArrangementBrainPlanFailure as error:
+        return ArrangementBrainPlanResponse(
+            ok=False,
+            status=error.status,
+            message=error.message,
+            setup_guidance=error.setup_guidance,
+        )
+    except RemixBrainPlanFailure as error:
+        return ArrangementBrainPlanResponse(
+            ok=False,
+            status=error.status,
+            message=error.message,
+            setup_guidance=error.setup_guidance,
+        )
+    except Exception as error:
+        return ArrangementBrainPlanResponse(
+            ok=False,
+            status="failed",
+            message=f"Arrangement Brain planning failed: {error}",
+        )
+
+    return ArrangementBrainPlanResponse(
+        ok=True,
+        status="planned",
+        message="Arrangement plan generated. No audio rendered yet.",
+        arrangement_plan=result["arrangement_plan"],
+        arrangement_summary=result["arrangement_summary"],
+        remix_plan=result["remix_plan"],
+        remix_plan_summary=result["remix_plan_summary"],
+        alignment_offset_ms=result["alignment_offset_ms"],
+        tempo_ratio=result["tempo_ratio"],
+        pitch_shift_semitones=result["pitch_shift_semitones"],
+    )
+
+
+@app.post("/v1/export/arrangement-wav", response_model=FullWavExportResponse)
+async def export_arrangement_wav(request: ArrangementWavExportRequest) -> FullWavExportResponse:
+    result = await run_in_threadpool(
+        create_arrangement_wav_export,
+        source_vocal_stem_artifact_id=request.source_vocal_stem_artifact_id,
+        target_instrumental_stem_artifact_id=request.target_instrumental_stem_artifact_id,
+        arrangement_plan=request.arrangement_plan,
+        tempo_ratio=request.tempo_ratio,
+        pitch_shift_semitones=request.pitch_shift_semitones,
+        alignment_offset_ms=request.alignment_offset_ms,
+        export_label=request.export_label,
+        loudness_target_mode=request.loudness_target_mode,
+        neutral_processing=request.neutral_processing,
+        confirm_neutral_settings=request.confirm_neutral_settings,
+        vocal_gain_db=request.vocal_gain_db,
+        instrumental_gain_db=request.instrumental_gain_db,
+        master_gain_db=request.master_gain_db,
+        limiter_safety=request.limiter_safety,
+        clipping_guard=request.clipping_guard,
+        instrumental_duck_under_vocal=request.instrumental_duck_under_vocal,
+    )
+    if not result.ok:
+        return FullWavExportResponse(
+            ok=False,
+            status=result.status,
+            message=result.message,
+            setup_guidance=getattr(result, "setup_guidance", None),
+            validation_errors=getattr(result, "validation_errors", None),
+            final_export=False,
+            public_share=False,
+        )
+
+    loudness_model = None
+    gate_model = None
+    if getattr(result, "loudness", None) is not None:
+        loudness_model = LoudnessReadoutModel(
+            integrated_lufs=result.loudness.integrated_lufs,
+            true_peak_dbtp=result.loudness.true_peak_dbtp,
+            peak_level_db=result.loudness.peak_level_db,
+            status=result.loudness.status,
+            message=result.loudness.message,
+        )
+    if getattr(result, "loudness_gate", None) is not None:
+        gate_model = LoudnessGateModel(
+            status=result.loudness_gate.status,
+            message=result.loudness_gate.message,
+            integrated_lufs=result.loudness_gate.integrated_lufs,
+            true_peak_dbtp=result.loudness_gate.true_peak_dbtp,
+            target_integrated_lufs=result.loudness_gate.target_integrated_lufs,
+            target_true_peak_dbtp=result.loudness_gate.target_true_peak_dbtp,
+        )
+
+    input_summary = None
+    processing_summary = None
+    if getattr(result, "input_summary", None) is not None:
+        input_summary = FullExportInputSummaryModel(
+            mash_intent=result.input_summary.mash_intent,
+            source_vocal_stem_artifact_id=result.input_summary.source_vocal_stem_artifact_id,
+            target_instrumental_stem_artifact_id=result.input_summary.target_instrumental_stem_artifact_id,
+            tempo_ratio=result.input_summary.tempo_ratio,
+            pitch_shift_semitones=result.input_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.input_summary.alignment_offset_ms,
+            neutral_processing=result.input_summary.neutral_processing,
+            mix_settings=_mix_settings_model(result.input_summary.mix_settings),
+        )
+    if getattr(result, "processing_summary", None) is not None:
+        processing_summary = FullExportProcessingSummaryModel(
+            method=result.processing_summary.method,
+            vocal_rubberband_ratio=result.processing_summary.vocal_rubberband_ratio,
+            pitch_shift_semitones=result.processing_summary.pitch_shift_semitones,
+            alignment_offset_ms=result.processing_summary.alignment_offset_ms,
+            full_length=result.processing_summary.full_length,
+            max_test_seconds=result.processing_summary.max_test_seconds,
+            mix_settings=_mix_settings_model(result.processing_summary.mix_settings),
+            limiter_safety_applied=result.processing_summary.limiter_safety_applied,
+            clipping_guard_applied=result.processing_summary.clipping_guard_applied,
+            instrumental_duck_applied=result.processing_summary.instrumental_duck_applied,
+        )
+
+    return FullWavExportResponse(
+        ok=True,
+        status=result.status,
+        message=result.message,
+        export_artifact_id=result.export_artifact_id,
+        artifact_url=result.artifact_url,
+        download_url=result.download_url,
+        input_summary=input_summary,
+        processing_summary=processing_summary,
+        file_size_bytes=result.file_size_bytes,
+        duration_seconds=result.duration_seconds,
+        sample_rate=result.sample_rate,
+        channel_count=result.channel_count,
+        codec=result.codec,
+        loudness=loudness_model,
+        loudness_gate=gate_model,
+        final_export=result.final_export,
+        public_share=result.public_share,
+        rights_notice=result.rights_notice,
+        warnings=result.warnings,
+        limitations=result.limitations,
+        export_label=result.export_label,
     )
 
 

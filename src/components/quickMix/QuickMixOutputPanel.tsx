@@ -81,6 +81,27 @@ export function QuickMixOutputPanel({
             ) : null}
           </div>
         ) : null}
+        {output.arrangementCard ? (
+          <div className="quick-mix-arrangement-card" role="status">
+            <p className="quick-mix-arrangement-style">
+              Style: {output.arrangementCard.styleLabel} · {output.arrangementCard.confidenceTier}{" "}
+              confidence · score {output.arrangementCard.score.toFixed(0)}/100
+            </p>
+            <p>
+              Arrangement: <strong>{output.arrangementCard.summaryLine}</strong>
+            </p>
+            <p>{output.arrangementCard.syncLabel}</p>
+            <p>{output.arrangementCard.tempoLabel}</p>
+            <p>Key: {output.arrangementCard.keyLabel}</p>
+            {output.arrangementCard.warnings.length > 0 ? (
+              <ul className="quick-mix-arrangement-warnings">
+                {output.arrangementCard.warnings.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {output.wavPlaybackUrl ? (

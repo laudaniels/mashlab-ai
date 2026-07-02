@@ -31,6 +31,7 @@
     "smoke:quick-mix:browser": "node --experimental-strip-types scripts/quick-mix-browser-smoke.mts",
     "smoke:quick-mix:section-qa": "node --experimental-strip-types scripts/quick-mix-section-browser-qa.mts",
     "smoke:quick-mix:remix-brain": "node --experimental-strip-types scripts/quick-mix-remix-brain-qa.mts",
+    "smoke:quick-mix:arrangement-brain": "node --experimental-strip-types scripts/quick-mix-arrangement-brain-qa.mts",
     "check:local-engine": "node --experimental-strip-types local-engine/check-binaries.mts",
     "check:python-service": "node --experimental-strip-types scripts/python-service-check.mts compile",
     "check:python-service:test": "node --experimental-strip-types scripts/python-service-check.mts test",

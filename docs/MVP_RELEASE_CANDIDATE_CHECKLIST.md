@@ -48,6 +48,40 @@ See [QUICK_MIX_MODE.md](./QUICK_MIX_MODE.md) · [PHASE_40_TRUE_PEAK_SAFETY.md](.
 
 ---
 
+## Phase 42 — Remix Brain (RC6 integration)
+
+| Field | Value |
+|-------|-------|
+| **Published tag** | `mashlab-remix-brain-integrated-rc6` |
+| **Base commit** | `6430f89` |
+| **Doc** | [PHASE_42_REMIX_BRAIN_DJ_SYNC_ENGINE.md](./PHASE_42_REMIX_BRAIN_DJ_SYNC_ENGINE.md) |
+
+- [x] Anchor-based plan before export  
+- [x] Quick Mix plan/confidence card  
+- [x] `npm run smoke:quick-mix:remix-brain`  
+- [x] RC4 section picker preserved  
+
+---
+
+## Phase 43 — Arrangement Brain (post-RC6, pre-next RC)
+
+| Field | Value |
+|-------|-------|
+| **Branch** | `feature/phase-43-arrangement-brain` |
+| **Baseline** | `mashlab-remix-brain-integrated-rc6` @ `6430f89` |
+| **Doc** | [PHASE_43_ARRANGEMENT_BRAIN.md](./PHASE_43_ARRANGEMENT_BRAIN.md) |
+
+- [x] Style selector: Clean Blend (default) · Hook Remix · DJ Edit  
+- [x] `ArrangementPlan` model + bar-aligned sections  
+- [x] `POST /v1/plan/arrangement-brain` + `POST /v1/export/arrangement-wav`  
+- [x] Output panel: style, arrangement summary, confidence, warnings  
+- [x] Node + Python tests  
+- [x] `npm run smoke:quick-mix:arrangement-brain`  
+- [x] Full QA gate + synthetic test-audio QA (Track A / Track B redacted)  
+- [ ] **Next RC tag only after explicit approval**
+
+---
+
 ## Quick Mix MVP release candidate (RC2 + polish branch — historical)
 
 | Field | Value |

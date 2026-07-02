@@ -5112,6 +5112,144 @@ describe("Quick Mix section picker (Phase 41)", async () => {
   });
 });
 
+describe("Quick Mix Arrangement Brain (Phase 43)", async () => {
+  const {
+    DEFAULT_ARRANGEMENT_STYLE,
+    ARRANGEMENT_STYLE_OPTIONS,
+    buildQuickMixArrangementCard,
+    arrangementStyleLabel,
+  } = await importSrc("src/domain/arrangementBrain.ts");
+  const { quickMixPipelineShowsDone, failQuickMixProgress, createInitialQuickMixProgress } =
+    await importSrc("src/domain/quickMix.ts");
+  const { readFile } = await import("node:fs/promises");
+
+  it("defaults style selector to Clean Blend", () => {
+    assert.equal(DEFAULT_ARRANGEMENT_STYLE, "clean_blend");
+    assert.equal(ARRANGEMENT_STYLE_OPTIONS[0]?.id, "clean_blend");
+    assert.equal(arrangementStyleLabel("clean_blend"), "Clean Blend");
+  });
+
+  it("builds arrangement summary card for Hook Remix and DJ Edit", () => {
+    const hookCard = buildQuickMixArrangementCard(
+      {
+        mode: "hook_remix",
+        mode_label: "Hook Remix",
+        summary_line: "Intro → Hook → Outro",
+        score: 72,
+        confidence_tier: "medium",
+        warnings: [],
+        score_breakdown: {},
+        total_duration_seconds: 48,
+        tempo_label: "hook @ 120 BPM",
+        key_label: "compatible",
+        sync_label: "phrase aligned",
+      },
+      {
+        sections: [
+          { label: "hook", source: "mix", start_seconds: 8, duration_seconds: 32, bar_length: 16 },
+        ],
+      }
+    );
+    assert.ok(hookCard);
+    assert.match(hookCard!.summaryLine, /Hook/);
+
+    const djCard = buildQuickMixArrangementCard(
+      {
+        mode: "dj_edit",
+        mode_label: "DJ Edit",
+        summary_line: "Intro → Hook → Break → Hook → Outro",
+        score: 81,
+        confidence_tier: "high",
+        warnings: [],
+        score_breakdown: {},
+        total_duration_seconds: 56,
+        tempo_label: "DJ edit @ 120 BPM",
+        key_label: "compatible",
+        sync_label: "bar-aligned",
+      },
+      {
+        sections: [
+          { label: "intro", bar_length: 8 },
+          { label: "hook", bar_length: 16 },
+          { label: "break", bar_length: 8 },
+          { label: "hook", bar_length: 16 },
+          { label: "outro", bar_length: 8 },
+        ],
+      }
+    );
+    assert.ok(djCard);
+    assert.match(djCard!.summaryLine, /Break/);
+  });
+
+  it("uses bar-aligned section lengths in arrangement card sections", () => {
+    const card = buildQuickMixArrangementCard(
+      {
+        mode: "dj_edit",
+        mode_label: "DJ Edit",
+        summary_line: "Intro → Hook → Break → Hook → Outro",
+        score: 70,
+        confidence_tier: "medium",
+        warnings: [],
+        score_breakdown: {},
+        total_duration_seconds: 56,
+        tempo_label: "120 BPM",
+        key_label: "compatible",
+        sync_label: "aligned",
+      },
+      {
+        sections: [
+          { label: "intro", bar_length: 8, duration_seconds: 16 },
+          { label: "hook", bar_length: 16, duration_seconds: 32 },
+        ],
+      }
+    );
+    assert.ok(card?.sections.every((s) => [4, 8, 16, 32].includes(s.bar_length)));
+  });
+
+  it("surfaces low-confidence warnings instead of hiding them", () => {
+    const card = buildQuickMixArrangementCard(
+      {
+        mode: "hook_remix",
+        mode_label: "Hook Remix",
+        summary_line: "Hook",
+        score: 58,
+        confidence_tier: "low",
+        warnings: ["Low arrangement confidence (58/100) — review before sharing."],
+        score_breakdown: {},
+        total_duration_seconds: 32,
+        tempo_label: "120 BPM",
+        key_label: "clash",
+        sync_label: "weak",
+      },
+      { sections: [{ label: "hook", bar_length: 16 }] }
+    );
+    assert.equal(card?.confidenceTier, "low");
+    assert.ok(card?.warnings.some((w) => /low arrangement confidence/i.test(w)));
+  });
+
+  it("does not mark Done complete after failure", () => {
+    const failed = failQuickMixProgress(createInitialQuickMixProgress(), "checking_files");
+    assert.equal(quickMixPipelineShowsDone(failed), false);
+  });
+
+  it("wires style picker and arrangement card in Quick Mix UI", async () => {
+    const appSource = await readFile(new URL("../src/components/QuickMixApp.tsx", import.meta.url), "utf8");
+    const panelSource = await readFile(
+      new URL("../src/components/quickMix/QuickMixOutputPanel.tsx", import.meta.url),
+      "utf8"
+    );
+    assert.match(appSource, /QuickMixStylePicker/);
+    assert.match(appSource, /DEFAULT_ARRANGEMENT_STYLE/);
+    assert.match(appSource, /arrangementStyle/);
+    assert.match(panelSource, /arrangementCard/);
+  });
+
+  it("avoids cloud/downloader/public-sharing language in arrangement copy", () => {
+    const copy = ARRANGEMENT_STYLE_OPTIONS.map((o) => `${o.label} ${o.description}`).join("\n");
+    assert.ok(!/cloud upload|downloader|public sharing|streaming import/i.test(copy));
+  });
+});
+
 describe("Sidecar responsiveness under load (Phase 38)", async () => {
   const { readFile } = await import("node:fs/promises");
   const mainSource = await readFile(

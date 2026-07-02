@@ -1,0 +1,88 @@
+{
+  "label": "Track A × Track B",
+  "appUrl": "http://127.0.0.1:5173/",
+  "usingRealAudio": true,
+  "cases": [
+    {
+      "style": "clean_blend",
+      "styleLabel": "Clean Blend",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "stylePickerVisible": true,
+      "totalSeconds": 141,
+      "ok": true,
+      "outcome": "completed",
+      "arrangementStyleText": "Style: Clean Blend · low confidence · score 58/100",
+      "arrangementSummaryText": "Mix",
+      "arrangementWarnings": [
+        "Low arrangement confidence (58/100) — review before sharing.",
+        "Key compatibility is weak — pitch shift or different section may sound better.",
+        "Large tempo stretch 28.7% — low confidence arrangement."
+      ],
+      "rightsNoticeVisible": true,
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "wavArtifactId": "a4c1bf4add834d16935826624cad0634",
+      "mp3ArtifactId": "24d56169bc1c47c29353d6d417f9c367",
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "style": "hook_remix",
+      "styleLabel": "Hook Remix",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "stylePickerVisible": true,
+      "totalSeconds": 102,
+      "ok": true,
+      "outcome": "completed",
+      "arrangementStyleText": "Style: Hook Remix · medium confidence · score 75/100",
+      "arrangementSummaryText": "Intro → Hook → Outro",
+      "arrangementWarnings": [
+        "Key compatibility is weak — pitch shift or different section may sound better.",
+        "Large tempo stretch 28.6% — low confidence arrangement."
+      ],
+      "rightsNoticeVisible": true,
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "wavArtifactId": "e579e84bfb5846c784ee2823594e7e18",
+      "mp3ArtifactId": "ffd1374620b24c25878a04e223f9c4a3",
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "style": "dj_edit",
+      "styleLabel": "DJ Edit",
+      "trackA": "Track A (vocal source)",
+      "trackB": "Track B (instrumental source)",
+      "stylePickerVisible": true,
+      "totalSeconds": 106,
+      "ok": true,
+      "outcome": "completed",
+      "arrangementStyleText": "Style: DJ Edit · medium confidence · score 72/100",
+      "arrangementSummaryText": "Intro → Hook → Break → Hook → Outro",
+      "arrangementWarnings": [
+        "Key compatibility is weak — pitch shift or different section may sound better.",
+        "Large tempo stretch 28.5% — low confidence arrangement."
+      ],
+      "rightsNoticeVisible": true,
+      "hasWavDownload": true,
+      "hasMp3Download": true,
+      "mp3SkippedReason": null,
+      "wavArtifactId": "6ddc97713639439dad00b7283682eb5f",
+      "mp3ArtifactId": "eb19cfbfe4ff4e548b41d6ef573e72b0",
+      "playableOutput": true,
+      "falseDone": false,
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  ],
+  "passed": true,
+  "finishedAt": "2026-07-02T02:49:47.534Z"
+}

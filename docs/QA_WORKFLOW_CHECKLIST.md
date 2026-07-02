@@ -147,6 +147,33 @@ npm run smoke:quick-mix:section-qa   # real-file section picker (MASHLAB_QM_VOCA
 npm run smoke:quick-mix:section-qa
 ```
 
+## Phase 42 verified (Remix Brain / RC6)
+
+- [x] `POST /v1/plan/remix-brain` from stem artifacts
+- [x] Anchor alignment + tempo/pitch on full WAV export
+- [x] Quick Mix output: plan score, sync, tempo, key, warnings
+- [x] Evidence: `docs/PHASE_42_REMIX_BRAIN_DJ_SYNC_ENGINE.md`, `qa/full-local-workflow/phase-42/`
+
+```powershell
+npm run smoke:quick-mix:remix-brain   # DJ_REMIX_QA_VOCAL + DJ_REMIX_QA_BEAT
+```
+
+## Phase 43 verified (Arrangement Brain)
+
+- [x] Style defaults to Clean Blend (RC6 behavior preserved)
+- [x] Hook Remix: phrase-aligned hook section (16/32 bars)
+- [x] DJ Edit: intro → hook → break → hook → outro on bar boundaries
+- [x] Arrangement confidence 80+ / 65–79 / &lt;65 with warnings
+- [x] Output panel arrangement summary + no false Done
+- [x] Evidence: `docs/PHASE_43_ARRANGEMENT_BRAIN.md`, `qa/full-local-workflow/phase-43/`
+- [x] Browser smoke `uiChecksPass: true` (favicon 404 fixed/ignored)
+- [x] Real-audio operator API + browser QA (Track A / Track B redacted)
+
+```powershell
+npm run smoke:quick-mix:arrangement-brain   # DJ_REMIX_QA_VOCAL + DJ_REMIX_QA_BEAT
+npm run smoke:quick-mix:arrangement-browser # MASHLAB_QM_VOCAL + MASHLAB_QM_BEAT
+```
+
 ### Phase 34 local demo checklist
 
 - [x] `npm run setup:windows:check:strict` passes

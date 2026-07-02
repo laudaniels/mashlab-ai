@@ -1,11 +1,13 @@
 {
-  "startedAt": "2026-07-01T04:42:18.635Z",
+  "startedAt": "2026-07-02T03:04:33.461Z",
   "appUrl": "http://127.0.0.1:5173/",
-  "phase": "phase-40-true-peak-safety",
+  "phase": "phase-43-arrangement-brain",
   "usingRealFiles": false,
   "trackA": "Track A (vocal source)",
   "trackB": "Track B (instrumental source)",
   "ok": true,
+  "stylePickerVisible": true,
+  "selectedStyleLabel": "Clean Blend",
   "outcome": "completed",
   "hasWavDownload": true,
   "hasMp3Download": true,
@@ -13,30 +15,34 @@
   "mixProfileText": "vocal +1.5 dB · bed -3.0 dB · master -1.0 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal",
   "mixProfileHasSafetyProfile": true,
   "loudnessNoticeVisible": true,
-  "loudnessNotice": "integrated -29.6 LUFS vs target -14 LUFS — informational gate only.",
+  "loudnessNotice": "integrated -34.4 LUFS vs target -14 LUFS — informational gate only.",
   "loudnessWarningsVisible": true,
   "loudnessWarnings": [
     "Staged limiter prototype (soft knee + -1.0 dBTP linear ceiling) on master bus — not professional mastering.",
     "Export peak-ceiling pass (~-1.0 dBTP prototype) after encode — DJ review required.",
-    "Integrated loudness -29.6 LUFS (available)."
+    "Integrated loudness -34.4 LUFS (available)."
   ],
   "listeningComparisonVisible": true,
   "listeningComparisonNotes": [
     "RC2 baseline: vocal +0.0 dB · bed +0.0 dB · master +0.0 dB · limiter on · clip guard on",
     "Phase 40 safety profile: vocal +1.5 dB · bed -3.0 dB · master -1.0 dB · limiter on · clip guard on · bed duck on · light bed duck under vocal"
   ],
+  "arrangementCardVisible": true,
+  "arrangementStyleText": "Style: Clean Blend · low confidence · score 58/100",
+  "arrangementSummaryText": "Mix",
   "falseDoneBeforeOutput": false,
   "stepCompletionSeconds": {
-    "Checking files": 5,
-    "Separating vocal": 13,
-    "Preparing instrumental": 21,
-    "Matching timing/key": 23,
-    "Mixing track": 23,
-    "Creating WAV export": 25
+    "Checking files": 3,
+    "Separating vocal": 9,
+    "Preparing instrumental": 17,
+    "Matching timing/key": 19,
+    "Mixing track": 19
   },
-  "totalSeconds": 27,
-  "lastHeartbeat": "Still separating the instrumental… 0:07 elapsed. CPU stem separation can take several minutes — this has not stopped.",
+  "totalSeconds": 21,
+  "lastHeartbeat": "Still separating the instrumental… 0:06 elapsed. CPU stem separation can take several minutes — this has not stopped.",
   "consoleErrors": [],
+  "ignoredConsoleErrors": [],
+  "failedRequests": [],
   "pageErrors": [],
-  "finishedAt": "2026-07-01T04:42:45.463Z"
+  "finishedAt": "2026-07-02T03:04:54.558Z"
 }

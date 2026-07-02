@@ -767,3 +767,44 @@ class RemixBrainPlanResponse(BaseModel):
     vocal_analysis: dict | None = None
     instrumental_analysis: dict | None = None
     setup_guidance: str | None = None
+
+
+class ArrangementBrainPlanRequest(BaseModel):
+    source_vocal_stem_artifact_id: str
+    target_instrumental_stem_artifact_id: str
+    arrangement_mode: str = "clean_blend"
+    section_start_sec: float | None = None
+    section_duration_sec: float | None = None
+
+
+class ArrangementBrainPlanResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    arrangement_plan: dict | None = None
+    arrangement_summary: dict | None = None
+    remix_plan: dict | None = None
+    remix_plan_summary: dict | None = None
+    alignment_offset_ms: float | None = None
+    tempo_ratio: float | None = None
+    pitch_shift_semitones: float | None = None
+    setup_guidance: str | None = None
+
+
+class ArrangementWavExportRequest(BaseModel):
+    source_vocal_stem_artifact_id: str
+    target_instrumental_stem_artifact_id: str
+    arrangement_plan: dict
+    tempo_ratio: float | None = None
+    pitch_shift_semitones: float = 0.0
+    alignment_offset_ms: float = 0.0
+    export_label: str | None = None
+    loudness_target_mode: str = "measurement_only"
+    neutral_processing: bool = False
+    confirm_neutral_settings: bool = False
+    vocal_gain_db: float = 0.0
+    instrumental_gain_db: float = 0.0
+    master_gain_db: float = 0.0
+    limiter_safety: bool = False
+    clipping_guard: bool = False
+    instrumental_duck_under_vocal: bool = False

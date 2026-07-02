@@ -53,6 +53,10 @@ import {
 } from "../../domain/quickMixStrategy.ts";
 import { buildQuickMixRemixBrainCard } from "../../domain/remixBrain.ts";
 import {
+  buildQuickMixArrangementCard,
+  type ArrangementStyle,
+} from "../../domain/arrangementBrain.ts";
+import {
   buildQuickMixSectionNotice,
   buildQuickMixSectionSummaryLines,
   effectiveQuickMixWindowSeconds,
@@ -76,6 +80,7 @@ export interface QuickMixRunInput {
   instrumentalSection: QuickMixSectionSelection;
   vocalDurationSeconds: number | null;
   instrumentalDurationSeconds: number | null;
+  arrangementStyle: ArrangementStyle;
 }
 
 export interface QuickMixRunResult {
@@ -396,12 +401,15 @@ export async function runQuickMixPipeline(
       });
     }
 
-    const brainPlan = await localEngineClient.planRemixBrain({
+    const arrangementPlan = await localEngineClient.planArrangementBrain({
       sourceVocalStemArtifactId: stemIds.sourceVocalStemArtifactId,
       targetInstrumentalStemArtifactId: stemIds.targetInstrumentalStemArtifactId,
+      arrangementMode: input.arrangementStyle,
       sectionStartSec: input.vocalSection.startOffsetSeconds,
       sectionDurationSec: input.vocalSection.windowSeconds,
     });
+
+    const brainPlan = arrangementPlan;
 
     const strategy =
       brainPlan?.ok && brainPlan.tempoRatio
@@ -410,7 +418,15 @@ export async function runQuickMixPipeline(
             beatBpm,
             tempoRatio: brainPlan.tempoRatio,
             pitchShiftSemitones: brainPlan.pitchShiftSemitones,
-            planSummary: brainPlan.planSummary,
+            planSummary: brainPlan.arrangementSummary
+              ? {
+                  tempo_label: brainPlan.arrangementSummary.tempo_label,
+                  key_label: brainPlan.arrangementSummary.key_label,
+                  warnings: brainPlan.arrangementSummary.warnings,
+                  score: brainPlan.arrangementSummary.score,
+                  confidence_tier: brainPlan.arrangementSummary.confidence_tier,
+                }
+              : null,
             librosaUsed,
           })
         : buildQuickMixTimingStrategy({
@@ -450,7 +466,13 @@ export async function runQuickMixPipeline(
       "quick-mix"
     );
 
-    const wavExport: FullLengthExportResult | null = await localEngineClient.createFullWavExport(exportParams);
+    const wavExport: FullLengthExportResult | null =
+      brainPlan?.ok && brainPlan.arrangementPlan
+        ? await localEngineClient.createArrangementWavExport({
+            ...exportParams,
+            arrangementPlan: brainPlan.arrangementPlan,
+          })
+        : await localEngineClient.createFullWavExport(exportParams);
     if (!wavExport?.ok || !wavExport.exportArtifactId) {
       throw mapQuickMixExportFailure(wavExport ?? { message: "Local WAV export failed." }, "creating_wav_export");
     }
@@ -483,8 +505,35 @@ export async function runQuickMixPipeline(
     onProgress([...steps]);
 
     const remixBrainCard = buildQuickMixRemixBrainCard(
-      brainPlan?.planSummary ?? null,
+      brainPlan?.remixPlanSummary
+        ? {
+            mode: "clean_blend",
+            mode_label: "Remix Brain",
+            score: Number(brainPlan.remixPlanSummary.score ?? 0),
+            confidence_tier:
+              (brainPlan.remixPlanSummary.confidence_tier as "high" | "medium" | "low") ??
+              "medium",
+            sync_label: String(brainPlan.remixPlanSummary.sync_label ?? ""),
+            tempo_label: String(brainPlan.remixPlanSummary.tempo_label ?? ""),
+            key_label: String(brainPlan.remixPlanSummary.key_label ?? ""),
+            warnings: Array.isArray(brainPlan.remixPlanSummary.warnings)
+              ? brainPlan.remixPlanSummary.warnings.map(String)
+              : [],
+            reason_summary: "",
+            score_breakdown: {},
+            vocal_anchor_sec: 0,
+            instrumental_anchor_sec: 0,
+            vocal_anchor_type: "phrase",
+            instrumental_anchor_type: "phrase",
+            shift_seconds: 0,
+          }
+        : null,
       wavExport.processingSummary?.alignmentOffsetMs ?? alignmentOffsetMs
+    );
+
+    const arrangementCard = buildQuickMixArrangementCard(
+      brainPlan?.arrangementSummary ?? null,
+      brainPlan?.arrangementPlan ?? null
     );
 
     const output: QuickMixOutputModel = {
@@ -509,6 +558,7 @@ export async function runQuickMixPipeline(
       ),
       mp3SkippedReason,
       remixBrainCard,
+      arrangementCard,
       technicalSummary: [
         QUICK_MIX_LISTENING_MIX_NOTICE,
         ...buildQuickMixListeningComparisonNotes(

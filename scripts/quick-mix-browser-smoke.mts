@@ -143,10 +143,43 @@ async function main(): Promise<void> {
   const context = await browser.newContext();
   const page = await context.newPage();
   const consoleErrors: string[] = [];
+  const ignoredConsoleErrors: string[] = [];
   const pageErrors: string[] = [];
+  const failedRequests: Array<{ url: string; status?: number; resourceType?: string }> = [];
+
+  function isHarmlessConsoleError(text: string, requestUrl?: string): boolean {
+    if (requestUrl) {
+      try {
+        const pathname = new URL(requestUrl).pathname;
+        if (pathname === "/favicon.ico") {
+          return true;
+        }
+      } catch {
+        // ignore malformed URLs
+      }
+    }
+    return /favicon\.ico/i.test(text);
+  }
+
+  page.on("response", (response) => {
+    if (response.status() !== 404) {
+      return;
+    }
+    const url = response.url();
+    failedRequests.push({
+      url,
+      status: 404,
+      resourceType: response.request().resourceType(),
+    });
+  });
   page.on("console", (msg) => {
     if (msg.type() === "error") {
-      consoleErrors.push(msg.text());
+      const text = msg.text();
+      if (isHarmlessConsoleError(text)) {
+        ignoredConsoleErrors.push(text);
+        return;
+      }
+      consoleErrors.push(text);
     }
   });
   page.on("pageerror", (error) => {
@@ -157,7 +190,7 @@ async function main(): Promise<void> {
   const result: Record<string, unknown> = {
     startedAt: new Date().toISOString(),
     appUrl,
-    phase: "phase-41-section-picker",
+    phase: "phase-43-arrangement-brain",
     usingRealFiles: USING_REAL_FILES,
     // Filenames intentionally redacted — only neutral track labels are recorded.
     trackA: "Track A (vocal source)",
@@ -191,6 +224,12 @@ async function main(): Promise<void> {
       result.readinessBanner = banner?.replace(/\s+/g, " ").trim() ?? null;
       throw new Error("Mix button disabled");
     }
+
+    result.stylePickerVisible = await page.locator(".quick-mix-style-picker").isVisible();
+    const selectedStyle =
+      (await page.locator('.quick-mix-style-option input[type="radio"]:checked + .quick-mix-style-option-label').textContent())?.trim() ??
+      null;
+    result.selectedStyleLabel = selectedStyle;
 
     await mixButton.click();
     await page.waitForSelector(".quick-mix-progress-panel", { timeout: 15000 });
@@ -248,6 +287,15 @@ async function main(): Promise<void> {
         result.listeningComparisonVisible = comparisonNotes.length >= 2;
         result.listeningComparisonNotes = comparisonNotes;
 
+        result.stylePickerVisible = result.stylePickerVisible ?? false;
+        result.arrangementCardVisible = await page.locator(".quick-mix-arrangement-card").isVisible();
+        if (result.arrangementCardVisible) {
+          result.arrangementStyleText =
+            (await page.locator(".quick-mix-arrangement-style").textContent())?.trim() ?? null;
+          result.arrangementSummaryText =
+            (await page.locator(".quick-mix-arrangement-card strong").textContent())?.trim() ?? null;
+        }
+
         const falseDoneVisible = await page
           .locator(".quick-mix-progress-item.quick-mix-progress-complete")
           .filter({ hasText: /^Done$/i })
@@ -279,11 +327,21 @@ async function main(): Promise<void> {
     await page.screenshot({ path: OUT_SCREENSHOT, fullPage: true });
   } finally {
     result.consoleErrors = consoleErrors;
+    result.ignoredConsoleErrors = ignoredConsoleErrors;
+    result.failedRequests = failedRequests;
     result.pageErrors = pageErrors;
     result.finishedAt = new Date().toISOString();
     writeFileSync(OUT_LOG, `${JSON.stringify(result, null, 2)}\n`, "utf8");
     await browser.close();
   }
+
+  const materialFailedRequests = failedRequests.filter((entry) => {
+    try {
+      return new URL(entry.url).pathname !== "/favicon.ico";
+    } catch {
+      return true;
+    }
+  });
 
   const uiChecks =
     result.ok === true &&
@@ -293,8 +351,12 @@ async function main(): Promise<void> {
     (result.loudnessNoticeVisible === true || result.loudnessWarningsVisible === true) &&
     result.listeningComparisonVisible === true &&
     result.falseDoneBeforeOutput !== true &&
+    result.stylePickerVisible === true &&
+    result.selectedStyleLabel === "Clean Blend" &&
+    result.arrangementCardVisible === true &&
     consoleErrors.length === 0 &&
-    pageErrors.length === 0;
+    pageErrors.length === 0 &&
+    materialFailedRequests.length === 0;
 
   result.uiChecksPass = uiChecks;
 

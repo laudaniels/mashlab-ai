@@ -10,9 +10,13 @@ Quick Mix is the **default landing screen**:
 
 1. **Vocal / acapella source**
 2. **Instrumental / beat source**
-3. One **Mix** button
+3. Optional **Section to use** — **First 3:00** (default) or **Custom start**
+4. Optional **Style** — **Clean Blend** (default), **Hook Remix**, or **DJ Edit** (Phase 43)
+5. One **Mix** button
 
 Optional under each source: **Section to use** — **First 3:00** (default) or **Custom start** (minutes/seconds). Optional toggle: same start for both sources. See [PHASE_41_QUICK_MIX_SECTION_PICKER.md](./PHASE_41_QUICK_MIX_SECTION_PICKER.md).
+
+**Style (Phase 43):** default **Clean Blend** = RC6 Remix Brain. **Hook Remix** = hook-focused phrase section. **DJ Edit** = intro → hook → break → hook → outro on bar boundaries. See [PHASE_43_ARRANGEMENT_BRAIN.md](./PHASE_43_ARRANGEMENT_BRAIN.md).
 
 The app runs the full local pipeline when the user clicks **Mix** (no processing on upload):
 
@@ -48,6 +52,8 @@ Advanced Studio `NEUTRAL_MIX_SETTINGS` unchanged.
 - Audio player
 - Download WAV / MP3 (MP3 failure is non-blocking if WAV OK)
 - Mix profile summary
+- **Arrangement Brain card (Phase 43):** style, arrangement summary line, sync/tempo/key, confidence, warnings
+- Remix Brain plan card (RC6 — retained under Clean Blend)
 - Loudness / true peak warnings when measured
 - RC2 vs current profile comparison
 - 180 s cap + selected section summary when applicable
@@ -73,6 +79,7 @@ npm run start:local:windows
 npm run sidecar:status
 npm run smoke:quick-mix
 npm run smoke:quick-mix:browser   # requires npm run dev
+npm run smoke:quick-mix:arrangement-brain   # DJ_REMIX_QA_VOCAL + DJ_REMIX_QA_BEAT
 ```
 
 Real-file browser QA: set `MASHLAB_QM_VOCAL` / `MASHLAB_QM_BEAT` env vars locally (filenames never committed).
@@ -80,6 +87,8 @@ Real-file browser QA: set `MASHLAB_QM_VOCAL` / `MASHLAB_QM_BEAT` env vars locall
 ## Related docs
 
 - `docs/PHASE_41_QUICK_MIX_SECTION_PICKER.md`
+- `docs/PHASE_42_REMIX_BRAIN_DJ_SYNC_ENGINE.md`
+- `docs/PHASE_43_ARRANGEMENT_BRAIN.md`
 - `docs/PHASE_40_TRUE_PEAK_SAFETY.md`
 - `docs/MVP_RELEASE_CANDIDATE_CHECKLIST.md`
 - `docs/QA_WORKFLOW_CHECKLIST.md`

@@ -1,6 +1,7 @@
 import { requiredRightsNotice } from "../lib/legal.ts";
 import type { MixSettings } from "./mixControls.ts";
 import type { QuickMixRemixBrainCard } from "./remixBrain.ts";
+import type { QuickMixArrangementCard } from "./arrangementBrain.ts";
 
 export const QUICK_MIX_PROMISE =
   "Drop two songs. MashLab mixes them locally on your machine — no cloud upload.";
@@ -137,6 +138,7 @@ export interface QuickMixOutputModel {
   technicalSummary: string[];
   mp3SkippedReason: string | null;
   remixBrainCard: QuickMixRemixBrainCard | null;
+  arrangementCard: QuickMixArrangementCard | null;
 }
 
 export interface QuickMixFailureViewModel {

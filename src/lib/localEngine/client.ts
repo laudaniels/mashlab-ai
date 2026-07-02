@@ -67,6 +67,8 @@ import { parseRhythmSelfTestResponse } from "./rhythmSelfTest.ts";
 import type { RhythmSelfTestResponse } from "../../domain/rhythmSelfTest.ts";
 import { parseRemixBrainPlanResponse } from "./remixBrain.ts";
 import type { RemixBrainPlanRequest, RemixBrainPlanResult } from "../../domain/remixBrain.ts";
+import { parseArrangementBrainPlanResponse } from "./arrangementBrain.ts";
+import type { ArrangementBrainPlanResult, ArrangementStyle } from "../../domain/arrangementBrain.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -261,6 +263,66 @@ export class LocalEngineClient {
 
     const payload = await response.json();
     return parseRemixBrainPlanResponse(payload);
+  }
+
+  async planArrangementBrain(params: {
+    sourceVocalStemArtifactId: string;
+    targetInstrumentalStemArtifactId: string;
+    arrangementMode: ArrangementStyle;
+    sectionStartSec?: number | null;
+    sectionDurationSec?: number | null;
+  }): Promise<ArrangementBrainPlanResult | null> {
+    const response = await this.request("/v1/plan/arrangement-brain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_vocal_stem_artifact_id: params.sourceVocalStemArtifactId,
+        target_instrumental_stem_artifact_id: params.targetInstrumentalStemArtifactId,
+        arrangement_mode: params.arrangementMode,
+        section_start_sec: params.sectionStartSec ?? null,
+        section_duration_sec: params.sectionDurationSec ?? null,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 4,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseArrangementBrainPlanResponse(payload);
+  }
+
+  async createArrangementWavExport(
+    params: FullLengthExportRequestParams & { arrangementPlan: Record<string, unknown> }
+  ): Promise<FullLengthExportResult | null> {
+    const body: Record<string, unknown> = {
+      source_vocal_stem_artifact_id: params.sourceVocalStemArtifactId,
+      target_instrumental_stem_artifact_id: params.targetInstrumentalStemArtifactId,
+      arrangement_plan: params.arrangementPlan,
+      tempo_ratio: params.tempoRatio,
+      pitch_shift_semitones: params.pitchShiftSemitones,
+      alignment_offset_ms: params.alignmentOffsetMs,
+      export_label: params.exportLabel ?? null,
+      loudness_target_mode: params.loudnessTargetMode,
+      neutral_processing: params.neutralProcessing,
+      confirm_neutral_settings: params.confirmNeutralSettings,
+      ...mixSettingsToRequestFields(params.mixSettings),
+    };
+
+    const response = await this.request("/v1/export/arrangement-wav", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      timeoutMs: LOCAL_ENGINE_REQUEST_TIMEOUT_MS * 6,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseFullWavExportResponse(payload, this.baseUrl);
   }
 
   async processPitchTimePreview(

@@ -1,0 +1,47 @@
+{
+  "styles": [
+    {
+      "mode": "clean_blend",
+      "label": "Track A × Track B",
+      "section_labels": [
+        "mix"
+      ],
+      "summary_line": "Mix",
+      "confidence_tier": "low",
+      "score": 58,
+      "wav_export_artifact_id": "ecb27e641252403c81ee9ee4eeef29ec",
+      "passed": true
+    },
+    {
+      "mode": "hook_remix",
+      "label": "Track A × Track B",
+      "section_labels": [
+        "intro",
+        "hook",
+        "outro"
+      ],
+      "summary_line": "Intro → Hook → Outro",
+      "confidence_tier": "medium",
+      "score": 75,
+      "wav_export_artifact_id": "d0e0b8a4de6741ce86faaa7ee6d43291",
+      "passed": true
+    },
+    {
+      "mode": "dj_edit",
+      "label": "Track A × Track B",
+      "section_labels": [
+        "intro",
+        "hook",
+        "break",
+        "hook",
+        "outro"
+      ],
+      "summary_line": "Intro → Hook → Break → Hook → Outro",
+      "confidence_tier": "medium",
+      "score": 72,
+      "wav_export_artifact_id": "925d5ce4c5f0464480376b75ae0a8a8d",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,89 @@
+{
+  "phase": 44,
+  "label": "Windows Desktop Packaging RC gate",
+  "baseline_tag": "mashlab-arrangement-brain-rc7",
+  "baseline_commit": "774e236",
+  "packaging_commit": "1a33898",
+  "test_folder_redacted": "Desktop portable test folder (outside repo)",
+  "exe_clicked": "MashLab AI.exe",
+  "package_source": "MashLabAI-Windows-Portable.zip",
+  "ui_url": "http://127.0.0.1:47830/",
+  "sidecar_url": "http://127.0.0.1:47831/health",
+  "venv_setup": {
+    "method": "one-time sidecar venv beside mashlab-app",
+    "python_ok": true,
+    "fastapi_ok": true,
+    "demucs_torch_ok": true,
+    "ffmpeg_ok": true,
+    "ffprobe_ok": true,
+    "rubber_band_ok": true
+  },
+  "launch": {
+    "window_opened": true,
+    "terminal_required": false,
+    "ui_http_200": true,
+    "sidecar_healthy": true,
+    "crash_on_launch": false
+  },
+  "quick_mix_desktop": {
+    "track_a": "Track A (vocal source)",
+    "track_b": "Track B (instrumental source)",
+    "section_picker_expected": true,
+    "style_picker_visible": true,
+    "styles_tested": [
+      {
+        "style": "clean_blend",
+        "passed": true,
+        "wav": true,
+        "mp3": true,
+        "arrangement_card": true,
+        "rights_notice": true,
+        "false_done": false
+      },
+      {
+        "style": "hook_remix",
+        "passed": true,
+        "wav": true,
+        "mp3": true,
+        "arrangement_card": true,
+        "rights_notice": true,
+        "false_done": false
+      },
+      {
+        "style": "dj_edit",
+        "passed": true,
+        "wav": true,
+        "mp3": true,
+        "arrangement_card": true,
+        "rights_notice": true,
+        "false_done": false
+      }
+    ],
+    "passed": true
+  },
+  "shutdown": {
+    "graceful_close_releases_47831": true,
+    "graceful_close_releases_47830": true,
+    "electron_exited": true,
+    "note": "Close the MashLab window normally; force-kill may leave the sidecar running"
+  },
+  "relaunch": {
+    "ui_http_200": true,
+    "sidecar_healthy": true
+  },
+  "scope": "local-only rights-neutral — no cloud upload, downloader, or public sharing",
+  "finished_at": "2026-07-02T05:24:00.000Z",
+  "gate_checks_repo": {
+    "lint": true,
+    "typecheck": true,
+    "tests_248": true,
+    "build": true,
+    "check_local_engine": true,
+    "check_python_service": true,
+    "build_windows_desktop": true,
+    "smoke_windows_desktop": true,
+    "smoke_quick_mix": true,
+    "smoke_quick_mix_browser_uiChecksPass": true,
+    "smoke_arrangement_brain_all_styles": true
+  }
+}

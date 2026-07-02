@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "main": "desktop/main.mjs",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
@@ -37,7 +38,11 @@
     "check:python-service": "node --experimental-strip-types scripts/python-service-check.mts compile",
     "check:python-service:test": "node --experimental-strip-types scripts/python-service-check.mts test",
     "check:python-service:venv": "node --experimental-strip-types scripts/python-service-check.mts compile --venv",
-    "check:python-service:test:venv": "node --experimental-strip-types scripts/python-service-check.mts test --venv"
+    "check:python-service:test:venv": "node --experimental-strip-types scripts/python-service-check.mts test --venv",
+    "desktop:check": "node --experimental-strip-types scripts/desktop-runtime-check.mts",
+    "desktop:dev": "electron desktop/main.mjs",
+    "build:windows:desktop": "node --experimental-strip-types scripts/build-windows-desktop.mts",
+    "smoke:windows:desktop": "node --experimental-strip-types scripts/desktop-packaging-smoke.mts"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -49,11 +54,60 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
     "eslint": "^9.17.0",
     "globals": "^15.14.0",
     "playwright": "^1.49.1",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2",
     "vite": "^6.0.5"
+  },
+  "build": {
+    "appId": "ai.mashlab.desktop",
+    "productName": "MashLab AI",
+    "directories": {
+      "output": "build/windows-desktop"
+    },
+    "files": [
+      "desktop/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "dist",
+        "to": "mashlab-app/dist"
+      },
+      {
+        "from": "local-engine/service",
+        "to": "mashlab-app/local-engine/service",
+        "filter": [
+          "**/*",
+          "!.venv/**",
+          "!.work/**",
+          "!**/__pycache__/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "MashLabAI-Portable.exe"
+    }
   }
 }

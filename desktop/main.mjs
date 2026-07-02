@@ -31,7 +31,6 @@ const SIDECAR_HEALTH_URL = `http://${SIDECAR_HOST}:${SIDECAR_PORT}/health`;
 let staticServer = null;
 /** @type {import("electron").BrowserWindow | null} */
 let mainWindow = null;
-let sidecarStartedByShell = false;
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -249,7 +248,6 @@ async function startSidecar() {
     return false;
   }
 
-  sidecarStartedByShell = true;
   writeStatusFile({
     pid: child.pid,
     bind: `http://${SIDECAR_HOST}:${SIDECAR_PORT}`,
@@ -261,7 +259,7 @@ async function startSidecar() {
 }
 
 async function stopSidecar() {
-  if (!sidecarStartedByShell || !existsSync(statusPath)) {
+  if (!existsSync(statusPath)) {
     return;
   }
   try {
@@ -273,7 +271,6 @@ async function stopSidecar() {
     // Best-effort shutdown on app exit.
   } finally {
     clearStatusFile();
-    sidecarStartedByShell = false;
   }
 }
 
@@ -365,6 +362,8 @@ async function bootstrap() {
   createMainWindow();
 }
 
+let isQuitting = false;
+
 app.whenReady().then(bootstrap);
 
 app.on("window-all-closed", () => {
@@ -373,10 +372,20 @@ app.on("window-all-closed", () => {
   }
 });
 
-app.on("before-quit", async () => {
-  await stopSidecar();
-  if (staticServer) {
-    staticServer.close();
-    staticServer = null;
+app.on("before-quit", (event) => {
+  if (isQuitting) {
+    return;
   }
+  event.preventDefault();
+  isQuitting = true;
+  void (async () => {
+    await stopSidecar();
+    if (staticServer) {
+      await new Promise((resolve) => {
+        staticServer.close(() => resolve());
+      });
+      staticServer = null;
+    }
+    app.exit(0);
+  })();
 });

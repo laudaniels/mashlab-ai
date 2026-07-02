@@ -36,7 +36,16 @@ The `mashlab-app/` folder beside the exe contains:
 - `dist/` — production UI
 - `local-engine/service/` — Python sidecar source (no `.venv`, no `.work`)
 
-Users create the sidecar venv **beside the app** on first setup so PyTorch weights stay local and writable.
+Users create the sidecar venv **once** beside the portable folder so PyTorch weights stay local and writable.
+
+## User prerequisites (documented)
+
+- Unzip to a **writable** folder (not `Program Files`)
+- **One-time** `mashlab-app\local-engine\service\.venv` setup
+- **FFmpeg**, **ffprobe**, and **Rubber Band** on PATH
+- **Unsigned** portable build — SmartScreen may warn on first run
+- **WAV** primary; **MP3** secondary (non-blocking if MP3 fails)
+- **Local-only**, rights-neutral scope — no cloud upload or public sharing
 
 ## Build commands (developers)
 

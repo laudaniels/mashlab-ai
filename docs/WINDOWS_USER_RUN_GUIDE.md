@@ -5,7 +5,7 @@ Use this guide to run MashLab AI from the **Windows desktop build** without Curs
 ## What you need
 
 1. **MashLabAI-Windows-Portable.zip** (or the `win-unpacked` folder from a developer build)
-2. A writable folder (Documents, Desktop, or `C:\MashLab`)
+2. A **writable folder** you control (Documents, Desktop, or `C:\MashLab`) — do not unzip to `Program Files` or other read-only locations
 3. **Python 3.10+** installed on Windows
 4. **FFmpeg** and **ffprobe** on PATH
 5. **Rubber Band CLI** on PATH (recommended for best Quick Mix results)
@@ -14,9 +14,9 @@ Optional: **Demucs + PyTorch** in the sidecar venv for stem preview.
 
 ## Install (first time)
 
-1. Unzip `MashLabAI-Windows-Portable.zip` to your chosen folder.
-2. Open the folder — you should see **`MashLab AI.exe`** and a **`mashlab-app`** subfolder.
-3. Create the Python sidecar environment (one time):
+1. Unzip `MashLabAI-Windows-Portable.zip` to your chosen **writable** folder.
+2. Open the unzipped `win-unpacked` folder — you should see **`MashLab AI.exe`** and a **`mashlab-app`** subfolder.
+3. **One-time** Python sidecar setup (required for Quick Mix processing):
 
 ```powershell
 cd mashlab-app\local-engine\service
@@ -26,7 +26,7 @@ python -m venv .venv
 
 4. Add FFmpeg and Rubber Band to PATH (see [WINDOWS_RUNTIME_SETUP.md](./WINDOWS_RUNTIME_SETUP.md)).
 
-5. Optional stems lane:
+5. Optional stems lane (one-time, in the same venv):
 
 ```powershell
 cd mashlab-app\local-engine\service
@@ -37,6 +37,8 @@ cd mashlab-app\local-engine\service
 ## Launch
 
 **Double-click `MashLab AI.exe`.**
+
+Windows may show a **SmartScreen** warning because this portable build is **unsigned**. Only run builds you trust. Click **More info → Run anyway** if you accept the local-only scope.
 
 MashLab will:
 
@@ -58,11 +60,11 @@ No terminal window is required.
    - **DJ Edit** — intro → hook → break → hook → outro
 4. Click **Mix**.
 5. Review the arrangement card (confidence, warnings).
-6. Download **WAV** (primary) or **MP3** (secondary).
+6. Download **WAV** (primary export) or **MP3** (secondary reference — may be skipped without blocking WAV).
 
 ## Exit
 
-Close the MashLab window. The app stops the sidecar it started and shuts down cleanly.
+Close the MashLab window. The app stops the Python sidecar it started and releases ports **47830** (UI) and **47831** (sidecar). If a prior crash left the sidecar running, relaunch once or end the stale `python` process holding port 47831.
 
 ## Troubleshooting
 

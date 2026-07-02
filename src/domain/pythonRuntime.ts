@@ -47,6 +47,18 @@ export const PYTHON_SERVICE_COMPILE_TARGETS = [
   "local-engine/service/jobs.py",
   "local-engine/service/models.py",
   "local-engine/service/config.py",
+  "local-engine/service/remix_brain_processing.py",
+  "local-engine/service/remix_brain/__init__.py",
+  "local-engine/service/remix_brain/models.py",
+  "local-engine/service/remix_brain/planner.py",
+  "local-engine/service/remix_brain/phrase.py",
+  "local-engine/service/remix_brain/harmonic.py",
+  "local-engine/service/remix_brain/validate.py",
+  "local-engine/service/remix_brain/gridsync.py",
+  "local-engine/service/remix_brain/align.py",
+  "local-engine/service/remix_brain/beatgrid.py",
+  "local-engine/service/remix_brain/analysis.py",
+  "local-engine/service/remix_brain/io_utils.py",
 ] as const;
 
 export const ANALYSIS_SETUP_GUIDANCE =

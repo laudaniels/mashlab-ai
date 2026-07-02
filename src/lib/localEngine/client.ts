@@ -65,6 +65,8 @@ import type { PackageExportResult, PackageExportRequestParams } from "../../doma
 import { parsePackageExportResponse } from "./package.ts";
 import { parseRhythmSelfTestResponse } from "./rhythmSelfTest.ts";
 import type { RhythmSelfTestResponse } from "../../domain/rhythmSelfTest.ts";
+import { parseRemixBrainPlanResponse } from "./remixBrain.ts";
+import type { RemixBrainPlanRequest, RemixBrainPlanResult } from "../../domain/remixBrain.ts";
 
 export class LocalEngineClient {
   private readonly baseUrl: string;
@@ -234,6 +236,31 @@ export class LocalEngineClient {
       response: parsed,
       result: phraseAnalysisFromApiResult(parsed.result),
     };
+  }
+
+  async planRemixBrain(params: RemixBrainPlanRequest): Promise<RemixBrainPlanResult | null> {
+    const response = await this.request("/v1/plan/remix-brain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_vocal_stem_artifact_id: params.sourceVocalStemArtifactId,
+        target_instrumental_stem_artifact_id: params.targetInstrumentalStemArtifactId,
+        section_start_sec: params.sectionStartSec ?? null,
+        section_duration_sec: params.sectionDurationSec ?? null,
+        offset_ms: params.offsetMs ?? 0,
+        pitch_shift_semitones: params.pitchShiftSemitones ?? null,
+        downbeat_shift: params.downbeatShift ?? 0,
+        manual_only: params.manualOnly ?? false,
+      }),
+      timeoutMs: LOCAL_ENGINE_ANALYSIS_TIMEOUT_MS * 4,
+    });
+
+    if (!response) {
+      return null;
+    }
+
+    const payload = await response.json();
+    return parseRemixBrainPlanResponse(payload);
   }
 
   async processPitchTimePreview(

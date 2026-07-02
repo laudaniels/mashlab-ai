@@ -56,6 +56,31 @@ export function QuickMixOutputPanel({
             {output.mp3SkippedReason}
           </p>
         ) : null}
+        {output.remixBrainCard ? (
+          <div className="quick-mix-remix-brain-card" role="status">
+            <p className="quick-mix-remix-brain-tier">
+              Remix Brain · {output.remixBrainCard.confidenceTier} confidence · score{" "}
+              {output.remixBrainCard.score.toFixed(0)}/100
+            </p>
+            <p>{output.remixBrainCard.syncLabel}</p>
+            <p>{output.remixBrainCard.tempoLabel}</p>
+            <p>{output.remixBrainCard.keyLabel}</p>
+            {output.remixBrainCard.anchorOffsetMs !== null ? (
+              <p>
+                Anchor offset:{" "}
+                {output.remixBrainCard.anchorOffsetMs >= 0 ? "+" : ""}
+                {output.remixBrainCard.anchorOffsetMs.toFixed(1)} ms
+              </p>
+            ) : null}
+            {output.remixBrainCard.warnings.length > 0 ? (
+              <ul className="quick-mix-remix-brain-warnings">
+                {output.remixBrainCard.warnings.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {output.wavPlaybackUrl ? (

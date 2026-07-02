@@ -740,3 +740,30 @@ class SectionWavExportResponse(BaseModel):
     export_label: str | None = None
     validation_errors: list[str] | None = None
     setup_guidance: str | None = None
+
+
+class RemixBrainPlanRequest(BaseModel):
+    source_vocal_stem_artifact_id: str
+    target_instrumental_stem_artifact_id: str
+    section_start_sec: float | None = None
+    section_duration_sec: float | None = None
+    offset_ms: float = 0.0
+    pitch_shift_semitones: float | None = None
+    downbeat_shift: int = 0
+    manual_only: bool = False
+
+
+class RemixBrainPlanResponse(BaseModel):
+    ok: bool
+    status: str
+    message: str
+    plan: dict | None = None
+    plan_summary: dict | None = None
+    candidates: list[dict] = Field(default_factory=list)
+    confidence_tier: str | None = None
+    alignment_offset_ms: float | None = None
+    tempo_ratio: float | None = None
+    pitch_shift_semitones: float | None = None
+    vocal_analysis: dict | None = None
+    instrumental_analysis: dict | None = None
+    setup_guidance: str | None = None

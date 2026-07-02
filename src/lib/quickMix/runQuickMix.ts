@@ -49,7 +49,9 @@ import {
 import {
   buildQuickMixDirectionContext,
   buildQuickMixTimingStrategy,
+  buildQuickMixTimingStrategyFromBrain,
 } from "../../domain/quickMixStrategy.ts";
+import { buildQuickMixRemixBrainCard } from "../../domain/remixBrain.ts";
 import {
   buildQuickMixSectionNotice,
   buildQuickMixSectionSummaryLines,
@@ -386,13 +388,6 @@ export async function runQuickMixPipeline(
       beatBpm = beatBeat?.result?.bpm ?? null;
     }
 
-    const strategy = buildQuickMixTimingStrategy({
-      vocalBpm,
-      beatBpm,
-      pitchShiftSemitones: 0,
-      librosaUsed,
-    });
-
     const stemIds = resolveQuickMixExportStemIds({ vocalStem, instrumentalStem: beatStem });
     if (!stemIds) {
       throw mapQuickMixError({
@@ -401,10 +396,40 @@ export async function runQuickMixPipeline(
       });
     }
 
+    const brainPlan = await localEngineClient.planRemixBrain({
+      sourceVocalStemArtifactId: stemIds.sourceVocalStemArtifactId,
+      targetInstrumentalStemArtifactId: stemIds.targetInstrumentalStemArtifactId,
+      sectionStartSec: input.vocalSection.startOffsetSeconds,
+      sectionDurationSec: input.vocalSection.windowSeconds,
+    });
+
+    const strategy =
+      brainPlan?.ok && brainPlan.tempoRatio
+        ? buildQuickMixTimingStrategyFromBrain({
+            vocalBpm,
+            beatBpm,
+            tempoRatio: brainPlan.tempoRatio,
+            pitchShiftSemitones: brainPlan.pitchShiftSemitones,
+            planSummary: brainPlan.planSummary,
+            librosaUsed,
+          })
+        : buildQuickMixTimingStrategy({
+            vocalBpm,
+            beatBpm,
+            pitchShiftSemitones: brainPlan?.pitchShiftSemitones ?? 0,
+            librosaUsed,
+          });
+
+    const alignmentOffsetMs =
+      brainPlan?.ok && brainPlan.alignmentOffsetMs !== null
+        ? brainPlan.alignmentOffsetMs
+        : 0;
+
     const context = buildQuickMixDirectionContext({
       vocalStemArtifactId: stemIds.sourceVocalStemArtifactId,
       beatStemArtifactId: stemIds.targetInstrumentalStemArtifactId,
       strategy,
+      alignmentOffsetMs,
     });
 
     completeStep("matching_timing");
@@ -457,6 +482,11 @@ export async function runQuickMixPipeline(
     steps = succeedQuickMixProgress(steps);
     onProgress([...steps]);
 
+    const remixBrainCard = buildQuickMixRemixBrainCard(
+      brainPlan?.planSummary ?? null,
+      wavExport.processingSummary?.alignmentOffsetMs ?? alignmentOffsetMs
+    );
+
     const output: QuickMixOutputModel = {
       wavPlaybackUrl: wavExport.playbackUrl,
       wavDownloadUrl: wavExport.downloadUrl,
@@ -478,6 +508,7 @@ export async function runQuickMixPipeline(
         QUICK_MIX_DEFAULT_MIX_SETTINGS
       ),
       mp3SkippedReason,
+      remixBrainCard,
       technicalSummary: [
         QUICK_MIX_LISTENING_MIX_NOTICE,
         ...buildQuickMixListeningComparisonNotes(

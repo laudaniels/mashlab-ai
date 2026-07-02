@@ -17,6 +17,7 @@ from key_analysis import analyze_key_file
 from phrase_analysis import analyze_phrase_file
 from metadata import analyze_metadata_file
 from pitch_time_planning import PitchTimePlanRequest, PitchTimePlanResponse, build_pitch_time_plan
+from remix_brain_processing import RemixBrainPlanFailure, build_remix_brain_plan
 from artifact_management import (
     ArtifactOperationFailure,
     ArtifactMetadataSuccess,
@@ -61,6 +62,8 @@ from models import (
     BeatAnalysisResponse,
     CapabilitiesResponse,
     RhythmSelfTestResponse,
+    RemixBrainPlanRequest,
+    RemixBrainPlanResponse,
     CombinedPreviewInputSummaryModel,
     CombinedPreviewProcessingSummaryModel,
     CombinedPreviewRequest,
@@ -287,6 +290,50 @@ def plan_pitch_time(request: PitchTimePlanRequest) -> PitchTimePlanResponse:
         status="planning-only",
         message="Pitch/time plan generated. No audio was processed.",
         plan=plan,
+    )
+
+
+@app.post("/v1/plan/remix-brain", response_model=RemixBrainPlanResponse)
+async def plan_remix_brain(request: RemixBrainPlanRequest) -> RemixBrainPlanResponse:
+    try:
+        result = await run_in_threadpool(
+            build_remix_brain_plan,
+            vocal_stem_artifact_id=request.source_vocal_stem_artifact_id,
+            instrumental_stem_artifact_id=request.target_instrumental_stem_artifact_id,
+            section_start_sec=request.section_start_sec,
+            section_duration_sec=request.section_duration_sec,
+            offset_ms=request.offset_ms,
+            semitones=request.pitch_shift_semitones,
+            downbeat_shift=request.downbeat_shift,
+            manual_only=request.manual_only,
+        )
+    except RemixBrainPlanFailure as error:
+        return RemixBrainPlanResponse(
+            ok=False,
+            status=error.status,
+            message=error.message,
+            setup_guidance=error.setup_guidance,
+        )
+    except Exception as error:
+        return RemixBrainPlanResponse(
+            ok=False,
+            status="failed",
+            message=f"Remix Brain planning failed: {error}",
+        )
+
+    return RemixBrainPlanResponse(
+        ok=True,
+        status="planned",
+        message="Remix Brain plan generated from stem artifacts. No mix rendered yet.",
+        plan=result["plan"],
+        plan_summary=result["plan_summary"],
+        candidates=result["candidates"],
+        confidence_tier=result["confidence_tier"],
+        alignment_offset_ms=result["alignment_offset_ms"],
+        tempo_ratio=result["tempo_ratio"],
+        pitch_shift_semitones=result["pitch_shift_semitones"],
+        vocal_analysis=result["vocal_analysis"],
+        instrumental_analysis=result["instrumental_analysis"],
     )
 
 

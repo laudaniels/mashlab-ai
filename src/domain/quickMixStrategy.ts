@@ -88,6 +88,7 @@ export function buildQuickMixDirectionContext(params: {
   vocalStemArtifactId: string;
   beatStemArtifactId: string;
   strategy: QuickMixTimingStrategy;
+  alignmentOffsetMs?: number;
 }): CombinedPreviewDirectionContext {
   return {
     mashIntent: "vocal_a_over_beat_b",
@@ -97,7 +98,83 @@ export function buildQuickMixDirectionContext(params: {
     targetInstrumentalSlotId: "trackB",
     sourceVocalArtifactId: params.vocalStemArtifactId,
     targetInstrumentalArtifactId: params.beatStemArtifactId,
-    alignmentOffsetMs: 0,
+    alignmentOffsetMs: params.alignmentOffsetMs ?? 0,
+  };
+}
+
+export function buildQuickMixTimingStrategyFromBrain(params: {
+  vocalBpm: number | null;
+  beatBpm: number | null;
+  tempoRatio: number | null;
+  pitchShiftSemitones: number | null;
+  planSummary: {
+    tempo_label: string;
+    key_label: string;
+    warnings: string[];
+    score: number;
+    confidence_tier: string;
+  } | null;
+  librosaUsed: boolean;
+}): QuickMixTimingStrategy {
+  const hasBrainPlan =
+    params.tempoRatio !== null &&
+    params.tempoRatio > 0 &&
+    params.librosaUsed &&
+    params.vocalBpm !== null &&
+    params.beatBpm !== null;
+
+  if (!hasBrainPlan) {
+    return buildQuickMixTimingStrategy({
+      vocalBpm: params.vocalBpm,
+      beatBpm: params.beatBpm,
+      pitchShiftSemitones: params.pitchShiftSemitones,
+      librosaUsed: params.librosaUsed,
+    });
+  }
+
+  const ratio = params.tempoRatio!;
+  const percent = computeTempoStretchPercent(ratio);
+  const direction = resolveTempoDirection(ratio);
+  const pitchShift = params.pitchShiftSemitones ?? 0;
+  const tier = params.planSummary?.confidence_tier ?? "medium";
+  const score = params.planSummary?.score ?? 0;
+
+  return {
+    useNeutralProcessing: false,
+    confirmNeutralSettings: true,
+    timingNotice: `Remix Brain plan applied (${tier} confidence, score ${score.toFixed(0)}/100). ${params.planSummary?.tempo_label ?? "Tempo aligned."} DJ review required.`,
+    direction: {
+      intentLabel: "Quick Mix",
+      vocalTrackLabel: "Vocal source",
+      instrumentalTrackLabel: "Beat source",
+      sourceBpm: params.vocalBpm,
+      targetBpm: params.beatBpm,
+      bpmDifference:
+        params.vocalBpm !== null && params.beatBpm !== null
+          ? Math.abs(params.vocalBpm - params.beatBpm)
+          : null,
+      tempoStretchRatio: ratio,
+      tempoStretchPercent: percent,
+      tempoDirection: direction,
+      tempoPlanSummary:
+        params.planSummary?.tempo_label ??
+        formatTempoPlanSummary("Vocal source", "Beat source", percent, direction),
+      sourceKeyLabel: params.planSummary?.key_label ?? "Unknown",
+      targetKeyLabel: params.planSummary?.key_label ?? "Unknown",
+      sourceCamelot: null,
+      targetCamelot: null,
+      suggestedPitchShiftSemitones: pitchShift,
+      safeRangeWarning:
+        params.planSummary?.warnings.find((line) => /pitch|key/i.test(line)) ?? null,
+      formantPreservationNote: "Formant preservation recommended when pitch shift is applied.",
+      vocalAdjustmentNote: "Remix Brain anchor-based vocal placement.",
+      instrumentalAdjustmentNote: "Beat source used as tempo anchor.",
+      bpmSource: "detected",
+      keySource: "detected",
+      camelotSource: "detected",
+      limitations: [PLANNING_ONLY_NOTICE],
+      djReviewRequired: true,
+    },
   };
 }
 

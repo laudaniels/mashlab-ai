@@ -203,6 +203,31 @@ def create_arrangement_wav_export(
             message="Stem artifacts not found for arrangement export.",
         )
 
+    # Stem preview artifacts only cover a bounded window of the source track
+    # (see demucs_processing.DEFAULT_MAX_PREVIEW_SECONDS). Section boundaries
+    # from the arrangement plan are anchored to the full track's timeline and
+    # can extend past that window — ffmpeg's atrim then seeks past EOF and
+    # silently produces an empty segment instead of an error.
+    latest_section_end = max(
+        (section.start_seconds + section.duration_seconds for section in plan.sections),
+        default=0.0,
+    )
+    vocal_duration, _, _ = probe_wav_metadata(vocal_path)
+    bed_duration, _, _ = probe_wav_metadata(bed_path)
+    shortest_available = min(
+        d for d in (vocal_duration, bed_duration) if d is not None
+    ) if vocal_duration is not None or bed_duration is not None else None
+    if shortest_available is not None and latest_section_end > shortest_available:
+        return ArrangementExportFailure(
+            ok=False,
+            status="validation_error",
+            message=(
+                f"This arrangement plan needs {latest_section_end:.1f}s of stem audio, but only "
+                f"{shortest_available:.1f}s is available from stem preview."
+            ),
+            setup_guidance="Re-run stem preview with a longer window, or choose a shorter arrangement.",
+        )
+
     rubberband = find_rubberband_binary()
     ffmpeg = shutil.which("ffmpeg")
     if rubberband is None:

@@ -1,6 +1,19 @@
+import shutil
 import unittest
+import wave
+from pathlib import Path
 
 from arrangement_export_processing import create_arrangement_wav_export
+from combined_preview_processing import stem_no_vocals_path, stem_vocals_path
+
+
+def _write_silence_wav(path: Path, duration_seconds: float = 1.0, sample_rate: int = 44100) -> None:
+    frame_count = int(duration_seconds * sample_rate)
+    with wave.open(str(path), "w") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(b"\x00\x00" * frame_count)
 
 CLEAN_BLEND_PLAN = {
     "mode": "clean_blend",
@@ -102,6 +115,33 @@ class ArrangementExportProcessingTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertEqual(result.status, "validation_error")
         self.assertTrue(any("tempo_ratio must be between" in error for error in result.validation_errors))
+
+    def test_section_beyond_stem_duration_rejected_instead_of_empty_segments(self) -> None:
+        vocal_id = "shortarrvocal1"
+        bed_id = "shortarrbed001"
+        vocal_path = stem_vocals_path(vocal_id)
+        bed_path = stem_no_vocals_path(bed_id)
+        vocal_path.parent.mkdir(parents=True, exist_ok=True)
+        bed_path.parent.mkdir(parents=True, exist_ok=True)
+        _write_silence_wav(vocal_path, duration_seconds=2.0)
+        _write_silence_wav(bed_path, duration_seconds=2.0)
+
+        # MULTI_SECTION_PLAN's second section runs to 30s — far beyond the 2s stems.
+        try:
+            result = create_arrangement_wav_export(
+                source_vocal_stem_artifact_id=vocal_id,
+                target_instrumental_stem_artifact_id=bed_id,
+                arrangement_plan=MULTI_SECTION_PLAN,
+                tempo_ratio=1.0,
+                neutral_processing=True,
+                confirm_neutral_settings=True,
+            )
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status, "validation_error")
+            self.assertIn("only", result.message)
+        finally:
+            shutil.rmtree(vocal_path.parent, ignore_errors=True)
+            shutil.rmtree(bed_path.parent, ignore_errors=True)
 
 
 if __name__ == "__main__":

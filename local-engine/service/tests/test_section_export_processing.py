@@ -74,6 +74,36 @@ class SectionExportValidationTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertEqual(result.status, "missing_artifact")
 
+    def test_start_beyond_stem_duration_rejected_instead_of_empty_output(self) -> None:
+        vocal_id = "shortsecvocal1"
+        bed_id = "shortsecbed001"
+        vocal_path = stem_vocals_path(vocal_id)
+        bed_path = stem_no_vocals_path(bed_id)
+        vocal_path.parent.mkdir(parents=True, exist_ok=True)
+        bed_path.parent.mkdir(parents=True, exist_ok=True)
+        _write_silence_wav(vocal_path, duration_seconds=2.0)
+        _write_silence_wav(bed_path, duration_seconds=2.0)
+
+        try:
+            result = create_section_wav_export(
+                source_vocal_stem_artifact_id=vocal_id,
+                target_instrumental_stem_artifact_id=bed_id,
+                mash_intent="vocal_a_over_beat_b",
+                duration_seconds=5,
+                start_seconds=30.0,
+                confirm_advisory_section_export=True,
+                confirm_start_from_artifact_beginning=True,
+                arrangement_context=VALID_ARRANGEMENT_CONTEXT,
+                neutral_processing=True,
+                confirm_neutral_settings=True,
+            )
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status, "validation_error")
+            self.assertIn("beyond the available", result.message)
+        finally:
+            shutil.rmtree(vocal_path.parent, ignore_errors=True)
+            shutil.rmtree(bed_path.parent, ignore_errors=True)
+
     def test_out_of_range_instrumental_tempo_ratio_rejected(self) -> None:
         result = create_section_wav_export(
             source_vocal_stem_artifact_id="stemvocal001",

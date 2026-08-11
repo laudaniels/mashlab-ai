@@ -347,6 +347,34 @@ def process_combined_preview(
             setup_guidance=f"Missing: {', '.join(missing)}.",
         )
 
+    # Stem preview artifacts only cover a bounded window of the source track
+    # (see demucs_processing.DEFAULT_MAX_PREVIEW_SECONDS). An arrangement
+    # section start point computed against the full track can fall beyond
+    # that window — ffmpeg's -ss then seeks past EOF and silently produces
+    # an empty clip (ok=True, near-zero-byte output) instead of an error.
+    vocal_duration, _, _ = probe_wav_metadata(vocal_path)
+    bed_duration, _, _ = probe_wav_metadata(bed_path)
+    if vocal_duration is not None and preview_start_seconds >= vocal_duration:
+        return CombinedPreviewFailure(
+            ok=False,
+            status="validation_error",
+            message=(
+                f"Requested start time ({preview_start_seconds:.1f}s) is beyond the available "
+                f"vocal stem preview audio ({vocal_duration:.1f}s)."
+            ),
+            setup_guidance="Re-run stem preview with a longer window, or choose an earlier section/start point.",
+        )
+    if bed_duration is not None and preview_start_seconds >= bed_duration:
+        return CombinedPreviewFailure(
+            ok=False,
+            status="validation_error",
+            message=(
+                f"Requested start time ({preview_start_seconds:.1f}s) is beyond the available "
+                f"instrumental stem preview audio ({bed_duration:.1f}s)."
+            ),
+            setup_guidance="Re-run stem preview with a longer window, or choose an earlier section/start point.",
+        )
+
     rubberband = find_rubberband_binary()
     if rubberband is None:
         capability = get_capability("rubberband")

@@ -180,6 +180,31 @@ class CombinedPreviewProcessingTests(unittest.TestCase):
             shutil.rmtree(vocal_path.parent, ignore_errors=True)
             shutil.rmtree(bed_path.parent, ignore_errors=True)
 
+    def test_start_beyond_stem_duration_rejected_instead_of_empty_output(self) -> None:
+        vocal_id = "shortvocal0001"
+        bed_id = "shortbed000001"
+        vocal_path = stem_vocals_path(vocal_id)
+        bed_path = stem_no_vocals_path(bed_id)
+        vocal_path.parent.mkdir(parents=True, exist_ok=True)
+        bed_path.parent.mkdir(parents=True, exist_ok=True)
+        _write_silence_wav(vocal_path, duration_seconds=2.0)
+        _write_silence_wav(bed_path, duration_seconds=2.0)
+
+        try:
+            result = process_combined_preview(
+                mash_intent="vocal_a_over_beat_b",
+                source_vocal_artifact_id=vocal_id,
+                target_instrumental_artifact_id=bed_id,
+                neutral_processing=True,
+                preview_start_seconds=30.0,
+            )
+            self.assertFalse(result.ok)
+            self.assertEqual(result.status, "validation_error")
+            self.assertIn("beyond the available", result.message)
+        finally:
+            shutil.rmtree(vocal_path.parent, ignore_errors=True)
+            shutil.rmtree(bed_path.parent, ignore_errors=True)
+
     def test_artifact_id_validation(self) -> None:
         self.assertTrue(is_valid_artifact_id("abc123"))
         self.assertFalse(is_valid_artifact_id("../escape"))

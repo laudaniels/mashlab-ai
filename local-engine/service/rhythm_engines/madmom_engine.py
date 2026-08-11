@@ -17,6 +17,24 @@ from rhythm_engines.base import (
 ENGINE_ID = "madmom"
 
 
+def _ensure_legacy_numpy_aliases() -> None:
+    """madmom's compiled Cython extensions look up np.int/np.float/etc. at runtime.
+    numpy>=1.24 removed those aliases (they were always == the builtin), so restore
+    them here rather than patching the shipped .so files."""
+    import numpy as np
+
+    for name, builtin in (
+        ("int", int),
+        ("float", float),
+        ("bool", bool),
+        ("object", object),
+        ("str", str),
+        ("complex", complex),
+    ):
+        if not hasattr(np, name):
+            setattr(np, name, builtin)
+
+
 def check_status() -> EngineStatus:
     importable, version = module_importable("madmom")
     if importable:
@@ -42,15 +60,17 @@ def analyze(file_path: Path, phrase_length_bars: int) -> RhythmEngineOutput | No
     if not importable:
         return None
 
+    _ensure_legacy_numpy_aliases()
+
     try:
-        from madmom.features.downbeats import DBNDownBeatProcessor, DBNDownBeatTracker
+        from madmom.features.downbeats import DBNDownBeatTrackingProcessor, RNNDownBeatProcessor
     except Exception:
         return None
 
     try:
-        processor = DBNDownBeatProcessor(fps=100)
+        processor = RNNDownBeatProcessor()
         activations = processor(str(file_path))
-        tracker = DBNDownBeatTracker(beat_per_bar=[4, 4], fps=100)
+        tracker = DBNDownBeatTrackingProcessor(beats_per_bar=[4], fps=100)
         beat_positions = tracker(activations)
 
         if beat_positions is None or len(beat_positions) == 0:

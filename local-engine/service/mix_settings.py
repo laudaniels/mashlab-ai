@@ -201,10 +201,11 @@ def build_mix_filter_complex(
 
     parts = [bed_chain, vocal_chain]
     if mix_settings.instrumental_duck_under_vocal:
+        parts.append("[voc]asplit=2[voc1][voc2]")
         parts.append(
-            "[bed][voc]sidechaincompress=threshold=0.02:ratio=2.5:attack=20:release=300[ducked_bed]"
+            "[bed][voc1]sidechaincompress=threshold=0.02:ratio=2.5:attack=20:release=300[ducked_bed]"
         )
-        parts.append("[ducked_bed][voc]amix=inputs=2:duration=shortest:normalize=0[mix]")
+        parts.append("[ducked_bed][voc2]amix=inputs=2:duration=shortest:normalize=0[mix]")
     else:
         parts.append("[bed][voc]amix=inputs=2:duration=shortest:normalize=0[mix]")
     current_label = "[mix]"

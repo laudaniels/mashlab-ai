@@ -15,6 +15,12 @@ from rhythm_engines.base import (
 
 ENGINE_ID = "essentia"
 
+# RhythmExtractor2013's "multifeature" method returns a raw confidence score
+# on a documented [0, 5.32] scale, not a [0, 1] probability like the other
+# engines in this service — normalize so downstream consumers can treat
+# confidence uniformly as a 0-1 ratio.
+_ESSENTIA_MULTIFEATURE_MAX_CONFIDENCE = 5.32
+
 
 def check_status() -> EngineStatus:
     importable, version = module_importable("essentia")
@@ -43,7 +49,6 @@ def analyze(file_path: Path, phrase_length_bars: int) -> RhythmEngineOutput | No
 
     try:
         import essentia.standard as es  # type: ignore[import-untyped]
-        import numpy as np
     except Exception:
         return None
 
@@ -61,8 +66,9 @@ def analyze(file_path: Path, phrase_length_bars: int) -> RhythmEngineOutput | No
             return None
 
         confidence: float | None = None
-        if len(beat_confidences) > 0:
-            confidence = round(float(np.mean(beat_confidences)), 4)
+        if beat_confidences:
+            normalized = float(beat_confidences) / _ESSENTIA_MULTIFEATURE_MAX_CONFIDENCE
+            confidence = round(min(1.0, max(0.0, normalized)), 4)
 
         phrase_starts = phrase_starts_from_beats(beat_times, phrase_length_bars)
         basis: PhraseBasis = "heuristic_from_beats" if phrase_starts else "unavailable"

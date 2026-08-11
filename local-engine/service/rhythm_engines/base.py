@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -63,6 +64,10 @@ class RhythmEngineOutput:
 
 
 def module_importable(module_name: str) -> tuple[bool, str | None]:
+    if module_name in sys.modules:
+        module = sys.modules[module_name]
+        version = getattr(module, "__version__", None)
+        return True, str(version) if version is not None else None
     spec = importlib.util.find_spec(module_name)
     if spec is None:
         return False, None
@@ -70,10 +75,15 @@ def module_importable(module_name: str) -> tuple[bool, str | None]:
         module = importlib.util.module_from_spec(spec)
         if spec.loader is None:
             return False, None
+        # Register before exec so self-referencing imports inside the module
+        # (e.g. essentia's __init__.py) resolve the same way a normal
+        # `import module_name` would.
+        sys.modules[module_name] = module
         spec.loader.exec_module(module)
         version = getattr(module, "__version__", None)
         return True, str(version) if version is not None else None
     except Exception:
+        sys.modules.pop(module_name, None)
         return False, None
 
 

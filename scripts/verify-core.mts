@@ -2726,6 +2726,21 @@ describe("End-to-end workflow QA hardening", async () => {
     assert.match(items[0]!.message, /without FFmpeg/i);
   });
 
+  it("reports WSL advanced rhythm as available once the sidecar reports madmom or Essentia", () => {
+    const withoutAdvancedEngines = buildDependencyHealth(true, []);
+    const wslMissing = withoutAdvancedEngines.find((item) => item.id === "wsl_rhythm");
+    assert.equal(wslMissing?.status, "optional");
+    assert.match(wslMissing!.setupGuidance ?? "", /setup-rhythm-linux\.sh/);
+
+    const withMadmom = buildDependencyHealth(true, [
+      { id: "madmom", label: "madmom", status: "available", message: "madmom is importable.", version: null },
+    ]);
+    const wslMadmom = withMadmom.find((item) => item.id === "wsl_rhythm");
+    assert.equal(wslMadmom?.status, "available");
+    assert.match(wslMadmom!.message, /madmom/i);
+    assert.equal(wslMadmom?.setupGuidance, null);
+  });
+
   it("formats actionable user-facing errors", () => {
     const message = formatUserFacingError({
       status: "missing_artifact",

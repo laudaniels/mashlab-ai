@@ -54,7 +54,7 @@ export function buildDependencyHealth(
         setupGuidance: "Install FFmpeg and add ffmpeg + ffprobe to PATH. Run npm run check:local-engine.",
         requirementTier: "processing",
       },
-      mapWslRhythmItem(),
+      mapWslRhythmItem(capabilities),
     ];
   }
 
@@ -78,7 +78,7 @@ export function buildDependencyHealth(
     mapDemucsItem(demucs, torch),
     mapOptionalPackage(librosa, "librosa", "librosa BPM/key analysis"),
     mapOptionalPackage(findCapability(capabilities, "essentia"), "essentia", "Essentia (optional rhythm)"),
-    mapWslRhythmItem(),
+    mapWslRhythmItem(capabilities),
   ];
 }
 
@@ -247,13 +247,32 @@ function mapOptionalPackage(
   };
 }
 
-function mapWslRhythmItem(): DependencyHealthItem {
+function mapWslRhythmItem(capabilities: ServiceCapability[] = []): DependencyHealthItem {
+  const madmomOk = findCapability(capabilities, "madmom")?.status === "available";
+  const essentiaOk = findCapability(capabilities, "essentia")?.status === "available";
+
+  if (madmomOk || essentiaOk) {
+    return {
+      id: "wsl_rhythm",
+      label: "WSL advanced rhythm",
+      status: "available",
+      message:
+        madmomOk && essentiaOk
+          ? "madmom and Essentia are available — verified downbeat/phrase analysis unlocked."
+          : madmomOk
+            ? "madmom is available — verified downbeat analysis unlocked."
+            : "Essentia is available — beat extraction unlocked (no verified downbeats).",
+      setupGuidance: null,
+      requirementTier: "wsl_optional",
+    };
+  }
+
   return {
     id: "wsl_rhythm",
     label: "WSL advanced rhythm",
     status: "optional",
     message: "Optional — madmom/Essentia verified downbeats only. Heuristic phrase planning remains default.",
-    setupGuidance: "npm run sidecar:wsl:check — see docs/WSL_RHYTHM_ENGINE_SETUP.md",
+    setupGuidance: "bash scripts/setup-rhythm-linux.sh — see docs/WSL_RHYTHM_ENGINE_SETUP.md",
     requirementTier: "wsl_optional",
   };
 }

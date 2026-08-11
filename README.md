@@ -168,6 +168,8 @@ npm run check:python-service:test
 
 ### Optional WSL/Linux rhythm profile (not required for Windows MVP)
 
+From PowerShell on Windows:
+
 ```powershell
 npm run sidecar:wsl:check      # detect WSL, print guidance
 npm run sidecar:wsl:setup      # bootstrap .venv-rhythm in WSL (when installed)
@@ -175,6 +177,15 @@ npm run sidecar:wsl            # start sidecar in WSL
 npm run sidecar:wsl:selftest   # rhythm self-test harness (non-strict)
 ```
 
-See `docs/WSL_RHYTHM_ENGINE_SETUP.md`.
+From inside WSL/Linux directly (recommended — `sidecar:wsl:setup` shells out to `powershell.exe`, which gets confused when already run from inside WSL):
+
+```bash
+bash scripts/setup-rhythm-linux.sh    # bootstrap .venv-rhythm: base deps, madmom, Essentia, Demucs/PyTorch
+bash scripts/run-sidecar-linux.sh     # start sidecar using .venv-rhythm (full capability)
+```
+
+`setup-rhythm-linux.sh` also auto-patches madmom's known incompatibilities with modern Python/numpy (it hasn't had a real release since 2018) and installs Demucs/PyTorch into the same venv, so `run-sidecar-linux.sh` gets stem preview and verified downbeat/phrase analysis together.
+
+See `docs/WSL_RHYTHM_ENGINE_SETUP.md` for the full fresh-machine setup walkthrough (clone → system packages → venvs → verify) and what the auto-patches fix.
 
 **Environment note:** Python and FFmpeg may not be on the default Windows PATH. See **`docs/WINDOWS_RUNTIME_SETUP.md`**, `docs/QA_WORKFLOW_CHECKLIST.md`, and `docs/LOCAL_ENGINE_SERVICE.md`. If `check:local-engine` or `setup:windows:check` reports FFmpeg/ffprobe missing, install FFmpeg, add its bin folder to PATH, and rerun — the browser MVP still works without FFmpeg.

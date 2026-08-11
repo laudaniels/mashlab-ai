@@ -1,4 +1,4 @@
-import { AlertTriangle, Gauge, Music2, TimerReset } from "lucide-react";
+import { AlertTriangle, Gauge, Music2, RotateCcw, Target, TimerReset } from "lucide-react";
 import {
   buildPitchTimePlanFromArtifacts,
   formatPitchShiftSummary,
@@ -9,7 +9,7 @@ import {
   PLANNING_ONLY_NOTICE,
 } from "../domain/pitchTimePlanning.ts";
 import type { SessionArtifactStore } from "../domain/sessionArtifacts.ts";
-import { formatPlanningSource } from "../domain/trackOverrides.ts";
+import { formatPlanningSource, parseBpmOverride } from "../domain/trackOverrides.ts";
 import { rubberBandCapabilitySummary } from "../lib/localEngine/capabilities.ts";
 import { useLocalEngineStatus } from "../hooks/useLocalEngineStatus.ts";
 import type { TrackState } from "../domain/types.ts";
@@ -20,6 +20,8 @@ interface PitchTimePlanPanelProps {
   intent: MashIntent;
   onIntentChange: (intent: MashIntent) => void;
   tracks: TrackState[];
+  customTargetBpm: number | null;
+  onCustomTargetBpmChange: (value: number | null) => void;
 }
 
 const INTENT_OPTIONS: Array<{ id: MashIntent; label: string }> = [
@@ -33,6 +35,8 @@ export function PitchTimePlanPanel({
   intent,
   onIntentChange,
   tracks,
+  customTargetBpm,
+  onCustomTargetBpmChange,
 }: PitchTimePlanPanelProps) {
   const { status: localStatus } = useLocalEngineStatus();
   const rubberBand = rubberBandCapabilitySummary(localStatus.capabilities);
@@ -42,6 +46,7 @@ export function PitchTimePlanPanel({
   const plan = buildPitchTimePlanFromArtifacts({
     artifactStore,
     intent,
+    customTargetBpm,
     rubberBandStatus,
     rubberBandMessage,
   });
@@ -92,6 +97,39 @@ export function PitchTimePlanPanel({
         <span className="pitch-time-intent-note">{intentLabel(intent)} · use stem preview for vocal/instrumental split</span>
       </div>
 
+      <div className="pitch-time-target-bpm-row">
+        <label className="pitch-time-intent-label" htmlFor="custom-target-bpm">
+          <Target aria-hidden="true" size={16} />
+          Custom target BPM
+        </label>
+        <input
+          id="custom-target-bpm"
+          inputMode="decimal"
+          onChange={(event) => {
+            const raw = event.currentTarget.value;
+            onCustomTargetBpmChange(raw.trim() ? parseBpmOverride(raw) : null);
+          }}
+          placeholder="e.g. 124 (optional)"
+          type="text"
+          value={customTargetBpm !== null ? String(customTargetBpm) : ""}
+        />
+        {customTargetBpm !== null ? (
+          <button
+            className="ghost-button"
+            onClick={() => onCustomTargetBpmChange(null)}
+            type="button"
+          >
+            <RotateCcw aria-hidden="true" size={14} />
+            Clear
+          </button>
+        ) : null}
+        <span className="pitch-time-intent-note">
+          {customTargetBpm !== null
+            ? `Both tracks stretch toward ${customTargetBpm} BPM instead of locking to the instrumental. DJ review required.`
+            : "Optional — leave blank to lock the target tempo to the instrumental's BPM (default)."}
+        </span>
+      </div>
+
       <p className="pitch-time-rubberband-note">{plan.rubberBandMessage}</p>
 
       <div className="pitch-time-direction-grid">
@@ -107,7 +145,9 @@ export function PitchTimePlanPanel({
                 </div>
                 <p className="planning-detail-value">{direction.tempoPlanSummary}</p>
                 <p className="planning-detail-note">
-                  Ratio {direction.tempoStretchRatio ?? "—"} · BPM source: {formatPlanningSource(direction.bpmSource)}
+                  Vocal ratio {direction.tempoStretchRatio ?? "—"} · Instrumental ratio{" "}
+                  {direction.instrumentalTempoStretchRatio ?? "—"} · BPM source:{" "}
+                  {formatPlanningSource(direction.bpmSource)}
                 </p>
               </div>
 
@@ -136,6 +176,13 @@ export function PitchTimePlanPanel({
               <div className="planning-warning">
                 <AlertTriangle aria-hidden="true" size={18} />
                 <span>{direction.safeRangeWarning}</span>
+              </div>
+            ) : null}
+
+            {direction.tempoRatioWarning ? (
+              <div className="planning-warning">
+                <AlertTriangle aria-hidden="true" size={18} />
+                <span>{direction.tempoRatioWarning}</span>
               </div>
             ) : null}
           </article>

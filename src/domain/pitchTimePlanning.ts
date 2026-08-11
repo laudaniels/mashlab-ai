@@ -19,6 +19,12 @@ export const PLANNING_ONLY_NOTICE =
 const SAFE_PITCH_SHIFT_SEMITONES = 4;
 const WARN_PITCH_SHIFT_SEMITONES = 6;
 
+// Mirrors MIN_TEMPO_RATIO/MAX_TEMPO_RATIO in local-engine/service/rubber_band_processing.py —
+// surface the same bound client-side so the UI can warn before a preview/export request is
+// sent and rejected by the sidecar.
+export const MIN_TEMPO_RATIO = 0.5;
+export const MAX_TEMPO_RATIO = 2.0;
+
 export interface TrackPlanningInput {
   slotId: SlotId;
   label: string;
@@ -35,11 +41,16 @@ export interface PitchTimeDirectionPlan {
   instrumentalTrackLabel: string;
   sourceBpm: number | null;
   targetBpm: number | null;
+  customTargetBpm: number | null;
   bpmDifference: number | null;
   tempoStretchRatio: number | null;
   tempoStretchPercent: number | null;
   tempoDirection: TempoDirection;
+  instrumentalTempoStretchRatio: number | null;
+  instrumentalTempoStretchPercent: number | null;
+  instrumentalTempoDirection: TempoDirection;
   tempoPlanSummary: string;
+  tempoRatioWarning: string | null;
   sourceKeyLabel: string;
   targetKeyLabel: string;
   sourceCamelot: string | null;
@@ -106,6 +117,7 @@ export function buildPitchTimePlan(params: {
   trackA: TrackPlanningInput;
   trackB: TrackPlanningInput;
   intent: MashIntent;
+  customTargetBpm?: number | null;
   rubberBandStatus?: RubberBandReadiness;
   rubberBandMessage?: string;
 }): PitchTimePlanModel {
@@ -119,6 +131,7 @@ export function buildPitchTimePlan(params: {
       vocal: pair.vocal,
       instrumental: pair.instrumental,
       intentLabel: pair.intentLabel,
+      customTargetBpm: params.customTargetBpm ?? null,
     })
   );
 
@@ -148,6 +161,7 @@ export function buildPitchTimePlan(params: {
 export function buildPitchTimePlanFromArtifacts(params: {
   artifactStore: SessionArtifactStore;
   intent: MashIntent;
+  customTargetBpm?: number | null;
   rubberBandStatus?: RubberBandReadiness;
   rubberBandMessage?: string;
 }): PitchTimePlanModel | null {
@@ -159,6 +173,7 @@ export function buildPitchTimePlanFromArtifacts(params: {
     trackA: buildTrackPlanningInput(params.artifactStore, "trackA", "Track A"),
     trackB: buildTrackPlanningInput(params.artifactStore, "trackB", "Track B"),
     intent: params.intent,
+    customTargetBpm: params.customTargetBpm,
     rubberBandStatus: params.rubberBandStatus,
     rubberBandMessage: params.rubberBandMessage,
   });
@@ -212,6 +227,35 @@ export function resolveTempoDirection(ratio: number | null): TempoDirection {
   }
 
   return ratio > 1 ? "speed_up" : "slow_down";
+}
+
+export function tempoRatioOutOfRange(ratio: number | null): boolean {
+  if (ratio === null || !Number.isFinite(ratio)) {
+    return false;
+  }
+
+  return ratio < MIN_TEMPO_RATIO || ratio > MAX_TEMPO_RATIO;
+}
+
+export function buildTempoRatioWarning(params: {
+  vocalLabel: string;
+  instrumentalLabel: string;
+  vocalRatio: number | null;
+  instrumentalRatio: number | null;
+}): string | null {
+  const vocalOutOfRange = tempoRatioOutOfRange(params.vocalRatio);
+  const instrumentalOutOfRange = tempoRatioOutOfRange(params.instrumentalRatio);
+
+  if (!vocalOutOfRange && !instrumentalOutOfRange) {
+    return null;
+  }
+
+  const offenders = [
+    vocalOutOfRange ? params.vocalLabel : null,
+    instrumentalOutOfRange ? params.instrumentalLabel : null,
+  ].filter((label): label is string => label !== null);
+
+  return `${offenders.join(" and ")} would need a tempo stretch ratio outside the supported ${MIN_TEMPO_RATIO}–${MAX_TEMPO_RATIO}x range for this target BPM. Choose a target closer to both tracks' native BPM.`;
 }
 
 export function buildSafeRangeWarning(semitones: number | null): string | null {
@@ -297,10 +341,19 @@ function buildDirectionPlan(params: {
   vocal: TrackPlanningInput;
   instrumental: TrackPlanningInput;
   intentLabel: string;
+  customTargetBpm: number | null;
 }): PitchTimeDirectionPlan {
-  const ratio = computeTempoStretchRatio(params.vocal.bpm, params.instrumental.bpm);
+  const customTargetBpm = params.customTargetBpm !== null && params.customTargetBpm > 0 ? params.customTargetBpm : null;
+  const targetBpm = customTargetBpm ?? params.instrumental.bpm;
+
+  const ratio = computeTempoStretchRatio(params.vocal.bpm, targetBpm);
   const percent = computeTempoStretchPercent(ratio);
   const direction = resolveTempoDirection(ratio);
+
+  const instrumentalRatio = computeTempoStretchRatio(params.instrumental.bpm, targetBpm);
+  const instrumentalPercent = computeTempoStretchPercent(instrumentalRatio);
+  const instrumentalDirection = resolveTempoDirection(instrumentalRatio);
+
   const bpmDifference =
     params.vocal.bpm !== null && params.instrumental.bpm !== null
       ? roundRatio(Math.abs(params.vocal.bpm - params.instrumental.bpm))
@@ -316,28 +369,38 @@ function buildDirectionPlan(params: {
     instrumentalShift
   );
   const safeRangeWarning = buildSafeRangeWarning(vocalShift);
+  const tempoRatioWarning = buildTempoRatioWarning({
+    vocalLabel: params.vocal.label,
+    instrumentalLabel: params.instrumental.label,
+    vocalRatio: ratio,
+    instrumentalRatio,
+  });
 
   const formantPreservationNote =
     vocalShift !== null && vocalShift !== 0
       ? "Recommend Rubber Band formant preservation for vocal pitch shifts to reduce chipmunk/boomy artifacts. Not applied in this phase."
       : "Formant preservation is most important when vocal pitch shift is non-zero. Not applicable for this plan.";
 
+  // Default (no custom target): vocal moves toward the instrumental's own BPM, as before.
+  // Custom target set: both tracks move toward the custom BPM value instead.
+  const targetLabel = customTargetBpm !== null ? `${customTargetBpm} BPM target` : params.instrumental.label;
+
   return {
     intentLabel: params.intentLabel,
     vocalTrackLabel: params.vocal.label,
     instrumentalTrackLabel: params.instrumental.label,
     sourceBpm: params.vocal.bpm,
-    targetBpm: params.instrumental.bpm,
+    targetBpm,
+    customTargetBpm,
     bpmDifference,
     tempoStretchRatio: ratio,
     tempoStretchPercent: percent,
     tempoDirection: direction,
-    tempoPlanSummary: formatTempoPlanSummary(
-      params.vocal.label,
-      params.instrumental.label,
-      percent,
-      direction
-    ),
+    instrumentalTempoStretchRatio: instrumentalRatio,
+    instrumentalTempoStretchPercent: instrumentalPercent,
+    instrumentalTempoDirection: instrumentalDirection,
+    tempoPlanSummary: formatTempoPlanSummary(params.vocal.label, targetLabel, percent, direction),
+    tempoRatioWarning,
     sourceKeyLabel: formatKeyLabel(params.vocal.keyProfile),
     targetKeyLabel: formatKeyLabel(params.instrumental.keyProfile),
     sourceCamelot: params.vocal.keyProfile.camelot,
@@ -345,11 +408,11 @@ function buildDirectionPlan(params: {
     suggestedPitchShiftSemitones: vocalShift,
     safeRangeWarning,
     formantPreservationNote,
-    vocalAdjustmentNote:
-      ratio !== null
-        ? `${params.vocal.label}: apply tempo stretch ratio ${ratio.toFixed(3)} toward ${params.instrumental.label} BPM when processing exists.`
-        : `${params.vocal.label}: tempo adjustment unavailable.`,
-    instrumentalAdjustmentNote: `${params.instrumental.label}: keep as tempo/key anchor unless DJ chooses otherwise.`,
+    vocalAdjustmentNote: formatTrackStretchNote(params.vocal.label, ratio, targetLabel),
+    instrumentalAdjustmentNote:
+      instrumentalDirection === "none"
+        ? `${params.instrumental.label}: keep as tempo/key anchor unless DJ chooses otherwise.`
+        : formatTrackStretchNote(params.instrumental.label, instrumentalRatio, targetLabel),
     bpmSource: mergeSources(params.vocal.bpmSource, params.instrumental.bpmSource),
     keySource: mergeSources(params.vocal.keySource, params.instrumental.keySource),
     camelotSource: mergeSources(params.vocal.camelotSource, params.instrumental.camelotSource),
@@ -359,6 +422,12 @@ function buildDirectionPlan(params: {
     ],
     djReviewRequired: true,
   };
+}
+
+function formatTrackStretchNote(label: string, ratio: number | null, targetLabel: string): string {
+  return ratio !== null
+    ? `${label}: apply tempo stretch ratio ${ratio.toFixed(3)} toward ${targetLabel} when processing exists.`
+    : `${label}: tempo adjustment unavailable.`;
 }
 
 function mergeSources(a: PlanningValueSource, b: PlanningValueSource): PlanningValueSource {

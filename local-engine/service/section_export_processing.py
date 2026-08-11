@@ -39,6 +39,7 @@ from rubber_band_processing import (
     build_rubberband_command,
     find_rubberband_binary,
     probe_wav_metadata,
+    resolve_tempo_ratio,
 )
 
 import config
@@ -78,6 +79,7 @@ class SectionExportInputSummary:
     duration_seconds: float
     start_seconds_unavailable: bool
     tempo_ratio: float | None
+    instrumental_tempo_ratio: float | None
     pitch_shift_semitones: float
     alignment_offset_ms: float
     mix_settings: MixSettings
@@ -224,6 +226,7 @@ def create_section_wav_export(
     target_instrumental_stem_artifact_id: str,
     mash_intent: str,
     tempo_ratio: float | None = None,
+    instrumental_tempo_ratio: float | None = None,
     source_bpm: float | None = None,
     target_bpm: float | None = None,
     pitch_shift_semitones: float = 0.0,
@@ -292,6 +295,13 @@ def create_section_wav_export(
         )
     )
 
+    resolved_instrumental_ratio = 1.0
+    if instrumental_tempo_ratio is not None:
+        resolved_instrumental_ratio, instrumental_ratio_errors = resolve_tempo_ratio(
+            instrumental_tempo_ratio, None, None
+        )
+        validation_errors = validation_errors + instrumental_ratio_errors
+
     if validation_errors:
         return SectionWavExportFailure(
             ok=False,
@@ -359,6 +369,7 @@ def create_section_wav_export(
 
     effective_pitch = 0.0 if neutral_processing else pitch_shift_semitones
     effective_ratio = 1.0 if neutral_processing else resolved_ratio
+    effective_instrumental_ratio = 1.0 if neutral_processing else resolved_instrumental_ratio
 
     export_id = uuid.uuid4().hex
     export_dir = _resolve_under(EXPORTS_DIR, export_id)
@@ -375,6 +386,7 @@ def create_section_wav_export(
     vocal_trim = config.TEMP_DIR / f"section-vocal-trim-{export_id}.wav"
     vocal_processed = config.TEMP_DIR / f"section-vocal-rb-{export_id}.wav"
     bed_trim = config.TEMP_DIR / f"section-bed-trim-{export_id}.wav"
+    bed_processed = config.TEMP_DIR / f"section-bed-rb-{export_id}.wav"
     mixed_path = config.TEMP_DIR / f"section-mix-{export_id}.wav"
     export_path = export_dir / SECTION_EXPORT_FILE_NAME
 
@@ -461,10 +473,35 @@ def create_section_wav_export(
                 setup_guidance=bed_trim_result.stderr.strip() or None,
             )
 
+        bed_mix_input = bed_trim
+        if abs(effective_instrumental_ratio - 1.0) >= 0.005:
+            bed_rb_command = build_rubberband_command(
+                rubberband,
+                bed_trim,
+                bed_processed,
+                tempo_ratio=effective_instrumental_ratio,
+                pitch_shift_semitones=0.0,
+                formant_preservation=False,
+            )
+            bed_rb_result = subprocess.run(
+                bed_rb_command,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if bed_rb_result.returncode != 0:
+                return SectionWavExportFailure(
+                    ok=False,
+                    status="processing_failed",
+                    message="Rubber Band instrumental tempo adjustment failed for section export.",
+                    setup_guidance=bed_rb_result.stderr.strip() or None,
+                )
+            bed_mix_input = bed_processed
+
         mix_result = subprocess.run(
             build_ffmpeg_mix_command(
                 ffmpeg,
-                bed_trim,
+                bed_mix_input,
                 vocal_processed,
                 mixed_path,
                 alignment_offset_ms=alignment_offset_ms,
@@ -514,6 +551,7 @@ def create_section_wav_export(
             "target_instrumental_stem_artifact_id": target_instrumental_stem_artifact_id,
             "mash_intent": mash_intent,
             "tempo_ratio": effective_ratio,
+            "instrumental_tempo_ratio": effective_instrumental_ratio,
             "pitch_shift_semitones": effective_pitch,
             "alignment_offset_ms": alignment_offset_ms,
             "start_seconds_used": effective_start,
@@ -546,6 +584,7 @@ def create_section_wav_export(
             duration_seconds=duration_seconds,
             start_seconds_unavailable=start_seconds_unavailable,
             tempo_ratio=effective_ratio,
+            instrumental_tempo_ratio=effective_instrumental_ratio,
             pitch_shift_semitones=effective_pitch,
             alignment_offset_ms=alignment_offset_ms,
             mix_settings=mix_settings,
@@ -591,7 +630,7 @@ def create_section_wav_export(
             export_label=export_label.strip() if export_label else None,
         )
     finally:
-        for temp in (vocal_trim, vocal_processed, bed_trim, mixed_path):
+        for temp in (vocal_trim, vocal_processed, bed_trim, bed_processed, mixed_path):
             temp.unlink(missing_ok=True)
 
 

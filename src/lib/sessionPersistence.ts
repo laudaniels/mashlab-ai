@@ -26,17 +26,20 @@ export interface PersistedSessionSnapshot {
   version: number;
   sessionId: string;
   mashIntent: MashIntent;
+  customTargetBpm: number | null;
   tracks: Record<SlotId, PersistedTrackSnapshot | null>;
 }
 
 export function serializeSessionSnapshot(params: {
   store: SessionArtifactStore;
   mashIntent: MashIntent;
+  customTargetBpm: number | null;
 }): PersistedSessionSnapshot {
   return {
     version: 1,
     sessionId: params.store.sessionId,
     mashIntent: params.mashIntent,
+    customTargetBpm: params.customTargetBpm,
     tracks: {
       trackA: serializeTrackSnapshot(params.store.tracks.trackA),
       trackB: serializeTrackSnapshot(params.store.tracks.trackB),

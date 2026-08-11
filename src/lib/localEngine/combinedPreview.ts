@@ -110,6 +110,7 @@ function parseProcessingSummary(value: unknown) {
   return {
     method: typeof record.method === "string" ? record.method : "unknown",
     vocalRubberbandRatio: parseNullableNumber(record.vocal_rubberband_ratio),
+    instrumentalRubberbandRatio: parseNullableNumber(record.instrumental_rubberband_ratio),
     pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     maxPreviewSeconds: parseNullableNumber(record.max_preview_seconds) ?? 30,

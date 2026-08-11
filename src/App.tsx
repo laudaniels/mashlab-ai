@@ -135,12 +135,14 @@ function App() {
     createSessionArtifactStore(sessionIdRef.current)
   );
   const [mashIntent, setMashIntent] = useState<MashIntent>("compare_both");
+  const [customTargetBpm, setCustomTargetBpm] = useState<number | null>(null);
   const tracksRef = useRef(tracks);
 
   useEffect(() => {
     const snapshot = loadSessionSnapshot();
     if (snapshot && snapshot.sessionId === sessionIdRef.current) {
       setMashIntent(snapshot.mashIntent);
+      setCustomTargetBpm(snapshot.customTargetBpm ?? null);
       setArtifactStore((current) => {
         const merged = applyPersistedOverrides(current, snapshot);
         return {
@@ -155,8 +157,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    saveSessionSnapshot(serializeSessionSnapshot({ store: artifactStore, mashIntent }));
-  }, [artifactStore, mashIntent]);
+    saveSessionSnapshot(serializeSessionSnapshot({ store: artifactStore, mashIntent, customTargetBpm }));
+  }, [artifactStore, mashIntent, customTargetBpm]);
 
   useEffect(() => {
     tracksRef.current = tracks;
@@ -641,6 +643,8 @@ function App() {
                   intent={mashIntent}
                   onIntentChange={setMashIntent}
                   tracks={readyTracks}
+                  customTargetBpm={customTargetBpm}
+                  onCustomTargetBpmChange={setCustomTargetBpm}
                 />
               </>
             ) : null}
@@ -785,6 +789,8 @@ function App() {
                   intent={mashIntent}
                   onIntentChange={setMashIntent}
                   tracks={readyTracks}
+                  customTargetBpm={customTargetBpm}
+                  onCustomTargetBpmChange={setCustomTargetBpm}
                 />
               </>
             ) : null}
@@ -808,7 +814,11 @@ function App() {
                 onNavigateToScreen={setActiveScreen}
               />
             ) : null}
-            <ExportPrepPanel artifactStore={artifactStore} mashIntent={mashIntent} />
+            <ExportPrepPanel
+              artifactStore={artifactStore}
+              mashIntent={mashIntent}
+              customTargetBpm={customTargetBpm}
+            />
           </section>
         );
       case "rights":

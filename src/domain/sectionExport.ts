@@ -40,6 +40,7 @@ export interface SectionExportRequestParams {
   targetInstrumentalStemArtifactId: string;
   mashIntent: string;
   tempoRatio: number | null;
+  instrumentalTempoRatio: number | null;
   sourceBpm: number | null;
   targetBpm: number | null;
   pitchShiftSemitones: number;
@@ -166,6 +167,7 @@ export function buildSectionExportRequestParams(params: {
     targetInstrumentalStemArtifactId: previewParams.targetInstrumentalArtifactId,
     mashIntent: previewParams.mashIntent,
     tempoRatio: previewParams.tempoRatio,
+    instrumentalTempoRatio: previewParams.instrumentalTempoRatio,
     sourceBpm: previewParams.sourceBpm,
     targetBpm: previewParams.targetBpm,
     pitchShiftSemitones: previewParams.pitchShiftSemitones,

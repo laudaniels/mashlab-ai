@@ -49,6 +49,7 @@ class PitchTimePlanRequest(BaseModel):
     intent: MashIntent = "compare_both"
     track_a: TrackPlanInput
     track_b: TrackPlanInput
+    custom_target_bpm: float | None = None
 
 
 class PitchTimeDirectionPlan(BaseModel):
@@ -57,10 +58,14 @@ class PitchTimeDirectionPlan(BaseModel):
     instrumental_track_label: str
     source_bpm: float | None = None
     target_bpm: float | None = None
+    custom_target_bpm: float | None = None
     bpm_difference: float | None = None
     tempo_stretch_ratio: float | None = None
     tempo_stretch_percent: float | None = None
     tempo_direction: TempoDirection = "unknown"
+    instrumental_tempo_stretch_ratio: float | None = None
+    instrumental_tempo_stretch_percent: float | None = None
+    instrumental_tempo_direction: TempoDirection = "unknown"
     tempo_plan_summary: str
     suggested_pitch_shift_semitones: float | None = None
     safe_range_warning: str | None = None
@@ -180,26 +185,45 @@ def _suggest_vocal_shift(instrumental: TrackPlanInput, vocal: TrackPlanInput) ->
     return float(shift)
 
 
-def _format_tempo_summary(vocal: TrackPlanInput, instrumental: TrackPlanInput, percent: float | None, direction: TempoDirection) -> str:
+def _format_tempo_summary(vocal_label: str, target_label: str, percent: float | None, direction: TempoDirection) -> str:
     if percent is None or direction == "unknown":
         return (
-            f"{vocal.label} tempo adjustment toward {instrumental.label} is unavailable "
+            f"{vocal_label} tempo adjustment toward {target_label} is unavailable "
             "until BPM exists for both tracks."
         )
     if direction == "none":
-        return f"{vocal.label} tempo is already close to {instrumental.label}."
+        return f"{vocal_label} tempo is already close to {target_label}."
     sign = "+" if percent > 0 else ""
     verb = "speed up" if direction == "speed_up" else "slow down"
     return (
-        f"{vocal.label} would need {sign}{percent:.1f}% tempo adjustment ({verb}) "
-        f"to sit over {instrumental.label}. Planning only."
+        f"{vocal_label} would need {sign}{percent:.1f}% tempo adjustment ({verb}) "
+        f"to sit over {target_label}. Planning only."
     )
 
 
-def _build_direction(vocal: TrackPlanInput, instrumental: TrackPlanInput, intent_label: str) -> PitchTimeDirectionPlan:
-    ratio = compute_tempo_stretch_ratio(vocal.bpm, instrumental.bpm)
+def _format_track_stretch_note(label: str, ratio: float | None, target_label: str) -> str:
+    if ratio is None:
+        return f"{label}: tempo adjustment unavailable."
+    return f"{label}: apply tempo stretch ratio {ratio:.3f} toward {target_label} when processing exists."
+
+
+def _build_direction(
+    vocal: TrackPlanInput,
+    instrumental: TrackPlanInput,
+    intent_label: str,
+    custom_target_bpm: float | None = None,
+) -> PitchTimeDirectionPlan:
+    effective_custom_target = custom_target_bpm if custom_target_bpm and custom_target_bpm > 0 else None
+    target_bpm = effective_custom_target if effective_custom_target is not None else instrumental.bpm
+
+    ratio = compute_tempo_stretch_ratio(vocal.bpm, target_bpm)
     percent = compute_tempo_stretch_percent(ratio)
     direction = resolve_tempo_direction(ratio)
+
+    instrumental_ratio = compute_tempo_stretch_ratio(instrumental.bpm, target_bpm)
+    instrumental_percent = compute_tempo_stretch_percent(instrumental_ratio)
+    instrumental_direction = resolve_tempo_direction(instrumental_ratio)
+
     vocal_shift = _suggest_vocal_shift(instrumental, vocal)
     bpm_difference = None
     if vocal.bpm is not None and instrumental.bpm is not None:
@@ -211,26 +235,32 @@ def _build_direction(vocal: TrackPlanInput, instrumental: TrackPlanInput, intent
         else "Formant preservation matters when vocal pitch shift is non-zero."
     )
 
+    target_label = f"{effective_custom_target} BPM target" if effective_custom_target is not None else instrumental.label
+
     return PitchTimeDirectionPlan(
         intent_label=intent_label,
         vocal_track_label=vocal.label,
         instrumental_track_label=instrumental.label,
         source_bpm=vocal.bpm,
-        target_bpm=instrumental.bpm,
+        target_bpm=target_bpm,
+        custom_target_bpm=effective_custom_target,
         bpm_difference=bpm_difference,
         tempo_stretch_ratio=ratio,
         tempo_stretch_percent=percent,
         tempo_direction=direction,
-        tempo_plan_summary=_format_tempo_summary(vocal, instrumental, percent, direction),
+        instrumental_tempo_stretch_ratio=instrumental_ratio,
+        instrumental_tempo_stretch_percent=instrumental_percent,
+        instrumental_tempo_direction=instrumental_direction,
+        tempo_plan_summary=_format_tempo_summary(vocal.label, target_label, percent, direction),
         suggested_pitch_shift_semitones=vocal_shift,
         safe_range_warning=build_safe_range_warning(vocal_shift),
         formant_preservation_note=formant_note,
-        vocal_adjustment_note=(
-            f"{vocal.label}: apply tempo stretch ratio {ratio:.3f} toward {instrumental.label} BPM when processing exists."
-            if ratio is not None
-            else f"{vocal.label}: tempo adjustment unavailable."
+        vocal_adjustment_note=_format_track_stretch_note(vocal.label, ratio, target_label),
+        instrumental_adjustment_note=(
+            f"{instrumental.label}: keep as tempo/key anchor unless DJ chooses otherwise."
+            if instrumental_direction == "none"
+            else _format_track_stretch_note(instrumental.label, instrumental_ratio, target_label)
         ),
-        instrumental_adjustment_note=f"{instrumental.label}: keep as tempo/key anchor unless DJ chooses otherwise.",
         limitations=[
             "Planning assumption: full track treated as vocal/instrumental role.",
             PLANNING_ONLY_NOTICE,
@@ -250,7 +280,10 @@ def build_pitch_time_plan(request: PitchTimePlanRequest) -> PitchTimePlanResult:
             ("Vocal B over Beat A", request.track_b, request.track_a),
         ]
 
-    directions = [_build_direction(vocal, instrumental, label) for label, vocal, instrumental in pairs]
+    directions = [
+        _build_direction(vocal, instrumental, label, request.custom_target_bpm)
+        for label, vocal, instrumental in pairs
+    ]
 
     return PitchTimePlanResult(
         intent=request.intent,

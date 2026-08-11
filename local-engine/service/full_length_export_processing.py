@@ -37,6 +37,7 @@ from rubber_band_processing import (
     build_rubberband_command,
     find_rubberband_binary,
     probe_wav_metadata,
+    resolve_tempo_ratio,
 )
 from artifact_management import analyze_technical_readout, _resolve_under
 
@@ -55,6 +56,7 @@ NORMALIZE_MODES = frozenset({"normalize_preview", "normalize_preview_copy", "nor
 class FullExportProcessingSummary:
     method: str
     vocal_rubberband_ratio: float | None
+    instrumental_rubberband_ratio: float | None
     pitch_shift_semitones: float
     alignment_offset_ms: float
     full_length: bool
@@ -71,6 +73,7 @@ class FullExportInputSummary:
     source_vocal_stem_artifact_id: str
     target_instrumental_stem_artifact_id: str
     tempo_ratio: float | None
+    instrumental_tempo_ratio: float | None
     pitch_shift_semitones: float
     alignment_offset_ms: float
     neutral_processing: bool
@@ -130,6 +133,7 @@ def create_full_wav_export(
     target_instrumental_stem_artifact_id: str,
     mash_intent: str,
     tempo_ratio: float | None = None,
+    instrumental_tempo_ratio: float | None = None,
     source_bpm: float | None = None,
     target_bpm: float | None = None,
     pitch_shift_semitones: float = 0.0,
@@ -218,6 +222,13 @@ def create_full_wav_export(
         neutral_processing=neutral_processing,
     )
 
+    resolved_instrumental_ratio = 1.0
+    if instrumental_tempo_ratio is not None:
+        resolved_instrumental_ratio, instrumental_ratio_errors = resolve_tempo_ratio(
+            instrumental_tempo_ratio, None, None
+        )
+        validation_errors = validation_errors + instrumental_ratio_errors
+
     if validation_errors:
         return FullWavExportFailure(
             ok=False,
@@ -264,6 +275,7 @@ def create_full_wav_export(
 
     effective_pitch = 0.0 if neutral_processing else pitch_shift_semitones
     effective_ratio = 1.0 if neutral_processing else resolved_ratio
+    effective_instrumental_ratio = 1.0 if neutral_processing else resolved_instrumental_ratio
 
     export_id = uuid.uuid4().hex
     export_dir = _resolve_under(EXPORTS_DIR, export_id)
@@ -278,6 +290,7 @@ def create_full_wav_export(
     config.TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
     vocal_processed = config.TEMP_DIR / f"full-export-vocal-rb-{export_id}.wav"
+    bed_processed = config.TEMP_DIR / f"full-export-bed-rb-{export_id}.wav"
     mixed_path = config.TEMP_DIR / f"full-export-mix-{export_id}.wav"
     export_path = export_dir / EXPORT_FILE_NAME
 
@@ -326,9 +339,35 @@ def create_full_wav_export(
                 setup_guidance=rb_result.stderr.strip() or None,
             )
 
+        bed_mix_input = bed_path
+        if abs(effective_instrumental_ratio - 1.0) >= 0.005:
+            bed_rb_command = build_rubberband_command(
+                rubberband,
+                bed_path,
+                bed_processed,
+                tempo_ratio=effective_instrumental_ratio,
+                pitch_shift_semitones=0.0,
+                formant_preservation=False,
+            )
+            bed_rb_result = subprocess.run(
+                bed_rb_command,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if bed_rb_result.returncode != 0:
+                return FullWavExportFailure(
+                    ok=False,
+                    status="processing_failed",
+                    message="Rubber Band instrumental tempo adjustment failed for full-length export.",
+                    setup_guidance=bed_rb_result.stderr.strip() or None,
+                )
+            bed_mix_input = bed_processed
+            bed_duration, _, _ = probe_wav_metadata(bed_processed)
+
         mix_command = build_ffmpeg_full_mix_command(
             ffmpeg,
-            bed_path,
+            bed_mix_input,
             vocal_processed,
             mixed_path,
             alignment_offset_ms=alignment_offset_ms,
@@ -396,6 +435,7 @@ def create_full_wav_export(
             "target_instrumental_stem_artifact_id": target_instrumental_stem_artifact_id,
             "mash_intent": mash_intent,
             "tempo_ratio": effective_ratio,
+            "instrumental_tempo_ratio": effective_instrumental_ratio,
             "pitch_shift_semitones": effective_pitch,
             "alignment_offset_ms": alignment_offset_ms,
             "neutral_processing": neutral_processing,
@@ -443,6 +483,7 @@ def create_full_wav_export(
                 source_vocal_stem_artifact_id=source_vocal_stem_artifact_id,
                 target_instrumental_stem_artifact_id=target_instrumental_stem_artifact_id,
                 tempo_ratio=effective_ratio,
+                instrumental_tempo_ratio=effective_instrumental_ratio,
                 pitch_shift_semitones=effective_pitch,
                 alignment_offset_ms=alignment_offset_ms,
                 neutral_processing=neutral_processing,
@@ -451,6 +492,7 @@ def create_full_wav_export(
             processing_summary=FullExportProcessingSummary(
                 method="rubberband-vocal + ffmpeg-full-mix",
                 vocal_rubberband_ratio=effective_ratio,
+                instrumental_rubberband_ratio=effective_instrumental_ratio,
                 pitch_shift_semitones=effective_pitch,
                 alignment_offset_ms=alignment_offset_ms,
                 full_length=max_test_seconds is None,
@@ -475,7 +517,7 @@ def create_full_wav_export(
             export_label=export_label.strip() if export_label else None,
         )
     finally:
-        for temp_path in (vocal_processed, mixed_path):
+        for temp_path in (vocal_processed, bed_processed, mixed_path):
             temp_path.unlink(missing_ok=True)
 
 

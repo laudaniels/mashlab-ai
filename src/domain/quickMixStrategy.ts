@@ -53,6 +53,7 @@ export function buildQuickMixTimingStrategy(params: {
       instrumentalTrackLabel: "Beat source",
       sourceBpm: params.vocalBpm,
       targetBpm: params.beatBpm,
+      customTargetBpm: null,
       bpmDifference:
         params.vocalBpm !== null && params.beatBpm !== null
           ? Math.abs(params.vocalBpm - params.beatBpm)
@@ -60,12 +61,16 @@ export function buildQuickMixTimingStrategy(params: {
       tempoStretchRatio: ratio,
       tempoStretchPercent: percent,
       tempoDirection: direction,
+      instrumentalTempoStretchRatio: 1.0,
+      instrumentalTempoStretchPercent: 0,
+      instrumentalTempoDirection: "none",
       tempoPlanSummary: formatTempoPlanSummary(
         "Vocal source",
         "Beat source",
         percent,
         direction
       ),
+      tempoRatioWarning: null,
       sourceKeyLabel: "Unknown",
       targetKeyLabel: "Unknown",
       sourceCamelot: null,
@@ -149,6 +154,7 @@ export function buildQuickMixTimingStrategyFromBrain(params: {
       instrumentalTrackLabel: "Beat source",
       sourceBpm: params.vocalBpm,
       targetBpm: params.beatBpm,
+      customTargetBpm: null,
       bpmDifference:
         params.vocalBpm !== null && params.beatBpm !== null
           ? Math.abs(params.vocalBpm - params.beatBpm)
@@ -156,9 +162,13 @@ export function buildQuickMixTimingStrategyFromBrain(params: {
       tempoStretchRatio: ratio,
       tempoStretchPercent: percent,
       tempoDirection: direction,
+      instrumentalTempoStretchRatio: 1.0,
+      instrumentalTempoStretchPercent: 0,
+      instrumentalTempoDirection: "none",
       tempoPlanSummary:
         params.planSummary?.tempo_label ??
         formatTempoPlanSummary("Vocal source", "Beat source", percent, direction),
+      tempoRatioWarning: null,
       sourceKeyLabel: params.planSummary?.key_label ?? "Unknown",
       targetKeyLabel: params.planSummary?.key_label ?? "Unknown",
       sourceCamelot: null,
@@ -185,11 +195,16 @@ function buildNeutralQuickMixDirection(): PitchTimeDirectionPlan {
     instrumentalTrackLabel: "Beat source",
     sourceBpm: null,
     targetBpm: null,
+    customTargetBpm: null,
     bpmDifference: null,
     tempoStretchRatio: null,
     tempoStretchPercent: null,
     tempoDirection: "unknown",
+    instrumentalTempoStretchRatio: null,
+    instrumentalTempoStretchPercent: null,
+    instrumentalTempoDirection: "unknown",
     tempoPlanSummary: QUICK_MIX_NEUTRAL_TIMING_NOTICE,
+    tempoRatioWarning: null,
     sourceKeyLabel: "Unknown",
     targetKeyLabel: "Unknown",
     sourceCamelot: null,

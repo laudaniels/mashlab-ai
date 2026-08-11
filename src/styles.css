@@ -1937,6 +1937,25 @@ audio {
   font-size: 13px;
 }
 
+.pitch-time-target-bpm-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.pitch-time-target-bpm-row input {
+  padding: 10px 12px;
+  border: 1px solid rgba(132, 146, 176, 0.22);
+  border-radius: 8px;
+  background: #151b26;
+  color: #ffffff;
+}
+
+.pitch-time-target-bpm-row .pitch-time-intent-note {
+  grid-column: 1 / -1;
+}
+
 .pitch-time-direction-grid {
   display: grid;
   gap: 14px;

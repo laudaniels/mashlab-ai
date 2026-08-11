@@ -282,6 +282,7 @@ class CombinedPreviewRequest(BaseModel):
     source_vocal_artifact_id: str = Field(min_length=1)
     target_instrumental_artifact_id: str = Field(min_length=1)
     tempo_ratio: float | None = None
+    instrumental_tempo_ratio: float | None = None
     source_bpm: float | None = None
     target_bpm: float | None = None
     pitch_shift_semitones: float = 0
@@ -308,6 +309,7 @@ class CombinedPreviewInputSummaryModel(BaseModel):
     source_vocal_artifact_id: str
     target_instrumental_artifact_id: str
     tempo_ratio: float | None = None
+    instrumental_tempo_ratio: float | None = None
     pitch_shift_semitones: float = 0
     alignment_offset_ms: float = 0
     max_preview_seconds: int = 30
@@ -319,6 +321,7 @@ class CombinedPreviewInputSummaryModel(BaseModel):
 class CombinedPreviewProcessingSummaryModel(BaseModel):
     method: str
     vocal_rubberband_ratio: float | None = None
+    instrumental_rubberband_ratio: float | None = None
     pitch_shift_semitones: float = 0
     alignment_offset_ms: float = 0
     max_preview_seconds: int = 30
@@ -573,6 +576,7 @@ class FullExportInputSummaryModel(BaseModel):
     source_vocal_stem_artifact_id: str
     target_instrumental_stem_artifact_id: str
     tempo_ratio: float | None = None
+    instrumental_tempo_ratio: float | None = None
     pitch_shift_semitones: float
     alignment_offset_ms: float
     neutral_processing: bool
@@ -582,6 +586,7 @@ class FullExportInputSummaryModel(BaseModel):
 class FullExportProcessingSummaryModel(BaseModel):
     method: str
     vocal_rubberband_ratio: float | None = None
+    instrumental_rubberband_ratio: float | None = None
     pitch_shift_semitones: float
     alignment_offset_ms: float
     full_length: bool
@@ -606,6 +611,7 @@ class FullWavExportRequest(BaseModel):
     target_instrumental_stem_artifact_id: str
     mash_intent: str
     tempo_ratio: float | None = None
+    instrumental_tempo_ratio: float | None = None
     source_bpm: float | None = None
     target_bpm: float | None = None
     pitch_shift_semitones: float = 0.0
@@ -662,6 +668,7 @@ class SectionExportInputSummaryModel(BaseModel):
     duration_seconds: float
     start_seconds_unavailable: bool
     tempo_ratio: float | None = None
+    instrumental_tempo_ratio: float | None = None
     pitch_shift_semitones: float
     alignment_offset_ms: float
     mix_settings: MixSettingsModel | None = None
@@ -687,6 +694,7 @@ class SectionWavExportRequest(BaseModel):
     target_instrumental_stem_artifact_id: str
     mash_intent: str
     tempo_ratio: float | None = None
+    instrumental_tempo_ratio: float | None = None
     source_bpm: float | None = None
     target_bpm: float | None = None
     pitch_shift_semitones: float = 0.0
@@ -796,6 +804,7 @@ class ArrangementWavExportRequest(BaseModel):
     target_instrumental_stem_artifact_id: str
     arrangement_plan: dict
     tempo_ratio: float | None = None
+    instrumental_tempo_ratio: float | None = None
     pitch_shift_semitones: float = 0.0
     alignment_offset_ms: float = 0.0
     export_label: str | None = None

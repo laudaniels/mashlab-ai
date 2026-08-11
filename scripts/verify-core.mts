@@ -855,11 +855,13 @@ describe("MashLab core verification", async () => {
     buildPitchTimePlan,
     buildPitchTimePlanFromArtifacts,
     buildSafeRangeWarning,
+    buildTempoRatioWarning,
     computeTempoStretchPercent,
     computeTempoStretchRatio,
     planClaimsAudioProcessed,
     resolveIntentDirectionPairs,
     resolveTempoDirection,
+    tempoRatioOutOfRange,
     buildTrackPlanningInput,
   } = await importSrc("src/domain/pitchTimePlanning.ts");
   const { rubberBandCapabilitySummary } = await importSrc("src/lib/localEngine/capabilities.ts");
@@ -905,6 +907,77 @@ describe("MashLab core verification", async () => {
     assert.equal(single.directions.length, 1);
     assert.equal(both.directions.length, 2);
     assert.equal(resolveIntentDirectionPairs("vocal_b_over_beat_a", trackA, trackB).length, 1);
+  });
+
+  const buildCustomBpmTrack = (slotId: "trackA" | "trackB", label: string, bpm: number) => ({
+    slotId,
+    label,
+    bpm,
+    bpmSource: "detected" as const,
+    keyProfile: { key: "A", mode: "minor" as const, camelot: "8A", confidence: 0.7, method: "test" },
+    keySource: "detected" as const,
+    camelotSource: "detected" as const,
+  });
+
+  it("keeps the instrumental unstretched by default (no custom target BPM)", () => {
+    const trackA = buildCustomBpmTrack("trackA", "Track A", 120);
+    const trackB = buildCustomBpmTrack("trackB", "Track B", 128);
+    const plan = buildPitchTimePlan({ trackA, trackB, intent: "vocal_a_over_beat_b" });
+    const [direction] = plan.directions;
+    assert.equal(direction.targetBpm, trackB.bpm);
+    assert.equal(direction.customTargetBpm, null);
+    assert.equal(direction.instrumentalTempoStretchRatio, 1.0);
+    assert.equal(direction.instrumentalTempoDirection, "none");
+    assert.match(direction.instrumentalAdjustmentNote, /keep as tempo\/key anchor/i);
+  });
+
+  it("stretches both tracks symmetrically toward a custom target BPM", () => {
+    const trackA = buildCustomBpmTrack("trackA", "Track A", 120);
+    const trackB = buildCustomBpmTrack("trackB", "Track B", 128);
+    const customTargetBpm = 124;
+    const plan = buildPitchTimePlan({
+      trackA,
+      trackB,
+      intent: "vocal_a_over_beat_b",
+      customTargetBpm,
+    });
+    const [direction] = plan.directions;
+
+    assert.equal(direction.targetBpm, customTargetBpm);
+    assert.equal(direction.customTargetBpm, customTargetBpm);
+    assert.equal(direction.tempoStretchRatio, computeTempoStretchRatio(trackA.bpm, customTargetBpm));
+    assert.equal(
+      direction.instrumentalTempoStretchRatio,
+      computeTempoStretchRatio(trackB.bpm, customTargetBpm)
+    );
+    // trackA (120) speeds up toward 124, trackB (128) slows down toward 124 — both move.
+    assert.equal(direction.tempoDirection, "speed_up");
+    assert.equal(direction.instrumentalTempoDirection, "slow_down");
+    assert.match(direction.instrumentalAdjustmentNote, /apply tempo stretch ratio/i);
+    assert.match(direction.instrumentalAdjustmentNote, /124 BPM target/);
+  });
+
+  it("warns when a custom target BPM pushes either track's ratio out of range", () => {
+    assert.equal(tempoRatioOutOfRange(1.0), false);
+    assert.equal(tempoRatioOutOfRange(0.4), true);
+    assert.equal(tempoRatioOutOfRange(2.5), true);
+
+    const inRange = buildTempoRatioWarning({
+      vocalLabel: "Track A",
+      instrumentalLabel: "Track B",
+      vocalRatio: 1.03,
+      instrumentalRatio: 0.97,
+    });
+    assert.equal(inRange, null);
+
+    const outOfRange = buildTempoRatioWarning({
+      vocalLabel: "Track A",
+      instrumentalLabel: "Track B",
+      vocalRatio: 2.4,
+      instrumentalRatio: 0.97,
+    });
+    assert.match(outOfRange ?? "", /Track A/);
+    assert.match(outOfRange ?? "", /supported.*range/i);
   });
 
   it("prefers DJ overrides in pitch/time planning", () => {

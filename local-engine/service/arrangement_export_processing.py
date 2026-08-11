@@ -14,7 +14,12 @@ from combined_preview_processing import stem_no_vocals_path, stem_vocals_path
 from export_processing import EXPORTS_DIR, EXPORT_FILE_NAME, META_FILE_NAME, RIGHTS_NOTICE, read_export_meta
 from full_length_export_processing import FullWavExportFailure, FullWavExportSuccess, create_full_wav_export
 from mix_settings import MixSettings, default_mix_settings, validate_mix_settings
-from rubber_band_processing import build_rubberband_command, find_rubberband_binary, probe_wav_metadata
+from rubber_band_processing import (
+    build_rubberband_command,
+    find_rubberband_binary,
+    probe_wav_metadata,
+    resolve_tempo_ratio,
+)
 
 import config
 
@@ -122,6 +127,7 @@ def create_arrangement_wav_export(
     target_instrumental_stem_artifact_id: str,
     arrangement_plan: dict,
     tempo_ratio: float | None,
+    instrumental_tempo_ratio: float | None = None,
     pitch_shift_semitones: float = 0.0,
     alignment_offset_ms: float = 0.0,
     export_label: str | None = None,
@@ -135,6 +141,20 @@ def create_arrangement_wav_export(
     clipping_guard: bool = False,
     instrumental_duck_under_vocal: bool = False,
 ) -> ArrangementExportResult:
+    resolved_instrumental_ratio = 1.0
+    if instrumental_tempo_ratio is not None:
+        resolved_instrumental_ratio, instrumental_ratio_errors = resolve_tempo_ratio(
+            instrumental_tempo_ratio, None, None
+        )
+        if instrumental_ratio_errors:
+            return ArrangementExportFailure(
+                ok=False,
+                status="validation_error",
+                message="Arrangement export request failed validation.",
+                validation_errors=instrumental_ratio_errors,
+            )
+    effective_instrumental_ratio = 1.0 if neutral_processing else resolved_instrumental_ratio
+
     plan = _parse_plan(arrangement_plan)
     if plan.mode == "clean_blend" or (
         len(plan.sections) == 1 and plan.sections[0].source == "mix"
@@ -144,6 +164,7 @@ def create_arrangement_wav_export(
             target_instrumental_stem_artifact_id=target_instrumental_stem_artifact_id,
             mash_intent="vocal_a_over_beat_b",
             tempo_ratio=tempo_ratio,
+            instrumental_tempo_ratio=instrumental_tempo_ratio,
             pitch_shift_semitones=pitch_shift_semitones,
             alignment_offset_ms=alignment_offset_ms,
             export_label=export_label or "quick-mix-arrangement",
@@ -156,6 +177,21 @@ def create_arrangement_wav_export(
             limiter_safety=limiter_safety,
             clipping_guard=clipping_guard,
             instrumental_duck_under_vocal=instrumental_duck_under_vocal,
+        )
+
+    if abs(effective_instrumental_ratio - 1.0) >= 0.005:
+        return ArrangementExportFailure(
+            ok=False,
+            status="unsupported_request",
+            message=(
+                "A custom target BPM that retimes the instrumental is not yet supported for "
+                "multi-section arrangement exports — section boundaries are anchored to the "
+                "instrumental's original timeline."
+            ),
+            setup_guidance=(
+                "Use the default target BPM for this arrangement, or switch to a Clean Blend / "
+                "full-length export to apply a custom target BPM."
+            ),
         )
 
     vocal_path = stem_vocals_path(source_vocal_stem_artifact_id)

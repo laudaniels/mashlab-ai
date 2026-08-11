@@ -150,12 +150,14 @@ import { formatPhraseBasisSourceLabel } from "../domain/arrangementSectionBindin
 interface ExportPrepPanelProps {
   artifactStore: SessionArtifactStore;
   mashIntent: MashIntent;
+  customTargetBpm: number | null;
   onExportComplete?: () => void;
 }
 
 export function ExportPrepPanel({
   artifactStore,
   mashIntent,
+  customTargetBpm,
   onExportComplete,
 }: ExportPrepPanelProps) {
   const { status: localStatus } = useLocalEngineStatus();
@@ -247,7 +249,8 @@ export function ExportPrepPanel({
     artifactStore,
     mashIntent,
     rubberBandReadinessFromCapabilityStatus(rubberBand.status),
-    rubberBand.message
+    rubberBand.message,
+    customTargetBpm
   );
 
   const sectionBinding = loadSectionPreviewBinding();

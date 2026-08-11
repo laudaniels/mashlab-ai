@@ -41,6 +41,7 @@ export interface FullLengthExportRequestParams {
   targetInstrumentalStemArtifactId: string;
   mashIntent: string;
   tempoRatio: number | null;
+  instrumentalTempoRatio: number | null;
   sourceBpm: number | null;
   targetBpm: number | null;
   pitchShiftSemitones: number;
@@ -65,6 +66,7 @@ export interface LoudnessGateDisplay {
 export interface FullLengthExportProcessingSummary {
   method: string;
   vocalRubberbandRatio: number | null;
+  instrumentalRubberbandRatio: number | null;
   pitchShiftSemitones: number;
   alignmentOffsetMs: number;
   fullLength: boolean;
@@ -235,6 +237,7 @@ export function buildFullLengthExportRequestParams(
     targetInstrumentalStemArtifactId: previewParams.targetInstrumentalArtifactId,
     mashIntent: previewParams.mashIntent,
     tempoRatio: previewParams.tempoRatio,
+    instrumentalTempoRatio: previewParams.instrumentalTempoRatio,
     sourceBpm: previewParams.sourceBpm,
     targetBpm: previewParams.targetBpm,
     pitchShiftSemitones: previewParams.pitchShiftSemitones,
@@ -345,11 +348,13 @@ export function buildPitchTimePlanForExport(
   artifactStore: SessionArtifactStore,
   intent: MashIntent,
   rubberBandStatus: RubberBandReadiness,
-  rubberBandMessage: string
+  rubberBandMessage: string,
+  customTargetBpm: number | null = null
 ) {
   return buildPitchTimePlanFromArtifacts({
     artifactStore,
     intent,
+    customTargetBpm,
     rubberBandStatus,
     rubberBandMessage,
   });

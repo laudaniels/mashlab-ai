@@ -44,6 +44,7 @@ export interface CombinedPreviewRequestParams {
   sourceVocalArtifactId: string;
   targetInstrumentalArtifactId: string;
   tempoRatio: number | null;
+  instrumentalTempoRatio: number | null;
   sourceBpm: number | null;
   targetBpm: number | null;
   pitchShiftSemitones: number;
@@ -59,6 +60,7 @@ export interface CombinedPreviewRequestParams {
 export interface CombinedPreviewProcessingSummary {
   method: string;
   vocalRubberbandRatio: number | null;
+  instrumentalRubberbandRatio: number | null;
   pitchShiftSemitones: number;
   alignmentOffsetMs: number;
   maxPreviewSeconds: number;
@@ -184,6 +186,7 @@ export function buildCombinedPreviewRequestParams(
     sourceVocalArtifactId: context.sourceVocalArtifactId!,
     targetInstrumentalArtifactId: context.targetInstrumentalArtifactId!,
     tempoRatio: useNeutralProcessing ? 1 : direction.tempoStretchRatio,
+    instrumentalTempoRatio: useNeutralProcessing ? 1 : direction.instrumentalTempoStretchRatio,
     sourceBpm: direction.sourceBpm,
     targetBpm: direction.targetBpm,
     pitchShiftSemitones: useNeutralProcessing ? 0 : (direction.suggestedPitchShiftSemitones ?? 0),
@@ -208,6 +211,7 @@ export function serializeCombinedPreviewRequestBody(params: CombinedPreviewReque
     source_vocal_artifact_id: params.sourceVocalArtifactId,
     target_instrumental_artifact_id: params.targetInstrumentalArtifactId,
     tempo_ratio: params.tempoRatio,
+    instrumental_tempo_ratio: params.instrumentalTempoRatio,
     source_bpm: params.sourceBpm,
     target_bpm: params.targetBpm,
     pitch_shift_semitones: params.pitchShiftSemitones,

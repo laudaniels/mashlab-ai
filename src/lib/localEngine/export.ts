@@ -178,6 +178,7 @@ function parseFullProcessingSummary(value: unknown) {
   return {
     method: typeof record.method === "string" ? record.method : "",
     vocalRubberbandRatio: parseNullableNumber(record.vocal_rubberband_ratio),
+    instrumentalRubberbandRatio: parseNullableNumber(record.instrumental_rubberband_ratio),
     pitchShiftSemitones: parseNullableNumber(record.pitch_shift_semitones) ?? 0,
     alignmentOffsetMs: parseNullableNumber(record.alignment_offset_ms) ?? 0,
     fullLength: record.full_length === true,

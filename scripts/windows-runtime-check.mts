@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import {
   ANALYSIS_SETUP_GUIDANCE,
+  findExistingRhythmVenvPython,
   findExistingSidecarVenvPython,
   pythonRuntimeAvailableForSidecar,
   resolvePythonForChecks,
@@ -79,6 +80,10 @@ const pythonAvailable = pythonRuntimeAvailableForSidecar(python.ok, sidecarVenvP
 const librosaOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "librosa") : false;
 const torchOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "torch") : false;
 const demucsOk = pythonForPackages ? await pythonImportAvailable(pythonForPackages, "demucs") : false;
+
+const rhythmVenvPython = findExistingRhythmVenvPython(process.cwd(), existsSync);
+const madmomOk = rhythmVenvPython ? await pythonImportAvailable(rhythmVenvPython, "madmom") : false;
+const essentiaOk = rhythmVenvPython ? await pythonImportAvailable(rhythmVenvPython, "essentia") : false;
 
 const items: WindowsRuntimeCheckItem[] = [
   {
@@ -155,9 +160,20 @@ const items: WindowsRuntimeCheckItem[] = [
     id: "wsl",
     label: "WSL advanced rhythm",
     tier: "wsl_optional",
-    status: "optional_missing",
-    message: "Optional — verified madmom/Essentia lane only. Heuristic phrase planning remains default.",
-    setupGuidance: "npm run sidecar:wsl:check — see docs/WSL_RHYTHM_ENGINE_SETUP.md",
+    status: !rhythmVenvPython ? "optional_missing" : madmomOk || essentiaOk ? "available" : "optional_missing",
+    message: !rhythmVenvPython
+      ? "Optional — verified madmom/Essentia lane only. Heuristic phrase planning remains default."
+      : madmomOk && essentiaOk
+        ? "madmom and Essentia importable in .venv-rhythm — verified downbeat/phrase analysis available."
+        : madmomOk
+          ? "madmom importable in .venv-rhythm (Essentia not importable) — verified downbeat analysis available."
+          : essentiaOk
+            ? "Essentia importable in .venv-rhythm (madmom not importable) — beat extraction available, no verified downbeats."
+            : ".venv-rhythm found but madmom/Essentia are not importable — heuristic phrase planning remains default.",
+    setupGuidance:
+      madmomOk || essentiaOk
+        ? null
+        : "bash scripts/setup-rhythm-linux.sh — see docs/WSL_RHYTHM_ENGINE_SETUP.md",
   },
 ];
 

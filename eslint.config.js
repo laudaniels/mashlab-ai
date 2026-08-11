@@ -3,7 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "build/**", "node_modules", "**/.venv/**"] },
+  { ignores: ["dist", "build/**", "node_modules", "**/.venv/**", "**/.venv-rhythm/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

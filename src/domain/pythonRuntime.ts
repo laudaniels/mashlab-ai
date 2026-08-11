@@ -1,4 +1,4 @@
-import { sidecarVenvPythonCandidates } from "./windowsRuntimeSetup.ts";
+import { rhythmVenvPythonCandidates, sidecarVenvPythonCandidates } from "./windowsRuntimeSetup.ts";
 
 export type PythonResolutionSource = "global" | "venv" | "none";
 
@@ -78,6 +78,13 @@ export function findExistingSidecarVenvPython(
   exists: (path: string) => boolean = () => false
 ): string | null {
   return sidecarVenvPythonCandidates(rootDir).find((candidate) => exists(candidate)) ?? null;
+}
+
+export function findExistingRhythmVenvPython(
+  rootDir: string,
+  exists: (path: string) => boolean = () => false
+): string | null {
+  return rhythmVenvPythonCandidates(rootDir).find((candidate) => exists(candidate)) ?? null;
 }
 
 export function resolvePythonForChecks(input: {

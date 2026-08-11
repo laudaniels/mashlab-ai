@@ -180,6 +180,12 @@ export function resolveSidecarVenvPython(rootDir = "."): string | null {
   return sidecarVenvPythonCandidates(rootDir)[0] ?? null;
 }
 
+/** `.venv-rhythm` (scripts/setup-rhythm-linux.sh) is Linux/WSL-only — bin/python layout only. */
+export function rhythmVenvPythonCandidates(rootDir: string): string[] {
+  const normalizedRoot = rootDir.replace(/\\/g, "/").replace(/\/$/, "");
+  return [`${normalizedRoot}/.venv-rhythm/bin/python`];
+}
+
 export function formatPackageSourceLabel(sidecarVenvPython: string | null): string {
   return sidecarVenvPython ? "sidecar venv" : "default python";
 }

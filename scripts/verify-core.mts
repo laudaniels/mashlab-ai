@@ -4150,6 +4150,7 @@ describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
     formatPackageSourceLabel,
     includesNoPublicSharingLanguage,
     isFirstRunDismissed,
+    rhythmVenvPythonCandidates,
     sidecarVenvPythonCandidates,
   } = await importSrc("src/domain/windowsRuntimeSetup.ts");
   const {
@@ -4261,12 +4262,20 @@ describe("Windows runtime setup and MVP UX (Phase 28)", async () => {
     assert.equal(formatPackageSourceLabel("/venv/python"), "sidecar venv");
     assert.equal(formatPackageSourceLabel(null), "default python");
   });
+
+  it("resolves rhythm venv python candidates (Linux/WSL-only layout)", () => {
+    const candidates = rhythmVenvPythonCandidates("/repo");
+    assert.equal(candidates.length, 1);
+    assert.ok(candidates[0]!.includes(".venv-rhythm/bin/python"));
+    assert.ok(!candidates.some((path) => path.includes("Scripts")));
+  });
 });
 
 describe("Production hardening (Phase 33)", async () => {
   const {
     ANALYSIS_SETUP_GUIDANCE,
     evaluateStrictWindowsRuntimeExit,
+    findExistingRhythmVenvPython,
     formatPythonResolutionLabel,
     pythonRuntimeAvailableForSidecar,
     resolvePythonForChecks,
@@ -4289,6 +4298,14 @@ describe("Production hardening (Phase 33)", async () => {
     assert.equal(resolution.source, "venv");
     assert.match(formatPythonResolutionLabel(resolution), /sidecar venv/i);
     assert.equal(pythonRuntimeAvailableForSidecar(false, resolution.venvPath), true);
+  });
+
+  it("finds the rhythm venv python only when it exists on disk", () => {
+    assert.equal(findExistingRhythmVenvPython("/repo", () => false), null);
+    assert.equal(
+      findExistingRhythmVenvPython("/repo", (path) => path === "/repo/.venv-rhythm/bin/python"),
+      "/repo/.venv-rhythm/bin/python"
+    );
   });
 
   it("strict setup passes with venv python and ffmpeg available", () => {

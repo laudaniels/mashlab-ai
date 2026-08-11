@@ -69,6 +69,7 @@ Warnings include: *MP3 is a reference/export format, not proof of distribution r
 - Target instrumental stem artifact id → `stems/{id}/no_vocals.wav`
 - Mash intent (`vocal_a_over_beat_b` / `vocal_b_over_beat_a`)
 - Tempo ratio, pitch shift semitones, alignment offset ms
+- Optional `instrumental_tempo_ratio` — only present with a custom target BPM (see `docs/PITCH_TIME_PLANNING.md`); default is no bed stretch
 - Optional BPM values from session plan
 - `neutral_processing` + `confirm_neutral_settings` when plan data missing
 - Optional `max_test_seconds` for automated testing only (not default production)
@@ -76,11 +77,12 @@ Warnings include: *MP3 is a reference/export format, not proof of distribution r
 ### Pipeline
 
 1. Rubber Band on full vocal stem (pitch/time)
-2. FFmpeg align + mix with target `no_vocals` stem (no preview duration trim by default)
-3. Optional mix controls (Phase 18): per-track gain, fades, limiter safety, clipping guard — see `docs/MIX_CONTROLS.md`
-4. Optional FFmpeg `loudnorm` when normalize mode selected
-5. ffprobe/FFmpeg technical + loudness readout
-6. Non-blocking loudness gate vs display targets (~ -14 LUFS / -1 dBTP)
+2. Rubber Band on the instrumental stem too, only when `instrumental_tempo_ratio` is set and materially different from 1.0 (custom target BPM)
+3. FFmpeg align + mix with the (possibly retimed) `no_vocals` stem (no preview duration trim by default)
+4. Optional mix controls (Phase 18): per-track gain, fades, limiter safety, clipping guard — see `docs/MIX_CONTROLS.md`
+5. Optional FFmpeg `loudnorm` when normalize mode selected
+6. ffprobe/FFmpeg technical + loudness readout
+7. Non-blocking loudness gate vs display targets (~ -14 LUFS / -1 dBTP)
 
 ### `POST /v1/export/full-wav`
 

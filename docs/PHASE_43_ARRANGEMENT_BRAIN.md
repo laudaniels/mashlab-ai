@@ -33,6 +33,7 @@ Vocal source → Instrumental source → optional section → **Style** → Mix 
 | `arrangement_brain/scoring.py` | 0–100 scoring (phrase alignment, vocal density, energy, harmonic, tempo, section fit, render safety) |
 | `arrangement_brain_processing.py` | Plan API bridge — Remix Brain `pick_best_plan` then arrangement planner |
 | `arrangement_export_processing.py` | Multi-section render + concat; Clean Blend delegates to full WAV export |
+| `arrangement_export_processing.py` — custom target BPM | Clean Blend supports it (delegates to the already-supporting full export). Hook Remix / DJ Edit (multi-section) reject it with `unsupported_request` — section boundaries are anchored to the instrumental's original, unstretched timeline, so retiming the whole bed would silently misalign every section. See `docs/PITCH_TIME_PLANNING.md`. |
 | `POST /v1/plan/arrangement-brain` | Plan from stem artifact IDs + `arrangement_mode` |
 | `POST /v1/export/arrangement-wav` | Render arrangement plan to WAV |
 | `src/domain/arrangementBrain.ts` | Types, style options, output card builder |

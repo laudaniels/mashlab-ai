@@ -7,7 +7,7 @@ Phase 11 is the **first vocal-over-instrumental preview** in MashLab AI / CyphaB
 1. Requires existing **stem preview artifacts** from Phase 10:
    - Source track: `vocals.wav`
    - Target track: `no_vocals.wav`
-2. Applies **Rubber Band** pitch/time adjustment to the vocal stem from the pitch/time plan.
+2. Applies **Rubber Band** pitch/time adjustment to the vocal stem from the pitch/time plan. When a custom target BPM is set (see `docs/PITCH_TIME_PLANNING.md`), the instrumental/bed stem also gets its own Rubber Band pass so both tracks retime toward the same target — otherwise the bed stays at its native tempo, unchanged.
 3. Uses **FFmpeg** to trim, align (optional offset), and mix vocal + bed.
 4. Stores output at `.work/artifacts/combined-preview/{uuid}/preview.wav`.
 5. Returns `audio_processed: true` and **`final_export: false`**.
@@ -48,7 +48,8 @@ JSON body:
 | `mash_intent` | `vocal_a_over_beat_b` or `vocal_b_over_beat_a` |
 | `source_vocal_artifact_id` | Stem preview id for vocal track |
 | `target_instrumental_artifact_id` | Stem preview id for bed track |
-| `tempo_ratio` | Optional planning ratio |
+| `tempo_ratio` | Optional planning ratio for the vocal stem |
+| `instrumental_tempo_ratio` | Optional ratio for the bed stem — only present when a custom target BPM is set; defaults to no stretch (bed stays at native tempo) |
 | `source_bpm` / `target_bpm` | Optional BPM pair |
 | `pitch_shift_semitones` | Vocal pitch shift |
 | `alignment_offset_ms` | Timeline alignment offset |

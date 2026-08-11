@@ -20,6 +20,7 @@ Phase 20 adds the **first arrangement intelligence layer** in MashLab AI / Cypha
 - Not auto-processing — nothing runs until the user clicks preview or export
 - No public sharing, cloud upload, downloader, or streaming integrations
 - No distribution or publishing rights granted
+- Not compatible with a custom target BPM for multi-section templates (Club Edit / Creative Blend) — export is rejected with a clear error rather than silently misaligned; Clean Blend export supports it. See `docs/PITCH_TIME_PLANNING.md`.
 
 Upload audio you own or are authorized to use. MashLab AI helps process and arrange it. Rights to publish or distribute are separate and remain the user's responsibility.
 

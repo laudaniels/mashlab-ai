@@ -59,7 +59,8 @@ Implemented:
 - **Release documentation pass** — `start:local:windows`, librosa validation, manual UI screenshot checklist (Phase 34).
 - **Release packaging** — pinned dependency manifest, MVP checklist, demo ZIP recipe, CI `mvp-checks`, Playwright screenshot script (Phase 35).
 - **Quick Mix default workflow** — two-drop front door, one-click local mix, Advanced Studio secondary (Phase 36).
-- SessionStorage persistence for DJ overrides, mash intent, stem preview artifact refs, and preview registry metadata (no raw audio).
+- **Custom target BPM** — optional DJ-set target tempo for a mashup between (or outside) the two source tracks' native BPMs; both vocal and instrumental stretch symmetrically toward it via Rubber Band in preview, full-length export, and section export. See `docs/PITCH_TIME_PLANNING.md`.
+- SessionStorage persistence for DJ overrides, mash intent, custom target BPM, stem preview artifact refs, and preview registry metadata (no raw audio).
 - Browser-only fallback when the sidecar or optional analysis dependencies are unavailable.
 
 Not implemented yet:

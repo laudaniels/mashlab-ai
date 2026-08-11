@@ -74,9 +74,10 @@ Storage:
 
 1. FFmpeg `-ss` / `-t` trim on both stem artifacts
 2. Rubber Band on trimmed vocal stem
-3. FFmpeg mix with Phase 18 mix settings
-4. Optional `normalize_section` (prototype, clearly labeled)
-5. ffprobe / loudness readout after export
+3. Rubber Band on the trimmed instrumental stem too, only when `instrumental_tempo_ratio` is set and materially different from 1.0 (custom target BPM — see `docs/PITCH_TIME_PLANNING.md`)
+4. FFmpeg mix with Phase 18 mix settings
+5. Optional `normalize_section` (prototype, clearly labeled)
+6. ffprobe / loudness readout after export
 
 If **start seconds unavailable**: export allowed only with user confirmation; labeled *Section start unavailable — exported from artifact start using section duration.*
 

@@ -45,7 +45,7 @@ All mix fields are optional; omitted values default to neutral (0 dB gain, no fa
 
 1. Trim (preview only) + alignment delay per track
 2. Per-track gain + fades
-3. `amix` (normalize=0)
+3. `amix` (`duration=longest`, `normalize=0`) — the mix runs to the end of whichever track is longer; the shorter track just ends and the longer one continues alone. This matters once a custom target BPM independently time-stretches both tracks (see `docs/PITCH_TIME_PLANNING.md`) — one can end up shorter than the other, and the mix should not silently truncate to it.
 4. Optional master trim
 5. Optional `alimiter` (clip guard or limiter safety)
 

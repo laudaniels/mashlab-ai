@@ -49,6 +49,8 @@ Validation:
 
 **Known limitation:** multi-section Arrangement Brain exports (Club Edit / Creative Blend) do not support a custom target BPM — their section boundaries are anchored to the instrumental's original, unstretched timeline, so retiming the whole bed file would silently misalign every section. Requesting a custom target BPM against one of those plans returns a clear `unsupported_request` error rather than a mis-rendered export. Clean Blend arrangement exports (which just delegate to the full-length export path) and the other three processing lanes — combined preview, full-length export, and section window export — all support it fully.
 
+Since vocal and instrumental now stretch independently, they can end up different lengths (e.g. one sped up and shorter, the other slowed down and longer). The final mix always runs to the end of the **longer** of the two (`amix duration=longest` — see `docs/MIX_CONTROLS.md`); the shorter track simply ends and the longer one continues alone. It never silently truncates the export to whichever track happens to be shorter.
+
 ## Mash Intent Selector
 
 Users choose a planning assumption (stem separation is **not** implemented):

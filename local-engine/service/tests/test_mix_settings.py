@@ -78,6 +78,34 @@ class MixSettingsTests(unittest.TestCase):
         self.assertIn("ducked_bed", graph)
         self.assertIn("alimiter=limit=0.794:attack=1:release=50:level=disabled", graph)
 
+    def test_mix_uses_longest_track_not_shortest(self) -> None:
+        # If either track is independently time-stretched to a custom target BPM,
+        # one can end up shorter than the other — the mix must not truncate to
+        # whichever happens to be shorter (regression: previously duration=shortest).
+        graph = build_mix_filter_complex(
+            alignment_offset_ms=0,
+            mix_settings=MixSettings(),
+            max_seconds=None,
+            duration_sec=60.0,
+        )
+        self.assertIn("amix=inputs=2:duration=longest:normalize=0", graph)
+        self.assertNotIn("duration=shortest", graph)
+
+    def test_duck_mix_pads_sidechain_control_to_reach_longest_track(self) -> None:
+        # sidechaincompress truncates its own output to the shorter of its two
+        # inputs unless the control signal (voc1) is padded well past the bed's
+        # length first — otherwise duration=longest on the final amix can never
+        # be reached when ducking is enabled.
+        graph = build_mix_filter_complex(
+            alignment_offset_ms=0,
+            mix_settings=MixSettings(instrumental_duck_under_vocal=True),
+            max_seconds=None,
+            duration_sec=60.0,
+        )
+        self.assertIn("apad=pad_dur=", graph)
+        self.assertIn("amix=inputs=2:duration=longest:normalize=0", graph)
+        self.assertLess(graph.index("apad=pad_dur="), graph.index("sidechaincompress"))
+
     def test_format_mix_summary_includes_flags(self) -> None:
         summary = format_mix_summary(
             MixSettings(vocal_gain_db=1.5, limiter_safety=True, clipping_guard=True)

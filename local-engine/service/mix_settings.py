@@ -202,12 +202,17 @@ def build_mix_filter_complex(
     parts = [bed_chain, vocal_chain]
     if mix_settings.instrumental_duck_under_vocal:
         parts.append("[voc]asplit=2[voc1][voc2]")
+        # sidechaincompress's output is bounded by the shorter of its two inputs — pad
+        # the control signal (voc1) well past any realistic track length so bed's own
+        # length is what determines ducked_bed's length instead, letting the amix
+        # duration=longest below actually reach the longer of bed/vocal.
+        parts.append("[voc1]apad=pad_dur=3600[voc1p]")
         parts.append(
-            "[bed][voc1]sidechaincompress=threshold=0.02:ratio=2.5:attack=20:release=300[ducked_bed]"
+            "[bed][voc1p]sidechaincompress=threshold=0.02:ratio=2.5:attack=20:release=300[ducked_bed]"
         )
-        parts.append("[ducked_bed][voc2]amix=inputs=2:duration=shortest:normalize=0[mix]")
+        parts.append("[ducked_bed][voc2]amix=inputs=2:duration=longest:normalize=0[mix]")
     else:
-        parts.append("[bed][voc]amix=inputs=2:duration=shortest:normalize=0[mix]")
+        parts.append("[bed][voc]amix=inputs=2:duration=longest:normalize=0[mix]")
     current_label = "[mix]"
 
     if abs(mix_settings.master_gain_db) >= 0.01:

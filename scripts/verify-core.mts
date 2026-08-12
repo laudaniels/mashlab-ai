@@ -2197,8 +2197,28 @@ describe("MP3 reference export and export session UX", async () => {
     });
     assert.equal(prefs.lastMp3Bitrate, 256);
     assert.equal(prefs.lastSuccessfulExport?.exportArtifactId, "mp3export001");
-    assert.equal(canReExportWithCurrentSettings(prefs, true, false, false), true);
-    assert.equal(canReExportWithCurrentSettings(prefs, false, false, false), false);
+    assert.equal(canReExportWithCurrentSettings(prefs, ["wavexport001"], [], false), true);
+    assert.equal(canReExportWithCurrentSettings(prefs, [], [], false), false);
+  });
+
+  it("blocks re-export when the remembered source artifact no longer exists, even if other WAV exports do", () => {
+    const prefs = recordSuccessfulExport({
+      mode: "mp3-reference",
+      exportArtifactId: "mp3export002",
+      sourceArtifactId: "wavexport-deleted",
+      exportFormat: "mp3",
+      bitrateKbps: 256,
+      createdAt: "2026-06-23T12:00:00Z",
+    });
+    assert.equal(
+      canReExportWithCurrentSettings(prefs, ["wavexport-deleted"], [], false),
+      true
+    );
+    assert.equal(
+      canReExportWithCurrentSettings(prefs, ["some-other-fresh-wav-export"], [], false),
+      false,
+      "remembered source id is gone even though a different WAV export currently exists"
+    );
   });
 
   it("cleanup validation accepts MP3 export artifact ids safely", () => {

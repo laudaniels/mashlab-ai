@@ -346,11 +346,6 @@ export function ExportPrepPanel({
   const sectionExportReady = isSectionExportReady(sectionReadinessItems);
 
   const refreshSources = useCallback(async () => {
-    if (!localStatus.online) {
-      setCombinedPreviews([]);
-      return;
-    }
-
     const registry = loadPreviewArtifactRegistry();
     const listed = await localEngineClient.listArtifacts(registry);
     setCombinedPreviews(listed.filter(isCombinedPreviewArtifact));
@@ -385,7 +380,7 @@ export function ExportPrepPanel({
     } else {
       setSelectedWavExportId("");
     }
-  }, [localStatus.online]);
+  }, []);
 
   useEffect(() => {
     const prefs = loadExportSessionPreferences();
@@ -414,8 +409,8 @@ export function ExportPrepPanel({
   const selectedPresetDef = getMasteringPresetDefinition(masteringPreset);
   const canReExport = canReExportWithCurrentSettings(
     sessionPrefs,
-    wavExports.length > 0,
-    hasCombined,
+    wavExports.map((item) => item.artifactId),
+    combinedPreviews.map((item) => item.artifactId),
     hasStemSource
   );
 

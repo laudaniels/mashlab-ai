@@ -87,8 +87,8 @@ export function recordSuccessfulExport(entry: LastSuccessfulExport): ExportSessi
 
 export function canReExportWithCurrentSettings(
   preferences: ExportSessionPreferences,
-  hasWavExports: boolean,
-  hasCombinedPreview: boolean,
+  wavExportArtifactIds: readonly string[],
+  combinedPreviewArtifactIds: readonly string[],
   hasStemSource: boolean
 ): boolean {
   const last = preferences.lastSuccessfulExport;
@@ -98,9 +98,9 @@ export function canReExportWithCurrentSettings(
 
   switch (last.mode) {
     case "mp3-reference":
-      return hasWavExports && Boolean(last.sourceArtifactId);
+      return Boolean(last.sourceArtifactId) && wavExportArtifactIds.includes(last.sourceArtifactId!);
     case "preview-wav":
-      return hasCombinedPreview && Boolean(last.sourceArtifactId);
+      return Boolean(last.sourceArtifactId) && combinedPreviewArtifactIds.includes(last.sourceArtifactId!);
     case "full-wav":
       return hasStemSource;
     default:

@@ -4,7 +4,7 @@ import { execFile, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { findExistingSidecarVenvPython } from "../src/domain/pythonRuntime.ts";
+import { findSidecarLaunchPython } from "../src/domain/pythonRuntime.ts";
 import {
   evaluateSidecarStatus,
   formatSidecarLifecycleMessage,
@@ -31,7 +31,8 @@ const command = process.argv[2] ?? "status";
 const rootDir = process.cwd();
 const statusPath = join(rootDir, SIDECAR_STATUS_RELATIVE_PATH);
 const serviceDir = join(rootDir, "local-engine/service");
-const venvPython = findExistingSidecarVenvPython(rootDir, existsSync);
+const launchPython = findSidecarLaunchPython(rootDir, existsSync);
+const venvPython = launchPython?.path ?? null;
 
 async function fetchHealth(): Promise<SidecarHealthPayload | null> {
   try {
@@ -225,7 +226,11 @@ async function runStart(): Promise<number> {
   }
 
   console.log(formatSidecarLifecycleMessage("starting"));
-  console.log(`Using ${venvPython}`);
+  console.log(
+    launchPython?.source === "rhythm_venv"
+      ? `Using ${venvPython} (.venv-rhythm — madmom/Essentia verified rhythm available)`
+      : `Using ${venvPython}`
+  );
 
   const child = spawn(
     venvPython,

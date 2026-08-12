@@ -140,7 +140,7 @@ Manual workflow: `.github/workflows/rhythm-linux-validation.yml`
 | Issue | Action |
 |-------|--------|
 | WSL not installed | Use Windows path; run `npm run sidecar:wsl:check` |
-| Sidecar unreachable | Start with `npm run sidecar:wsl` or `run-sidecar-linux.sh` |
+| Sidecar unreachable (e.g. after `wsl --shutdown` or a reboot) | Nothing auto-starts the sidecar across a WSL restart — start it again with `npm run sidecar:start` (auto-picks `.venv-rhythm` when present), `npm run sidecar:wsl`, or `run-sidecar-linux.sh` |
 | madmom install fails | Heuristic fallback still works; check build-essential, Cython |
 | heuristic `missing_dependency` | `pip install -r requirements-analysis.txt` in venv |
 | Verified label missing | Expected without madmom — install on Linux/WSL |
@@ -169,7 +169,7 @@ cd ../..
 bash scripts/setup-rhythm-linux.sh
 ```
 
-`npm run sidecar:start` always uses `local-engine/service/.venv` (see `src/domain/windowsRuntimeSetup.ts`'s `sidecarVenvPythonCandidates`) — it never looks at `.venv-rhythm`. So to actually get verified madmom/Essentia and stem preview together at runtime, start the sidecar with the WSL-specific launcher instead, which uses `.venv-rhythm`:
+`npm run sidecar:start` (`scripts/sidecar-lifecycle.mts`, via `findSidecarLaunchPython` in `src/domain/pythonRuntime.ts`) prefers `.venv-rhythm` whenever it exists, falling back to the default `local-engine/service/.venv` otherwise. So once `scripts/setup-rhythm-linux.sh` has been run, the ordinary `npm run sidecar:start` — the same command you'd run after any WSL restart — picks up verified madmom/Essentia and stem preview automatically; no need to remember a WSL-specific launcher. The WSL-specific scripts below still work and are equivalent:
 
 ```bash
 bash scripts/run-sidecar-linux.sh

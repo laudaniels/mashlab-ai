@@ -4364,6 +4364,7 @@ describe("Production hardening (Phase 33)", async () => {
     ANALYSIS_SETUP_GUIDANCE,
     evaluateStrictWindowsRuntimeExit,
     findExistingRhythmVenvPython,
+    findSidecarLaunchPython,
     formatPythonResolutionLabel,
     pythonRuntimeAvailableForSidecar,
     resolvePythonForChecks,
@@ -4394,6 +4395,27 @@ describe("Production hardening (Phase 33)", async () => {
       findExistingRhythmVenvPython("/repo", (path) => path === "/repo/.venv-rhythm/bin/python"),
       "/repo/.venv-rhythm/bin/python"
     );
+  });
+
+  it("prefers the rhythm venv over the default sidecar venv for sidecar launch, so npm run sidecar:start doesn't silently drop Essentia/madmom", () => {
+    assert.equal(findSidecarLaunchPython("/repo", () => false), null);
+
+    const sidecarOnly = findSidecarLaunchPython(
+      "/repo",
+      (path) => path === "/repo/local-engine/service/.venv/bin/python"
+    );
+    assert.deepEqual(sidecarOnly, {
+      path: "/repo/local-engine/service/.venv/bin/python",
+      source: "sidecar_venv",
+    });
+
+    const bothVenvsPresent = findSidecarLaunchPython(
+      "/repo",
+      (path) =>
+        path === "/repo/local-engine/service/.venv/bin/python" ||
+        path === "/repo/.venv-rhythm/bin/python"
+    );
+    assert.deepEqual(bothVenvsPresent, { path: "/repo/.venv-rhythm/bin/python", source: "rhythm_venv" });
   });
 
   it("strict setup passes with venv python and ffmpeg available", () => {

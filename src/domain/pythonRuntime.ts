@@ -87,6 +87,31 @@ export function findExistingRhythmVenvPython(
   return rhythmVenvPythonCandidates(rootDir).find((candidate) => exists(candidate)) ?? null;
 }
 
+export type SidecarLaunchPythonSource = "rhythm_venv" | "sidecar_venv";
+
+export interface SidecarLaunchPython {
+  path: string;
+  source: SidecarLaunchPythonSource;
+}
+
+/**
+ * `.venv-rhythm` (scripts/setup-rhythm-linux.sh) installs everything the default
+ * `local-engine/service/.venv` has plus madmom/Essentia/Demucs, so when both exist
+ * prefer it — otherwise `npm run sidecar:start` silently launches the venv without
+ * verified rhythm engines even right after they were installed (e.g. after a WSL restart).
+ */
+export function findSidecarLaunchPython(
+  rootDir: string,
+  exists: (path: string) => boolean = () => false
+): SidecarLaunchPython | null {
+  const rhythmVenvPython = findExistingRhythmVenvPython(rootDir, exists);
+  if (rhythmVenvPython) {
+    return { path: rhythmVenvPython, source: "rhythm_venv" };
+  }
+  const sidecarVenvPython = findExistingSidecarVenvPython(rootDir, exists);
+  return sidecarVenvPython ? { path: sidecarVenvPython, source: "sidecar_venv" } : null;
+}
+
 export function resolvePythonForChecks(input: {
   globalPythonAvailable: boolean;
   venvPythonPath: string | null;
